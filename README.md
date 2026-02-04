@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Money Tracker (Free MVP)
 
-## Getting Started
+A simple web app for manual money tracking (income + expenses) with a clean monthly view — built to replace a personal Excel sheet.
 
-First, run the development server:
+## Status
+
+✅ **Task 1 complete** — project bootstrapped with Next.js (App Router), Tailwind, design tokens (light/dark), fonts, and placeholder routes/layouts.
+
+## What it will do (Free MVP scope)
+
+- Sign in with Google (NextAuth)
+- One-time setup on first login:
+  - choose your base currency (common currencies supported)
+  - create default income/expense categories
+- Add, edit, and delete transactions (manual entry)
+  - income/expense type
+  - amount
+  - date (`YYYY-MM-DD`)
+  - category
+  - source (where the money came from / payment detail)
+  - note (optional)
+- Monthly dashboard:
+  - total income
+  - total expenses
+  - net left (income − expenses)
+- Transactions list with filters (month/type/category)
+- Categories management with archive/unarchive
+- Export a month to CSV
+
+## Tech stack
+
+- Next.js (App Router) + React + TypeScript
+- Tailwind CSS (design tokens + light/dark mode)
+- PostgreSQL + Prisma
+- NextAuth (Google OAuth)
+
+## Design system
+
+The UI follows `docs/DESIGN_SYSTEM.md`:
+
+- Token-based colors (no random hex colors in components)
+- Light + dark mode (`dark` class strategy)
+- Inter for UI text, JetBrains Mono for numbers
+
+## Project docs (important)
+
+- `AGENTS.md` — agent/developer guardrails (scope, rules, folder structure)
+- `docs/MVP_SPEC.md` — what the MVP must do
+- `docs/TECH_DECISIONS.md` — locked technical decisions
+- `docs/TASKS.md` — step-by-step build plan
+- `docs/DESIGN_SYSTEM.md` — colors, typography, spacing
+
+## Getting started (local dev)
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
