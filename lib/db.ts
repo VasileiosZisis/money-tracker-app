@@ -1,5 +1,11 @@
-/**
- * Task 1 placeholder.
- * Replaced by a Prisma singleton in Task 2.
- */
-export const db = null;
+import { PrismaClient } from "@prisma/client";
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
+
+export const db = globalForPrisma.prisma ?? new PrismaClient();
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = db;
+}

@@ -4,7 +4,8 @@ A simple web app for manual money tracking (income + expenses) with a clean mont
 
 ## Status
 
-✅ **Task 1 complete** — project bootstrapped with Next.js (App Router), Tailwind, design tokens (light/dark), fonts, and placeholder routes/layouts.
+✅ **Task 1 complete** — Next.js (App Router) bootstrapped with Tailwind, design tokens (light/dark), fonts, and placeholder routes/layouts.  
+✅ **Task 2 complete** — Prisma + PostgreSQL schema set up (including NextAuth models + MVP domain models).
 
 ## What it will do (Free MVP scope)
 
@@ -51,6 +52,8 @@ The UI follows `docs/DESIGN_SYSTEM.md`:
 - `docs/DESIGN_SYSTEM.md` — colors, typography, spacing
 
 ## Getting started (local dev)
+
+### Install
 
 ```bash
 npm install
