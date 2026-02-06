@@ -106,7 +106,7 @@ app/
 (auth)/login/page.tsx
 (auth)/\_components/...
 (app)/layout.tsx
-(app)/setup/page.tsx
+app/(onboarding)/setup/page.tsx
 (app)/dashboard/page.tsx
 (app)/transactions/page.tsx
 (app)/categories/page.tsx

@@ -1,19 +1,35 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import SignOutButton from "@/components/auth/SignOutButton";
+import { getUserIdOrThrow } from "@/lib/auth/session";
+import { db } from "@/lib/db";
 
 const navItems = [
-  { href: "/setup", label: "Setup" },
   { href: "/dashboard", label: "Dashboard" },
   { href: "/transactions", label: "Transactions" },
   { href: "/categories", label: "Categories" },
   { href: "/export", label: "Export" },
 ];
 
-export default function AppLayout({
+export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const userId = await getUserIdOrThrow();
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { hasCompletedSetup: true },
+  });
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  if (!user.hasCompletedSetup) {
+    redirect("/setup");
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-surface">
