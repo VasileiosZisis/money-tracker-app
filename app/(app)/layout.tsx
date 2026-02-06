@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SignOutButton from "@/components/auth/SignOutButton";
 
 const navItems = [
   { href: "/setup", label: "Setup" },
@@ -30,6 +31,7 @@ export default function AppLayout({
                 {item.label}
               </Link>
             ))}
+            <SignOutButton />
           </nav>
         </div>
       </header>
