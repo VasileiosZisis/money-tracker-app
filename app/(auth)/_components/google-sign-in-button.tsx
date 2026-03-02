@@ -11,7 +11,7 @@ export function GoogleSignInButton() {
     <button
       type="button"
       onClick={handleSignIn}
-      className="mt-6 w-full rounded-input bg-primary px-4 py-3 text-body-base font-semibold text-surface transition-colors hover:bg-primary-hover"
+      className="mt-6 w-full cursor-pointer rounded-input bg-primary px-4 py-3 text-body-base font-semibold text-surface transition-colors hover:bg-primary-hover"
     >
       Continue with Google
     </button>

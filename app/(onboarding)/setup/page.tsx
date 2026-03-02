@@ -113,7 +113,7 @@ export default async function SetupPage() {
 
         <button
           type="submit"
-          className="w-full rounded-input bg-primary px-4 py-3 text-body-base font-semibold text-surface transition-colors hover:bg-primary-hover"
+          className="w-full cursor-pointer rounded-input bg-primary px-4 py-3 text-body-base font-semibold text-surface transition-colors hover:bg-primary-hover"
         >
           Finish setup
         </button>

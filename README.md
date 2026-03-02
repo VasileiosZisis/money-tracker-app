@@ -8,6 +8,7 @@ A web app for manual money tracking (income and expenses) with a monthly view, b
 - Task 2 complete: Prisma + PostgreSQL schema (NextAuth models + MVP domain models).
 - Task 3 complete: NextAuth Google OAuth, protected routes with middleware, typed session user id.
 - Task 4 complete: mandatory setup flow with onboarding route group, setup actions, validators, and setup enforcement redirects.
+- Task 5 complete: Categories CRUD (create, rename, archive/unarchive), user-scoped server actions, validation, and active/archived UI sections.
 
 ## Current behavior
 

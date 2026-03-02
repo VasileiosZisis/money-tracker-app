@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 @config "../tailwind.config.ts";
 
 :root {
@@ -36,5 +36,18 @@
 
   body {
     @apply bg-background font-sans text-text-primary antialiased;
+  }
+
+  button,
+  [role='button'],
+  input[type='button'],
+  input[type='submit'],
+  input[type='reset'] {
+    cursor: pointer !important;
+  }
+
+  button:disabled,
+  input:disabled {
+    cursor: not-allowed !important;
   }
 }
