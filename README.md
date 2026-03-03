@@ -9,6 +9,9 @@ A web app for manual money tracking (income and expenses) with a monthly view, b
 - Task 3 complete: NextAuth Google OAuth, protected routes with middleware, typed session user id.
 - Task 4 complete: mandatory setup flow with onboarding route group, setup actions, validators, and setup enforcement redirects.
 - Task 5 complete: Categories CRUD (create, rename, archive/unarchive), user-scoped server actions, validation, and active/archived UI sections.
+- Task 6 complete: Transactions CRUD + list + filters, user-scoped server actions, strict transaction validation, and archived-category-safe edit behavior.
+- Task 7 complete: Dashboard month totals (income/expense/net) + recent transactions, with month query param support and currency formatting.
+- Task 8 complete: Monthly CSV export (`localDate,type,category,amount,source,note`) with safe CSV escaping and per-user route-based download.
 
 ## Current behavior
 
@@ -18,6 +21,9 @@ A web app for manual money tracking (income and expenses) with a monthly view, b
   - to `/dashboard` if `hasCompletedSetup` is `true`
 - App routes (`/dashboard`, `/transactions`, `/categories`, `/export`) require completed setup.
 - Onboarding route (`/setup`) redirects to `/dashboard` when setup is already complete.
+- `/transactions` supports month/type/category filters plus create, edit, and delete.
+- `/dashboard` supports month selection (`?month=YYYY-MM`) and shows income, expense, net left, and recent monthly transactions.
+- `/export` downloads a CSV for the selected month via `/export/download`.
 
 ## Route groups
 
