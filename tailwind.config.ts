@@ -11,64 +11,74 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "var(--color-background)",
-        surface: "var(--color-surface)",
-        border: "var(--color-border)",
-        text: {
-          primary: "var(--color-text-primary)",
-          secondary: "var(--color-text-secondary)",
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+        card: {
+          DEFAULT: "var(--card)",
+          foreground: "var(--card-foreground)",
+        },
+        popover: {
+          DEFAULT: "var(--popover)",
+          foreground: "var(--popover-foreground)",
         },
         primary: {
-          DEFAULT: "var(--color-primary)",
-          hover: "var(--color-primary-hover)",
+          DEFAULT: "var(--primary)",
+          foreground: "var(--primary-foreground)",
         },
-        success: "var(--color-success)",
-        danger: "var(--color-danger)",
-        warning: "var(--color-warning)",
+        secondary: {
+          DEFAULT: "var(--secondary)",
+          foreground: "var(--secondary-foreground)",
+        },
+        muted: {
+          DEFAULT: "var(--muted)",
+          foreground: "var(--muted-foreground)",
+        },
+        accent: {
+          DEFAULT: "var(--accent)",
+          foreground: "var(--accent-foreground)",
+        },
+        destructive: {
+          DEFAULT: "var(--destructive)",
+          foreground: "var(--destructive-foreground)",
+        },
+        success: {
+          DEFAULT: "var(--success)",
+          foreground: "var(--success-foreground)",
+        },
+        warning: {
+          DEFAULT: "var(--warning)",
+          foreground: "var(--warning-foreground)",
+        },
+        info: "var(--info)",
+        border: "var(--border)",
+        input: "var(--input)",
+        ring: "var(--ring)",
+        sidebar: {
+          DEFAULT: "var(--sidebar)",
+          foreground: "var(--sidebar-foreground)",
+          primary: "var(--sidebar-primary)",
+          "primary-foreground": "var(--sidebar-primary-foreground)",
+          accent: "var(--sidebar-accent)",
+          "accent-foreground": "var(--sidebar-accent-foreground)",
+          border: "var(--sidebar-border)",
+          ring: "var(--sidebar-ring)",
+        },
       },
       borderRadius: {
-        input: "var(--radius-input)",
-        card: "var(--radius-card)",
+        sm: "calc(var(--radius) - 8px)",
+        md: "calc(var(--radius) - 6px)",
+        lg: "calc(var(--radius) - 2px)",
+        xl: "var(--radius)",
+        "2xl": "calc(var(--radius) + 4px)",
+        "3xl": "calc(var(--radius) + 10px)",
       },
       fontFamily: {
         sans: ["var(--font-inter)", "Inter", "sans-serif"],
         mono: ["var(--font-jetbrains-mono)", "JetBrains Mono", "monospace"],
       },
-      fontSize: {
-        "title-page": [
-          "1.75rem",
-          {
-            lineHeight: "2.25rem",
-            fontWeight: "700",
-          },
-        ],
-        "title-section": [
-          "1.125rem",
-          {
-            lineHeight: "1.75rem",
-            fontWeight: "600",
-          },
-        ],
-        "body-base": [
-          "1rem",
-          {
-            lineHeight: "1.5rem",
-            fontWeight: "500",
-          },
-        ],
-        meta: [
-          "0.8125rem",
-          {
-            lineHeight: "1.25rem",
-          },
-        ],
-        "money-xl": [
-          "2.5rem",
-          {
-            lineHeight: "1.1",
-            fontWeight: "700",
-          },
-        ],
+      boxShadow: {
+        surface: "var(--shadow-surface)",
+        floating: "var(--shadow-floating)",
       },
     },
   },

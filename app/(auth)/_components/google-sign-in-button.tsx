@@ -1,6 +1,9 @@
 "use client";
 
+import { LogIn } from "lucide-react";
 import { signIn } from "next-auth/react";
+
+import { Button } from "@/components/ui/button";
 
 export function GoogleSignInButton() {
   const handleSignIn = () => {
@@ -8,12 +11,12 @@ export function GoogleSignInButton() {
   };
 
   return (
-    <button
-      type="button"
+    <Button
       onClick={handleSignIn}
-      className="mt-6 w-full cursor-pointer rounded-input bg-primary px-4 py-3 text-body-base font-semibold text-surface transition-colors hover:bg-primary-hover"
+      className="mt-6 h-11 w-full justify-center rounded-2xl"
     >
+      <LogIn />
       Continue with Google
-    </button>
+    </Button>
   );
 }

@@ -1,275 +1,330 @@
-import { redirect } from 'next/navigation'
+import { FolderKanban, FolderOpen, Plus } from "lucide-react";
+import { redirect } from "next/navigation";
+
 import {
   archiveCategory,
   createCategory,
   listCategories,
   renameCategory,
-  unarchiveCategory
-} from '@/actions/categories'
+  unarchiveCategory,
+} from "@/actions/categories";
+import { PageHeader } from "@/components/app-shell/page-header";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 
-type SearchParamsShape = Record<string, string | string[] | undefined>
+type SearchParamsShape = Record<string, string | string[] | undefined>;
 
-function firstParamValue (value: string | string[] | undefined) {
+function firstParamValue(value: string | string[] | undefined) {
   if (Array.isArray(value)) {
-    return value[0]
+    return value[0];
   }
 
-  return value
+  return value;
 }
 
-function toQueryParam (input: string) {
-  return encodeURIComponent(input)
+function toQueryParam(input: string) {
+  return encodeURIComponent(input);
 }
 
-export default async function CategoriesPage ({
-  searchParams
+export default async function CategoriesPage({
+  searchParams,
 }: {
-  searchParams?: Promise<SearchParamsShape> | SearchParamsShape
+  searchParams?: Promise<SearchParamsShape> | SearchParamsShape;
 }) {
   const resolvedParams =
     searchParams &&
-    typeof (searchParams as Promise<SearchParamsShape>).then === 'function'
+    typeof (searchParams as Promise<SearchParamsShape>).then === "function"
       ? await (searchParams as Promise<SearchParamsShape>)
-      : (searchParams as SearchParamsShape | undefined) ?? {}
+      : (searchParams as SearchParamsShape | undefined) ?? {};
 
-  const errorMessage = firstParamValue(resolvedParams.error)
-  const successMessage = firstParamValue(resolvedParams.success)
+  const errorMessage = firstParamValue(resolvedParams.error);
+  const successMessage = firstParamValue(resolvedParams.success);
 
-  async function createCategoryAction (formData: FormData) {
-    'use server'
+  async function createCategoryAction(formData: FormData) {
+    "use server";
 
     const result = await createCategory({
-      name: String(formData.get('name') ?? ''),
-      type: String(formData.get('type') ?? '') as 'INCOME' | 'EXPENSE'
-    })
+      name: String(formData.get("name") ?? ""),
+      type: String(formData.get("type") ?? "") as "INCOME" | "EXPENSE",
+    });
 
     if (!result.ok) {
-      redirect(`/categories?error=${toQueryParam(result.error)}`)
+      redirect(`/categories?error=${toQueryParam(result.error)}`);
     }
 
-    redirect('/categories?success=Category%20created.')
+    redirect("/categories?success=Category%20created.");
   }
 
-  async function renameCategoryAction (formData: FormData) {
-    'use server'
+  async function renameCategoryAction(formData: FormData) {
+    "use server";
 
     const result = await renameCategory({
-      id: String(formData.get('id') ?? ''),
-      name: String(formData.get('name') ?? '')
-    })
+      id: String(formData.get("id") ?? ""),
+      name: String(formData.get("name") ?? ""),
+    });
 
     if (!result.ok) {
-      redirect(`/categories?error=${toQueryParam(result.error)}`)
+      redirect(`/categories?error=${toQueryParam(result.error)}`);
     }
 
-    redirect('/categories?success=Category%20renamed.')
+    redirect("/categories?success=Category%20renamed.");
   }
 
-  async function archiveCategoryAction (formData: FormData) {
-    'use server'
+  async function archiveCategoryAction(formData: FormData) {
+    "use server";
 
-    const result = await archiveCategory(String(formData.get('id') ?? ''))
+    const result = await archiveCategory(String(formData.get("id") ?? ""));
 
     if (!result.ok) {
-      redirect(`/categories?error=${toQueryParam(result.error)}`)
+      redirect(`/categories?error=${toQueryParam(result.error)}`);
     }
 
-    redirect('/categories?success=Category%20archived.')
+    redirect("/categories?success=Category%20archived.");
   }
 
-  async function unarchiveCategoryAction (formData: FormData) {
-    'use server'
+  async function unarchiveCategoryAction(formData: FormData) {
+    "use server";
 
-    const result = await unarchiveCategory(String(formData.get('id') ?? ''))
+    const result = await unarchiveCategory(String(formData.get("id") ?? ""));
 
     if (!result.ok) {
-      redirect(`/categories?error=${toQueryParam(result.error)}`)
+      redirect(`/categories?error=${toQueryParam(result.error)}`);
     }
 
-    redirect('/categories?success=Category%20restored.')
+    redirect("/categories?success=Category%20restored.");
   }
 
-  const categories = await listCategories()
+  const categories = await listCategories();
 
-  const incomeCategories = categories.filter(
-    category => category.type === 'INCOME'
-  )
-  const expenseCategories = categories.filter(
-    category => category.type === 'EXPENSE'
-  )
+  const incomeCategories = categories.filter((category) => category.type === "INCOME");
+  const expenseCategories = categories.filter((category) => category.type === "EXPENSE");
 
   const sections = [
     {
-      title: 'Income',
-      active: incomeCategories.filter(category => !category.isArchived),
-      archived: incomeCategories.filter(category => category.isArchived)
+      title: "Income",
+      description: "Categories for money coming in.",
+      active: incomeCategories.filter((category) => !category.isArchived),
+      archived: incomeCategories.filter((category) => category.isArchived),
     },
     {
-      title: 'Expense',
-      active: expenseCategories.filter(category => !category.isArchived),
-      archived: expenseCategories.filter(category => category.isArchived)
-    }
-  ]
+      title: "Expense",
+      description: "Categories for money going out.",
+      active: expenseCategories.filter((category) => !category.isArchived),
+      archived: expenseCategories.filter((category) => category.isArchived),
+    },
+  ];
 
   return (
-    <div className='space-y-6 bg-bg'>
-      <section className='rounded-card border border-border bg-surface p-4 sm:p-6'>
-        <h1 className='text-page-title text-text'>Categories</h1>
-        <p className='mt-2 text-text-2'>
-          Manage income and expense categories, including archived ones.
-        </p>
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Structure"
+        title="Categories"
+        description="Keep income and expense labels tidy, rename them when your tracking style changes, and archive anything you no longer need in the default picker."
+      />
 
-        {errorMessage ? (
-          <p className='mt-4 rounded-input border border-border bg-bg px-3 py-2 text-sm text-text'>
-            {errorMessage}
-          </p>
-        ) : null}
-
-        {!errorMessage && successMessage ? (
-          <p className='mt-4 rounded-input border border-border bg-bg px-3 py-2 text-sm text-text-2'>
-            {successMessage}
-          </p>
-        ) : null}
-
-        <form
-          action={createCategoryAction}
-          className='mt-4 grid gap-3 md:grid-cols-[1fr_auto_auto]'
-        >
-          <input
-            type='text'
-            name='name'
-            placeholder='Category name'
-            className='rounded-input border border-border bg-bg px-3 py-2 text-text placeholder:text-text-2'
-            required
-            maxLength={50}
-          />
-          <select
-            name='type'
-            defaultValue='EXPENSE'
-            className='rounded-input border border-border bg-bg px-3 py-2 text-text'
-          >
-            <option value='INCOME'>Income</option>
-            <option value='EXPENSE'>Expense</option>
-          </select>
-          <button
-            type='submit'
-            className='rounded-input bg-primary px-4 py-2 text-sm font-semibold text-surface transition-colors hover:bg-primary-hover'
-          >
-            Add category
-          </button>
-        </form>
+      <section className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardContent className="space-y-1 p-5">
+            <p className="text-sm font-medium text-muted-foreground">Total categories</p>
+            <p className="text-xl font-semibold tracking-tight text-foreground">
+              {categories.length}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="space-y-1 p-5">
+            <p className="text-sm font-medium text-muted-foreground">Active</p>
+            <p className="text-xl font-semibold tracking-tight text-foreground">
+              {categories.filter((category) => !category.isArchived).length}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="space-y-1 p-5">
+            <p className="text-sm font-medium text-muted-foreground">Archived</p>
+            <p className="text-xl font-semibold tracking-tight text-foreground">
+              {categories.filter((category) => category.isArchived).length}
+            </p>
+          </CardContent>
+        </Card>
       </section>
 
-      {sections.map(section => (
-        <section
-          key={section.title}
-          className='rounded-card border border-border bg-surface p-4 sm:p-6'
-        >
-          <h2 className='text-section-title text-text'>{section.title}</h2>
+      {errorMessage ? (
+        <Card className="border-destructive/20 bg-destructive/5">
+          <CardContent className="p-5 text-sm leading-6 text-foreground">
+            {errorMessage}
+          </CardContent>
+        </Card>
+      ) : null}
 
-          <div className='mt-4 grid gap-4 lg:grid-cols-2'>
-            <div className='space-y-3'>
-              <h3 className='text-sm font-semibold text-text'>Active</h3>
-              {section.active.length === 0 ? (
-                <p className='rounded-input border border-border bg-bg px-3 py-2 text-sm text-text-2'>
-                  No active {section.title.toLowerCase()} categories.
-                </p>
-              ) : (
-                <ul className='space-y-3'>
-                  {section.active.map(category => (
-                    <li
-                      key={category.id}
-                      className='rounded-input border border-border bg-bg p-3'
-                    >
-                      <div className='flex flex-col gap-3'>
-                        <form
-                          action={renameCategoryAction}
-                          className='flex flex-col gap-2 sm:flex-row'
-                        >
-                          <input type='hidden' name='id' value={category.id} />
-                          <input
-                            type='text'
-                            name='name'
-                            defaultValue={category.name}
-                            required
-                            maxLength={50}
-                            className='w-full rounded-input border border-border bg-surface px-3 py-2 text-sm text-text'
-                          />
-                          <button
-                            type='submit'
-                            className='rounded-input border border-border bg-surface px-3 py-2 text-sm text-text transition-colors hover:bg-bg'
-                          >
-                            Rename
-                          </button>
-                        </form>
-                        <form action={archiveCategoryAction}>
-                          <input type='hidden' name='id' value={category.id} />
-                          <button
-                            type='submit'
-                            className='rounded-input border border-border bg-surface px-3 py-2 text-sm text-text-2 transition-colors hover:bg-bg hover:text-text'
-                          >
-                            Archive
-                          </button>
-                        </form>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+      {!errorMessage && successMessage ? (
+        <Card className="border-success/20 bg-success/5">
+          <CardContent className="p-5 text-sm leading-6 text-foreground">
+            {successMessage}
+          </CardContent>
+        </Card>
+      ) : null}
 
-            <div className='space-y-3'>
-              <h3 className='text-sm font-semibold text-text'>Archived</h3>
-              {section.archived.length === 0 ? (
-                <p className='rounded-input border border-border bg-bg px-3 py-2 text-sm text-text-2'>
-                  No archived {section.title.toLowerCase()} categories.
-                </p>
-              ) : (
-                <ul className='space-y-3'>
-                  {section.archived.map(category => (
-                    <li
-                      key={category.id}
-                      className='rounded-input border border-border bg-bg p-3'
-                    >
-                      <div className='flex flex-col gap-3'>
-                        <form
-                          action={renameCategoryAction}
-                          className='flex flex-col gap-2 sm:flex-row'
-                        >
-                          <input type='hidden' name='id' value={category.id} />
-                          <input
-                            type='text'
-                            name='name'
-                            defaultValue={category.name}
-                            required
-                            maxLength={50}
-                            className='w-full rounded-input border border-border bg-surface px-3 py-2 text-sm text-text'
-                          />
-                          <button
-                            type='submit'
-                            className='rounded-input border border-border bg-surface px-3 py-2 text-sm text-text transition-colors hover:bg-bg'
+      <Card>
+        <CardHeader>
+          <CardTitle>Add category</CardTitle>
+          <CardDescription>
+            New categories become available for transactions immediately.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form
+            action={createCategoryAction}
+            className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_auto]"
+          >
+            <Input
+              type="text"
+              name="name"
+              placeholder="Category name"
+              required
+              maxLength={50}
+            />
+            <Select name="type" defaultValue="EXPENSE">
+              <option value="INCOME">Income</option>
+              <option value="EXPENSE">Expense</option>
+            </Select>
+            <Button type="submit">
+              <Plus />
+              Add category
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <section className="grid gap-5 xl:grid-cols-2">
+        {sections.map((section) => (
+          <Card key={section.title} className="overflow-hidden">
+            <CardHeader className="border-b border-border/70 pb-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-1.5">
+                  <CardTitle>{section.title}</CardTitle>
+                  <CardDescription>{section.description}</CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Badge variant="outline">{section.active.length} active</Badge>
+                  <Badge variant="outline">{section.archived.length} archived</Badge>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="grid gap-5 p-6">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <FolderKanban className="size-[18px] text-muted-foreground" />
+                  <h3 className="text-sm font-semibold text-foreground">Active</h3>
+                </div>
+
+                {section.active.length === 0 ? (
+                  <EmptyState
+                    icon={FolderOpen}
+                    title={`No active ${section.title.toLowerCase()} categories`}
+                    description="Create one above or restore an archived category."
+                  />
+                ) : (
+                  <div className="space-y-3">
+                    {section.active.map((category) => (
+                      <div
+                        key={category.id}
+                        className="rounded-[24px] border border-border/80 bg-background/60 p-4"
+                      >
+                        <div className="flex flex-col gap-3">
+                          <form
+                            action={renameCategoryAction}
+                            className="flex flex-col gap-3 sm:flex-row"
                           >
-                            Rename
-                          </button>
-                        </form>
-                        <form action={unarchiveCategoryAction}>
-                          <input type='hidden' name='id' value={category.id} />
-                          <button
-                            type='submit'
-                            className='rounded-input border border-border bg-surface px-3 py-2 text-sm text-text-2 transition-colors hover:bg-bg hover:text-text'
-                          >
-                            Unarchive
-                          </button>
-                        </form>
+                            <input type="hidden" name="id" value={category.id} />
+                            <Input
+                              type="text"
+                              name="name"
+                              defaultValue={category.name}
+                              required
+                              maxLength={50}
+                              className="flex-1"
+                            />
+                            <Button type="submit" variant="outline">
+                              Rename
+                            </Button>
+                          </form>
+                          <form action={archiveCategoryAction}>
+                            <input type="hidden" name="id" value={category.id} />
+                            <Button type="submit" variant="outline" className="w-full sm:w-auto">
+                              Archive
+                            </Button>
+                          </form>
+                        </div>
                       </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
-        </section>
-      ))}
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <FolderOpen className="size-[18px] text-muted-foreground" />
+                  <h3 className="text-sm font-semibold text-foreground">Archived</h3>
+                </div>
+
+                {section.archived.length === 0 ? (
+                  <EmptyState
+                    icon={FolderOpen}
+                    title={`No archived ${section.title.toLowerCase()} categories`}
+                    description="Archived categories will stay connected to existing transactions and can be restored here."
+                  />
+                ) : (
+                  <div className="space-y-3">
+                    {section.archived.map((category) => (
+                      <div
+                        key={category.id}
+                        className="rounded-[24px] border border-border/80 bg-background/60 p-4"
+                      >
+                        <div className="flex flex-col gap-3">
+                          <form
+                            action={renameCategoryAction}
+                            className="flex flex-col gap-3 sm:flex-row"
+                          >
+                            <input type="hidden" name="id" value={category.id} />
+                            <Input
+                              type="text"
+                              name="name"
+                              defaultValue={category.name}
+                              required
+                              maxLength={50}
+                              className="flex-1"
+                            />
+                            <Button type="submit" variant="outline">
+                              Rename
+                            </Button>
+                          </form>
+                          <form action={unarchiveCategoryAction}>
+                            <input type="hidden" name="id" value={category.id} />
+                            <Button type="submit" variant="outline" className="w-full sm:w-auto">
+                              Restore
+                            </Button>
+                          </form>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </section>
     </div>
-  )
+  );
 }
