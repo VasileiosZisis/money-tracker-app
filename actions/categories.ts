@@ -1,6 +1,7 @@
 "use server";
 
-import { Prisma, TransactionType } from "@prisma/client";
+import { Prisma } from "@/generated/prisma/client";
+import { TransactionType } from "@/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
 import { getUserIdOrThrow } from "@/lib/auth/session";
 import { db } from "@/lib/db";

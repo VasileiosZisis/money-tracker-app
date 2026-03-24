@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 
 import { getUserIdOrThrow } from "@/lib/auth/session";
 import { getMonthRange } from "@/lib/dates/month";

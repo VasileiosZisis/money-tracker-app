@@ -1,6 +1,6 @@
 "use server";
 
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import { z } from "zod";
 
 import { getMonthRange } from "@/lib/dates/month";
