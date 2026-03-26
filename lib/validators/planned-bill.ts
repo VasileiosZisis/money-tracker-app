@@ -51,6 +51,19 @@ export const togglePlannedBillActiveSchema = z.object({
   }),
 });
 
-export type PlannedBillInput = z.infer<typeof plannedBillInputSchema>;
-export type UpdatePlannedBillInput = z.infer<typeof updatePlannedBillSchema>;
-export type TogglePlannedBillActiveInput = z.infer<typeof togglePlannedBillActiveSchema>;
+export type PlannedBillInput = {
+  name: string;
+  amount: string | number;
+  dueDayOfMonth: string | number;
+  categoryId: string;
+  isActive: boolean;
+};
+
+export type UpdatePlannedBillInput = PlannedBillInput & {
+  id: string;
+};
+
+export type TogglePlannedBillActiveInput = {
+  id: string;
+  isActive: boolean;
+};

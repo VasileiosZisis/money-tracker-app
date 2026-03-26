@@ -25,6 +25,7 @@ export const config = {
     "/dashboard/:path*",
     "/transactions/:path*",
     "/categories/:path*",
+    "/planned/:path*",
     "/export/:path*",
   ],
 };

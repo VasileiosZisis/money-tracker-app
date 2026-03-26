@@ -4,6 +4,7 @@ import {
   FolderKanban,
   FileDown,
   ReceiptText,
+  WalletCards,
 } from "lucide-react";
 
 export type AppNavItem = {
@@ -31,6 +32,12 @@ export const appNavItems: AppNavItem[] = [
     label: "Categories",
     icon: FolderKanban,
     description: "Organize income and expenses",
+  },
+  {
+    href: "/planned",
+    label: "Planned Bills",
+    icon: WalletCards,
+    description: "Expected monthly expenses",
   },
   {
     href: "/export",
