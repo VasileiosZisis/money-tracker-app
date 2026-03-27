@@ -2,6 +2,11 @@
 
 import { TransactionType } from "@/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
+import {
+  actionError,
+  actionSuccess,
+  type ActionResult,
+} from "@/lib/actions/result";
 
 import { getUserIdOrThrow } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -15,16 +20,14 @@ import {
   type UpdatePlannedBillInput,
 } from "@/lib/validators/planned-bill";
 
-type PlannedBillActionResult =
-  | { ok: true }
-  | { ok: false; error: string };
+type PlannedBillActionResult = ActionResult;
 
 function getValidationError(message: string | undefined, fallback: string) {
-  return { ok: false as const, error: message ?? fallback };
+  return actionError(message ?? fallback);
 }
 
 function getMutationError(fallback: string) {
-  return { ok: false as const, error: fallback };
+  return actionError(fallback);
 }
 
 async function assertExpenseCategoryForPlannedBill(userId: string, categoryId: string) {
@@ -50,7 +53,7 @@ async function assertExpenseCategoryForPlannedBill(userId: string, categoryId: s
     };
   }
 
-  return { ok: true as const };
+  return actionSuccess();
 }
 
 function revalidatePlannedBillPaths() {
@@ -136,7 +139,7 @@ export async function createPlannedBill(
   }
 
   revalidatePlannedBillPaths();
-  return { ok: true };
+  return actionSuccess();
 }
 
 export async function updatePlannedBill(
@@ -161,7 +164,7 @@ export async function updatePlannedBill(
   });
 
   if (!existing) {
-    return { ok: false, error: "Planned bill not found." };
+    return actionError("Planned bill not found.");
   }
 
   const categoryResult = await assertExpenseCategoryForPlannedBill(
@@ -189,7 +192,7 @@ export async function updatePlannedBill(
   }
 
   revalidatePlannedBillPaths();
-  return { ok: true };
+  return actionSuccess();
 }
 
 export async function togglePlannedBillActive(
@@ -222,11 +225,11 @@ export async function togglePlannedBillActive(
   }
 
   if (updated.count === 0) {
-    return { ok: false, error: "Planned bill not found." };
+    return actionError("Planned bill not found.");
   }
 
   revalidatePlannedBillPaths();
-  return { ok: true };
+  return actionSuccess();
 }
 
 export async function deletePlannedBill(id: string): Promise<PlannedBillActionResult> {
@@ -234,7 +237,7 @@ export async function deletePlannedBill(id: string): Promise<PlannedBillActionRe
   const parsed = plannedBillIdSchema.safeParse(id);
 
   if (!parsed.success) {
-    return { ok: false, error: "Invalid planned bill id." };
+    return actionError("Invalid planned bill id.");
   }
 
   let deleted: { count: number };
@@ -251,9 +254,9 @@ export async function deletePlannedBill(id: string): Promise<PlannedBillActionRe
   }
 
   if (deleted.count === 0) {
-    return { ok: false, error: "Planned bill not found." };
+    return actionError("Planned bill not found.");
   }
 
   revalidatePlannedBillPaths();
-  return { ok: true };
+  return actionSuccess();
 }

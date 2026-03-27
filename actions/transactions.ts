@@ -1,8 +1,16 @@
 "use server";
 
 import { Prisma } from "@/generated/prisma/client";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import {
+  actionError,
+  actionSuccess,
+  actionSuccessWithData,
+  type ActionResult,
+  type ActionResultWithData,
+} from "@/lib/actions/result";
 import { getMonthRange } from "@/lib/dates/month";
 import { getUserIdOrThrow } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -13,6 +21,10 @@ const listTransactionsParamsSchema = z.object({
   type: transactionTypeSchema.optional(),
   categoryId: z.string().trim().min(1).optional(),
 });
+
+const transactionIdSchema = z.string().trim().min(1, "Invalid transaction id.");
+
+type TransactionWriteResult = ActionResultWithData<{ id: string }>;
 
 export async function listTransactions(params: {
   month: string;
@@ -106,14 +118,20 @@ async function assertCategoryForTransaction(
   });
 
   if (!category) {
-    throw new Error("Category not found.");
+    return "Category not found.";
   }
 
   if (category.type !== type) {
-    throw new Error("Category type does not match transaction type.");
+    return "Category type does not match transaction type.";
   }
 
-  return category;
+  return null;
+}
+
+function revalidateTransactionPaths() {
+  revalidatePath("/transactions");
+  revalidatePath("/dashboard");
+  revalidatePath("/export");
 }
 
 export async function createTransaction(input: {
@@ -123,26 +141,43 @@ export async function createTransaction(input: {
   categoryId: string;
   source?: string;
   note?: string;
-}) {
+}): Promise<TransactionWriteResult> {
   const userId = await getUserIdOrThrow();
-  const parsed = transactionInputSchema.parse(input);
+  const parsed = transactionInputSchema.safeParse(input);
 
-  await assertCategoryForTransaction(userId, parsed.categoryId, parsed.type);
+  if (!parsed.success) {
+    return actionError(parsed.error.issues[0]?.message ?? "Invalid transaction input.");
+  }
 
-  const created = await db.transaction.create({
-    data: {
-      userId,
-      type: parsed.type,
-      amount: parsed.amount as Prisma.Decimal,
-      localDate: parsed.localDate,
-      categoryId: parsed.categoryId,
-      source: parsed.source ?? null,
-      note: parsed.note ?? null,
-    },
-    select: { id: true },
-  });
+  const categoryError = await assertCategoryForTransaction(
+    userId,
+    parsed.data.categoryId,
+    parsed.data.type,
+  );
 
-  return created;
+  if (categoryError) {
+    return actionError(categoryError);
+  }
+
+  try {
+    const created = await db.transaction.create({
+      data: {
+        userId,
+        type: parsed.data.type,
+        amount: parsed.data.amount as Prisma.Decimal,
+        localDate: parsed.data.localDate,
+        categoryId: parsed.data.categoryId,
+        source: parsed.data.source ?? null,
+        note: parsed.data.note ?? null,
+      },
+      select: { id: true },
+    });
+
+    revalidateTransactionPaths();
+    return actionSuccessWithData(created);
+  } catch {
+    return actionError("Could not save transaction. Please try again.");
+  }
 }
 
 export async function updateTransaction(
@@ -154,56 +189,86 @@ export async function updateTransaction(
     categoryId: string;
     source?: string;
     note?: string;
-  }
-) {
+  },
+): Promise<TransactionWriteResult> {
   const userId = await getUserIdOrThrow();
-  const parsedId = z.string().trim().min(1).parse(id);
-  const parsed = transactionInputSchema.parse(input);
+  const parsedId = transactionIdSchema.safeParse(id);
+  const parsed = transactionInputSchema.safeParse(input);
+
+  if (!parsedId.success) {
+    return actionError(parsedId.error.issues[0]?.message ?? "Invalid transaction id.");
+  }
+
+  if (!parsed.success) {
+    return actionError(parsed.error.issues[0]?.message ?? "Invalid transaction input.");
+  }
 
   const existing = await db.transaction.findFirst({
     where: {
-      id: parsedId,
+      id: parsedId.data,
       userId,
     },
     select: { id: true },
   });
 
   if (!existing) {
-    throw new Error("Transaction not found.");
+    return actionError("Transaction not found.");
   }
 
-  await assertCategoryForTransaction(userId, parsed.categoryId, parsed.type);
+  const categoryError = await assertCategoryForTransaction(
+    userId,
+    parsed.data.categoryId,
+    parsed.data.type,
+  );
 
-  const updated = await db.transaction.update({
-    where: { id: parsedId },
-    data: {
-      type: parsed.type,
-      amount: parsed.amount as Prisma.Decimal,
-      localDate: parsed.localDate,
-      categoryId: parsed.categoryId,
-      source: parsed.source ?? null,
-      note: parsed.note ?? null,
-    },
-    select: { id: true },
-  });
+  if (categoryError) {
+    return actionError(categoryError);
+  }
 
-  return updated;
+  try {
+    const updated = await db.transaction.update({
+      where: { id: parsedId.data },
+      data: {
+        type: parsed.data.type,
+        amount: parsed.data.amount as Prisma.Decimal,
+        localDate: parsed.data.localDate,
+        categoryId: parsed.data.categoryId,
+        source: parsed.data.source ?? null,
+        note: parsed.data.note ?? null,
+      },
+      select: { id: true },
+    });
+
+    revalidateTransactionPaths();
+    return actionSuccessWithData(updated);
+  } catch {
+    return actionError("Could not save transaction. Please try again.");
+  }
 }
 
-export async function deleteTransaction(id: string) {
+export async function deleteTransaction(id: string): Promise<ActionResult> {
   const userId = await getUserIdOrThrow();
-  const parsedId = z.string().trim().min(1).parse(id);
+  const parsedId = transactionIdSchema.safeParse(id);
 
-  const deleted = await db.transaction.deleteMany({
-    where: {
-      id: parsedId,
-      userId,
-    },
-  });
-
-  if (deleted.count === 0) {
-    throw new Error("Transaction not found.");
+  if (!parsedId.success) {
+    return actionError(parsedId.error.issues[0]?.message ?? "Invalid transaction id.");
   }
 
-  return { deleted: true };
+  try {
+    const deleted = await db.transaction.deleteMany({
+      where: {
+        id: parsedId.data,
+        userId,
+      },
+    });
+
+    if (deleted.count === 0) {
+      return actionError("Transaction not found.");
+    }
+
+    revalidateTransactionPaths();
+    return actionSuccess();
+  } catch {
+    return actionError("Could not delete transaction. Please try again.");
+  }
 }

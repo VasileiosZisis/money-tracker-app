@@ -3,6 +3,12 @@
 import { revalidatePath } from "next/cache";
 
 import { TransactionType } from "@/generated/prisma/enums";
+import {
+  actionError,
+  actionSuccessWithData,
+  getActionErrorMessage,
+  type ActionResultWithData,
+} from "@/lib/actions/result";
 import { getUserIdOrThrow } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { buildImportPreview, createImportPreviewToken } from "@/lib/import";
@@ -14,27 +20,13 @@ import {
 } from "@/lib/validators/import";
 import { transactionInputSchema } from "@/lib/validators/transaction";
 
-type ImportPreviewActionResult =
-  | {
-      ok: true;
-      data: ReturnType<typeof buildImportPreview>;
-    }
-  | {
-      ok: false;
-      error: string;
-    };
+type ImportPreviewActionResult = ActionResultWithData<ReturnType<typeof buildImportPreview>>;
 
-type ConfirmImportResult =
-  | {
-      ok: true;
-      importedCount: number;
-      skippedDuplicateCount: number;
-      createdCategoryCount: number;
-    }
-  | {
-      ok: false;
-      error: string;
-    };
+type ConfirmImportResult = ActionResultWithData<{
+  importedCount: number;
+  skippedDuplicateCount: number;
+  createdCategoryCount: number;
+}>;
 
 function normalizeCategoryName(value: string) {
   return value.trim().replace(/\s+/g, " ");
@@ -60,14 +52,6 @@ function buildDuplicateRowKey(row: {
     row.source ?? "",
     row.note ?? "",
   ].join("|");
-}
-
-function getActionErrorMessage(error: unknown, fallback: string) {
-  if (error instanceof Error && error.message) {
-    return error.message;
-  }
-
-  return fallback;
 }
 
 function assertCsvFile(file: FormDataEntryValue | null) {
@@ -192,15 +176,9 @@ export async function previewImport(formData: FormData): Promise<ImportPreviewAc
       columnMapping,
     });
 
-    return {
-      ok: true,
-      data: preview,
-    };
+    return actionSuccessWithData(preview);
   } catch (error) {
-    return {
-      ok: false,
-      error: getActionErrorMessage(error, "Could not parse the CSV file."),
-    };
+    return actionError(getActionErrorMessage(error, "Could not parse the CSV file."));
   }
 }
 
@@ -209,10 +187,9 @@ export async function confirmImport(input: ConfirmImportInput): Promise<ConfirmI
   const parsed = confirmImportSchema.safeParse(input);
 
   if (!parsed.success) {
-    return {
-      ok: false,
-      error: parsed.error.issues[0]?.message ?? "Invalid import confirmation payload.",
-    };
+    return actionError(
+      parsed.error.issues[0]?.message ?? "Invalid import confirmation payload.",
+    );
   }
 
   const expectedToken = createImportPreviewToken({
@@ -221,19 +198,13 @@ export async function confirmImport(input: ConfirmImportInput): Promise<ConfirmI
   });
 
   if (expectedToken !== parsed.data.confirmationToken) {
-    return {
-      ok: false,
-      error: "Import preview is out of date. Re-upload the CSV and confirm again.",
-    };
+    return actionError("Import preview is out of date. Re-upload the CSV and confirm again.");
   }
 
   const previewStartedAt = new Date(parsed.data.previewGeneratedAt);
 
   if (Number.isNaN(previewStartedAt.getTime())) {
-    return {
-      ok: false,
-      error: "Import preview timestamp is invalid.",
-    };
+    return actionError("Import preview timestamp is invalid.");
   }
 
   const requiredResolutions = collectRequiredCategoryResolutions(parsed.data.rows);
@@ -242,27 +213,20 @@ export async function confirmImport(input: ConfirmImportInput): Promise<ConfirmI
   );
 
   if (providedResolutionMap.size !== parsed.data.categoryResolutions.length) {
-    return {
-      ok: false,
-      error: "Import confirmation includes duplicate category mappings.",
-    };
+    return actionError("Import confirmation includes duplicate category mappings.");
   }
 
   for (const requiredResolution of requiredResolutions.values()) {
-    if (!providedResolutionMap.has(requiredResolution.key)) {
-      return {
-        ok: false,
-        error: `Category mapping is still required for "${requiredResolution.sourceName}".`,
-      };
+      if (!providedResolutionMap.has(requiredResolution.key)) {
+        return actionError(
+          `Category mapping is still required for "${requiredResolution.sourceName}".`,
+        );
+      }
     }
-  }
 
   for (const providedResolution of parsed.data.categoryResolutions) {
     if (!requiredResolutions.has(providedResolution.key)) {
-      return {
-        ok: false,
-        error: "Import confirmation includes an unexpected category mapping.",
-      };
+      return actionError("Import confirmation includes an unexpected category mapping.");
     }
   }
 
@@ -462,16 +426,8 @@ export async function confirmImport(input: ConfirmImportInput): Promise<ConfirmI
 
     revalidateImportPaths();
 
-    return {
-      ok: true,
-      importedCount: result.importedCount,
-      skippedDuplicateCount: result.skippedDuplicateCount,
-      createdCategoryCount: result.createdCategoryCount,
-    };
+    return actionSuccessWithData(result);
   } catch (error) {
-    return {
-      ok: false,
-      error: getActionErrorMessage(error, "Could not finish the import."),
-    };
+    return actionError(getActionErrorMessage(error, "Could not finish the import."));
   }
 }

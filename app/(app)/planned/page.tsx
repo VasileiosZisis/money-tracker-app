@@ -20,47 +20,31 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { PageNotice } from "@/components/ui/page-notice";
 import { Select } from "@/components/ui/select";
 import { getUserIdOrThrow } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import {
+  buildPathWithSearchParams,
+  firstSearchParamValue,
+  resolveSearchParams,
+  type PageSearchParams,
+} from "@/lib/routes/search-params";
 import { cn } from "@/lib/utils";
 
-type SearchParamsShape = Record<string, string | string[] | undefined>;
 type CategoryRow = Awaited<ReturnType<typeof listCategories>>[number];
 type ExpenseCategoryRow = CategoryRow;
-
-function firstParamValue(value: string | string[] | undefined) {
-  if (Array.isArray(value)) {
-    return value[0];
-  }
-
-  return value;
-}
 
 function buildPlannedPageUrl(params: {
   error?: string;
   success?: string;
   edit?: string;
 }) {
-  const query = new URLSearchParams();
-
-  if (params.error) {
-    query.set("error", params.error);
-  }
-
-  if (params.success) {
-    query.set("success", params.success);
-  }
-
-  if (params.edit) {
-    query.set("edit", params.edit);
-  }
-
-  const serialized = query.toString();
-  return serialized.length > 0 ? `/planned?${serialized}` : "/planned";
+  return buildPathWithSearchParams("/planned", params);
 }
 
 function parseBooleanField(value: FormDataEntryValue | null) {
@@ -81,39 +65,6 @@ function getAvailableExpenseCategories(
 ) {
   return categories.filter(
     (category) => !category.isArchived || category.id === selectedCategoryId,
-  );
-}
-
-function MoneyInputField({
-  id,
-  name,
-  currency,
-  defaultValue,
-}: {
-  id: string;
-  name: string;
-  currency: string;
-  defaultValue?: string;
-}) {
-  return (
-    <div className="space-y-2">
-      <Label htmlFor={id}>Amount</Label>
-      <div className="rounded-2xl border border-input bg-background/70 px-3.5 py-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] transition-colors focus-within:border-primary/40 focus-within:ring-4 focus-within:ring-ring/70">
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-muted-foreground">{currency}</span>
-          <Input
-            id={id}
-            name={name}
-            type="text"
-            inputMode="decimal"
-            defaultValue={defaultValue}
-            placeholder="0.00"
-            className="border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
-            required
-          />
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -141,8 +92,7 @@ function PlannedBillFormFields({
   return (
     <>
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor={`${idPrefix}-name`}>Name</Label>
+        <FormField htmlFor={`${idPrefix}-name`} label="Name">
           <Input
             id={`${idPrefix}-name`}
             name="name"
@@ -152,19 +102,22 @@ function PlannedBillFormFields({
             maxLength={120}
             required
           />
-        </div>
+        </FormField>
 
-        <MoneyInputField
-          id={`${idPrefix}-amount`}
-          name="amount"
-          currency={currency}
-          defaultValue={defaultValues.amount}
-        />
+        <FormField htmlFor={`${idPrefix}-amount`} label="Amount">
+          <CurrencyInput
+            id={`${idPrefix}-amount`}
+            name="amount"
+            currency={currency}
+            defaultValue={defaultValues.amount}
+            placeholder="0.00"
+            required
+          />
+        </FormField>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor={`${idPrefix}-category`}>Expense category</Label>
+        <FormField htmlFor={`${idPrefix}-category`} label="Expense category">
           <Select
             id={`${idPrefix}-category`}
             name="categoryId"
@@ -179,10 +132,9 @@ function PlannedBillFormFields({
               </option>
             ))}
           </Select>
-        </div>
+        </FormField>
 
-        <div className="space-y-2">
-          <Label htmlFor={`${idPrefix}-due-day`}>Due day of month</Label>
+        <FormField htmlFor={`${idPrefix}-due-day`} label="Due day of month">
           <Input
             id={`${idPrefix}-due-day`}
             name="dueDayOfMonth"
@@ -192,12 +144,11 @@ function PlannedBillFormFields({
             defaultValue={defaultValues.dueDayOfMonth}
             required
           />
-        </div>
+        </FormField>
       </div>
 
       {includeStatusField ? (
-        <div className="space-y-2">
-          <Label htmlFor={`${idPrefix}-status`}>Active status</Label>
+        <FormField htmlFor={`${idPrefix}-status`} label="Active status">
           <Select
             id={`${idPrefix}-status`}
             name="isActive"
@@ -206,7 +157,7 @@ function PlannedBillFormFields({
             <option value="true">Active</option>
             <option value="false">Inactive</option>
           </Select>
-        </div>
+        </FormField>
       ) : null}
     </>
   );
@@ -215,17 +166,13 @@ function PlannedBillFormFields({
 export default async function PlannedBillsPage({
   searchParams,
 }: {
-  searchParams?: Promise<SearchParamsShape> | SearchParamsShape;
+  searchParams?: PageSearchParams;
 }) {
-  const resolvedParams =
-    searchParams &&
-    typeof (searchParams as Promise<SearchParamsShape>).then === "function"
-      ? await (searchParams as Promise<SearchParamsShape>)
-      : (searchParams as SearchParamsShape | undefined) ?? {};
+  const resolvedParams = await resolveSearchParams(searchParams);
 
-  const errorMessage = firstParamValue(resolvedParams.error);
-  const successMessage = firstParamValue(resolvedParams.success);
-  const editId = firstParamValue(resolvedParams.edit);
+  const errorMessage = firstSearchParamValue(resolvedParams.error);
+  const successMessage = firstSearchParamValue(resolvedParams.success);
+  const editId = firstSearchParamValue(resolvedParams.edit);
 
   async function createPlannedBillAction(formData: FormData) {
     "use server";
@@ -388,19 +335,15 @@ export default async function PlannedBillsPage({
       </section>
 
       {errorMessage ? (
-        <Card className="border-destructive/20 bg-destructive/5">
-          <CardContent className="p-5 text-sm leading-6 text-foreground">
-            {errorMessage}
-          </CardContent>
-        </Card>
+        <PageNotice variant="error" title="Something needs attention">
+          {errorMessage}
+        </PageNotice>
       ) : null}
 
       {!errorMessage && successMessage ? (
-        <Card className="border-success/20 bg-success/5">
-          <CardContent className="p-5 text-sm leading-6 text-foreground">
-            {successMessage}
-          </CardContent>
-        </Card>
+        <PageNotice variant="success" title="Saved">
+          {successMessage}
+        </PageNotice>
       ) : null}
 
       <Card id="planned-bill-form">

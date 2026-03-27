@@ -2,6 +2,11 @@
 
 import { TransactionType } from "@/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
+import {
+  actionError,
+  actionSuccess,
+  type ActionResult,
+} from "@/lib/actions/result";
 import { db } from "@/lib/db";
 import { getUserIdOrThrow } from "@/lib/auth/session";
 import { currencySchema } from "@/lib/validators/setup";
@@ -18,40 +23,62 @@ const defaultCategories: Array<{ name: string; type: TransactionType }> = [
   { name: "Entertainment", type: TransactionType.EXPENSE },
 ];
 
-export async function setCurrency(currency: string) {
-  const userId = await getUserIdOrThrow();
-  const parsedCurrency = currencySchema.parse(currency);
+type SetupActionResult = ActionResult;
 
-  await db.user.update({
-    where: { id: userId },
-    data: { currency: parsedCurrency },
-  });
+export async function setCurrency(currency: string): Promise<SetupActionResult> {
+  const userId = await getUserIdOrThrow();
+  const parsedCurrency = currencySchema.safeParse(currency);
+
+  if (!parsedCurrency.success) {
+    return actionError(parsedCurrency.error.issues[0]?.message ?? "Invalid currency.");
+  }
+
+  try {
+    await db.user.update({
+      where: { id: userId },
+      data: { currency: parsedCurrency.data },
+    });
+  } catch {
+    return actionError("Could not save your currency. Please try again.");
+  }
 
   revalidatePath("/setup");
+  return actionSuccess();
 }
 
-export async function createDefaultCategories() {
+export async function createDefaultCategories(): Promise<SetupActionResult> {
   const userId = await getUserIdOrThrow();
 
-  await db.category.createMany({
-    data: defaultCategories.map((category) => ({
-      userId,
-      name: category.name,
-      type: category.type,
-    })),
-    skipDuplicates: true,
-  });
+  try {
+    await db.category.createMany({
+      data: defaultCategories.map((category) => ({
+        userId,
+        name: category.name,
+        type: category.type,
+      })),
+      skipDuplicates: true,
+    });
+  } catch {
+    return actionError("Could not create the default categories. Please try again.");
+  }
 
   revalidatePath("/setup");
+  return actionSuccess();
 }
 
-export async function completeSetup() {
+export async function completeSetup(): Promise<SetupActionResult> {
   const userId = await getUserIdOrThrow();
 
-  await db.user.update({
-    where: { id: userId },
-    data: { hasCompletedSetup: true },
-  });
+  try {
+    await db.user.update({
+      where: { id: userId },
+      data: { hasCompletedSetup: true },
+    });
+  } catch {
+    return actionError("Could not complete setup. Please try again.");
+  }
 
+  revalidatePath("/setup");
   revalidatePath("/dashboard");
+  return actionSuccess();
 }

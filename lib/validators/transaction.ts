@@ -1,4 +1,5 @@
 import { Prisma } from "@/generated/prisma/client";
+import { categoryIdSchema } from "@/lib/validators/category";
 import { z } from "zod";
 
 const LOCAL_DATE_REGEX = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
@@ -52,7 +53,7 @@ export const transactionInputSchema = z.object({
   type: transactionTypeSchema,
   amount: amountSchema,
   localDate: localDateSchema,
-  categoryId: z.string().trim().min(1, "Category is required."),
+  categoryId: categoryIdSchema,
   source: optionalString(120),
   note: optionalString(500),
 });

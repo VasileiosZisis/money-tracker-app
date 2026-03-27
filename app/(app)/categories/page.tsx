@@ -20,35 +20,24 @@ import {
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
+import { PageNotice } from "@/components/ui/page-notice";
 import { Select } from "@/components/ui/select";
-
-type SearchParamsShape = Record<string, string | string[] | undefined>;
-
-function firstParamValue(value: string | string[] | undefined) {
-  if (Array.isArray(value)) {
-    return value[0];
-  }
-
-  return value;
-}
-
-function toQueryParam(input: string) {
-  return encodeURIComponent(input);
-}
+import {
+  buildPathWithSearchParams,
+  firstSearchParamValue,
+  resolveSearchParams,
+  type PageSearchParams,
+} from "@/lib/routes/search-params";
 
 export default async function CategoriesPage({
   searchParams,
 }: {
-  searchParams?: Promise<SearchParamsShape> | SearchParamsShape;
+  searchParams?: PageSearchParams;
 }) {
-  const resolvedParams =
-    searchParams &&
-    typeof (searchParams as Promise<SearchParamsShape>).then === "function"
-      ? await (searchParams as Promise<SearchParamsShape>)
-      : (searchParams as SearchParamsShape | undefined) ?? {};
+  const resolvedParams = await resolveSearchParams(searchParams);
 
-  const errorMessage = firstParamValue(resolvedParams.error);
-  const successMessage = firstParamValue(resolvedParams.success);
+  const errorMessage = firstSearchParamValue(resolvedParams.error);
+  const successMessage = firstSearchParamValue(resolvedParams.success);
 
   async function createCategoryAction(formData: FormData) {
     "use server";
@@ -59,10 +48,10 @@ export default async function CategoriesPage({
     });
 
     if (!result.ok) {
-      redirect(`/categories?error=${toQueryParam(result.error)}`);
+      redirect(buildPathWithSearchParams("/categories", { error: result.error }));
     }
 
-    redirect("/categories?success=Category%20created.");
+    redirect(buildPathWithSearchParams("/categories", { success: "Category created." }));
   }
 
   async function renameCategoryAction(formData: FormData) {
@@ -74,10 +63,10 @@ export default async function CategoriesPage({
     });
 
     if (!result.ok) {
-      redirect(`/categories?error=${toQueryParam(result.error)}`);
+      redirect(buildPathWithSearchParams("/categories", { error: result.error }));
     }
 
-    redirect("/categories?success=Category%20renamed.");
+    redirect(buildPathWithSearchParams("/categories", { success: "Category renamed." }));
   }
 
   async function archiveCategoryAction(formData: FormData) {
@@ -86,10 +75,10 @@ export default async function CategoriesPage({
     const result = await archiveCategory(String(formData.get("id") ?? ""));
 
     if (!result.ok) {
-      redirect(`/categories?error=${toQueryParam(result.error)}`);
+      redirect(buildPathWithSearchParams("/categories", { error: result.error }));
     }
 
-    redirect("/categories?success=Category%20archived.");
+    redirect(buildPathWithSearchParams("/categories", { success: "Category archived." }));
   }
 
   async function unarchiveCategoryAction(formData: FormData) {
@@ -98,10 +87,10 @@ export default async function CategoriesPage({
     const result = await unarchiveCategory(String(formData.get("id") ?? ""));
 
     if (!result.ok) {
-      redirect(`/categories?error=${toQueryParam(result.error)}`);
+      redirect(buildPathWithSearchParams("/categories", { error: result.error }));
     }
 
-    redirect("/categories?success=Category%20restored.");
+    redirect(buildPathWithSearchParams("/categories", { success: "Category restored." }));
   }
 
   const categories = await listCategories();
@@ -160,19 +149,15 @@ export default async function CategoriesPage({
       </section>
 
       {errorMessage ? (
-        <Card className="border-destructive/20 bg-destructive/5">
-          <CardContent className="p-5 text-sm leading-6 text-foreground">
-            {errorMessage}
-          </CardContent>
-        </Card>
+        <PageNotice variant="error" title="Something needs attention">
+          {errorMessage}
+        </PageNotice>
       ) : null}
 
       {!errorMessage && successMessage ? (
-        <Card className="border-success/20 bg-success/5">
-          <CardContent className="p-5 text-sm leading-6 text-foreground">
-            {successMessage}
-          </CardContent>
-        </Card>
+        <PageNotice variant="success" title="Saved">
+          {successMessage}
+        </PageNotice>
       ) : null}
 
       <Card>

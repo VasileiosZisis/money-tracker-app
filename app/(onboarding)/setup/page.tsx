@@ -14,9 +14,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { PageNotice } from "@/components/ui/page-notice";
 import { Select } from "@/components/ui/select";
 import { db } from "@/lib/db";
 import { getUserIdOrThrow } from "@/lib/auth/session";
+import {
+  buildPathWithSearchParams,
+  firstSearchParamValue,
+  resolveSearchParams,
+  type PageSearchParams,
+} from "@/lib/routes/search-params";
 import { allowedCurrencies, setupSubmitSchema } from "@/lib/validators/setup";
 
 const currencyLabels: Record<(typeof allowedCurrencies)[number], string> = {
@@ -39,25 +46,52 @@ const currencyLabels: Record<(typeof allowedCurrencies)[number], string> = {
   JPY: "JPY - Japanese Yen",
 };
 
+function buildSetupPageUrl(error?: string) {
+  return buildPathWithSearchParams("/setup", { error });
+}
+
 async function finishSetupAction(formData: FormData) {
   "use server";
 
-  const parsed = setupSubmitSchema.parse({
+  const parsed = setupSubmitSchema.safeParse({
     currency: formData.get("currency"),
     createDefaults: formData.get("createDefaults") === "on",
   });
 
-  await setCurrency(parsed.currency);
-
-  if (parsed.createDefaults) {
-    await createDefaultCategories();
+  if (!parsed.success) {
+    redirect(buildSetupPageUrl(parsed.error.issues[0]?.message ?? "Invalid setup input."));
   }
 
-  await completeSetup();
+  const currencyResult = await setCurrency(parsed.data.currency);
+
+  if (!currencyResult.ok) {
+    redirect(buildSetupPageUrl(currencyResult.error));
+  }
+
+  if (parsed.data.createDefaults) {
+    const categoryResult = await createDefaultCategories();
+
+    if (!categoryResult.ok) {
+      redirect(buildSetupPageUrl(categoryResult.error));
+    }
+  }
+
+  const completionResult = await completeSetup();
+
+  if (!completionResult.ok) {
+    redirect(buildSetupPageUrl(completionResult.error));
+  }
+
   redirect("/dashboard");
 }
 
-export default async function SetupPage() {
+export default async function SetupPage({
+  searchParams,
+}: {
+  searchParams?: PageSearchParams;
+}) {
+  const resolvedParams = await resolveSearchParams(searchParams);
+  const errorMessage = firstSearchParamValue(resolvedParams.error);
   const userId = await getUserIdOrThrow();
   const user = await db.user.findUnique({
     where: { id: userId },
@@ -121,6 +155,12 @@ export default async function SetupPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {errorMessage ? (
+            <PageNotice variant="error" title="Setup could not be completed" className="mb-6">
+              {errorMessage}
+            </PageNotice>
+          ) : null}
+
           <form action={finishSetupAction} className="grid gap-6">
             <div className="space-y-2">
               <label htmlFor="currency" className="text-sm font-medium text-foreground">

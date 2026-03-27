@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 
-import { buildCsvForMonth } from "@/actions/export";
+import { buildCsvForMonth } from "@/lib/export/csv";
 
 const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
 

@@ -29,13 +29,9 @@ import { formatMonthLabel } from "@/lib/dates/month";
 import { cn } from "@/lib/utils";
 
 type DashboardPageProps = {
-  searchParams?:
-    | {
-        month?: string | string[];
-      }
-    | Promise<{
-        month?: string | string[];
-      }>;
+  searchParams?: Promise<{
+    month?: string | string[];
+  }>;
 };
 
 function getCurrentMonthKey(): string {
@@ -170,7 +166,7 @@ function StatCard({
 }
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
-  const resolvedSearchParams = await Promise.resolve(searchParams);
+  const resolvedSearchParams = (await searchParams) ?? {};
   const selectedMonth = normalizeMonthParam(resolvedSearchParams?.month);
   const data = await getDashboardMonthData(selectedMonth);
 

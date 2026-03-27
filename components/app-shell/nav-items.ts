@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   FolderKanban,
   FileDown,
+  FileUp,
   ReceiptText,
   WalletCards,
 } from "lucide-react";
@@ -38,6 +39,12 @@ export const appNavItems: AppNavItem[] = [
     label: "Planned Bills",
     icon: WalletCards,
     description: "Expected monthly expenses",
+  },
+  {
+    href: "/import",
+    label: "Import",
+    icon: FileUp,
+    description: "Preview and add CSV data",
   },
   {
     href: "/export",

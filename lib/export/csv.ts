@@ -55,9 +55,7 @@ export async function buildCsvForMonth(month: string): Promise<string> {
       transaction.note ?? "",
     ];
 
-    return fields
-      .map((field) => escapeCsvField(String(field)))
-      .join(",");
+    return fields.map((field) => escapeCsvField(String(field))).join(",");
   });
 
   return [header, ...rows].join("\n");

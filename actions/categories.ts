@@ -3,6 +3,11 @@
 import { Prisma } from "@/generated/prisma/client";
 import { TransactionType } from "@/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
+import {
+  actionError,
+  actionSuccess,
+  type ActionResult,
+} from "@/lib/actions/result";
 import { getUserIdOrThrow } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import {
@@ -13,9 +18,7 @@ import {
   type RenameCategoryInput,
 } from "@/lib/validators/category";
 
-type CategoryActionResult =
-  | { ok: true }
-  | { ok: false; error: string };
+type CategoryActionResult = ActionResult;
 
 const duplicateCategoryError =
   "A category with this name and type already exists.";
@@ -47,7 +50,7 @@ export async function createCategory(
   const parsed = createCategorySchema.safeParse(input);
 
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid category input." };
+    return actionError(parsed.error.issues[0]?.message ?? "Invalid category input.");
   }
 
   try {
@@ -59,11 +62,11 @@ export async function createCategory(
       },
     });
   } catch (error) {
-    return { ok: false, error: getMutationError(error) };
+    return actionError(getMutationError(error));
   }
 
   revalidatePath("/categories");
-  return { ok: true };
+  return actionSuccess();
 }
 
 export async function renameCategory(
@@ -73,7 +76,7 @@ export async function renameCategory(
   const parsed = renameCategorySchema.safeParse(input);
 
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid category input." };
+    return actionError(parsed.error.issues[0]?.message ?? "Invalid category input.");
   }
 
   const existingCategory = await db.category.findFirst({
@@ -85,7 +88,7 @@ export async function renameCategory(
   });
 
   if (!existingCategory) {
-    return { ok: false, error: "Category not found." };
+    return actionError("Category not found.");
   }
 
   try {
@@ -94,11 +97,11 @@ export async function renameCategory(
       data: { name: parsed.data.name },
     });
   } catch (error) {
-    return { ok: false, error: getMutationError(error) };
+    return actionError(getMutationError(error));
   }
 
   revalidatePath("/categories");
-  return { ok: true };
+  return actionSuccess();
 }
 
 export async function archiveCategory(id: string): Promise<CategoryActionResult> {
@@ -106,7 +109,7 @@ export async function archiveCategory(id: string): Promise<CategoryActionResult>
   const parsed = categoryIdSchema.safeParse(id);
 
   if (!parsed.success) {
-    return { ok: false, error: "Invalid category id." };
+    return actionError("Invalid category id.");
   }
 
   const result = await db.category.updateMany({
@@ -120,11 +123,11 @@ export async function archiveCategory(id: string): Promise<CategoryActionResult>
   });
 
   if (result.count === 0) {
-    return { ok: false, error: "Category not found." };
+    return actionError("Category not found.");
   }
 
   revalidatePath("/categories");
-  return { ok: true };
+  return actionSuccess();
 }
 
 export async function unarchiveCategory(
@@ -134,7 +137,7 @@ export async function unarchiveCategory(
   const parsed = categoryIdSchema.safeParse(id);
 
   if (!parsed.success) {
-    return { ok: false, error: "Invalid category id." };
+    return actionError("Invalid category id.");
   }
 
   const result = await db.category.updateMany({
@@ -148,9 +151,9 @@ export async function unarchiveCategory(
   });
 
   if (result.count === 0) {
-    return { ok: false, error: "Category not found." };
+    return actionError("Category not found.");
   }
 
   revalidatePath("/categories");
-  return { ok: true };
+  return actionSuccess();
 }
