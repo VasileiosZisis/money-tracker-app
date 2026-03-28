@@ -1,6 +1,13 @@
 import { Prisma } from "@/generated/prisma/client";
 import { z } from "zod";
 
+import {
+  importPreviewFieldNames,
+  importRequiredFieldNames,
+  type ImportColumnMapping,
+  type ImportPreviewFieldName,
+  type ImportRequiredFieldName,
+} from "@/lib/import/shared";
 import { categoryIdSchema, categoryNameSchema } from "@/lib/validators/category";
 import { localDateSchema, transactionTypeSchema } from "@/lib/validators/transaction";
 
@@ -40,22 +47,6 @@ const previewTimestampSchema = z
   .min(1, "Preview timestamp is required.")
   .refine((value) => !Number.isNaN(Date.parse(value)), "Invalid preview timestamp.");
 
-export const importPreviewFieldNames = [
-  "localDate",
-  "type",
-  "category",
-  "amount",
-  "source",
-  "note",
-] as const;
-
-export const importRequiredFieldNames = [
-  "localDate",
-  "type",
-  "category",
-  "amount",
-] as const;
-
 export const importNormalizedTypeSchema = importRequiredString("Type is required.")
   .transform((value) => value.toUpperCase())
   .refine((value) => value === "INCOME" || value === "EXPENSE", {
@@ -83,7 +74,7 @@ export const importColumnMappingSchema = z
     source: z.number().int().min(0).optional(),
     note: z.number().int().min(0).optional(),
   })
-  .partial();
+  .partial() satisfies z.ZodType<ImportColumnMapping>;
 
 export const importPreviewConfirmationRowSchema = z.object({
   rowNumber: z.number().int().min(2),
@@ -132,10 +123,7 @@ export const confirmImportSchema = z.object({
   categoryResolutions: z.array(importCategoryResolutionSchema).default([]),
 });
 
-export type ImportPreviewFieldName = (typeof importPreviewFieldNames)[number];
-export type ImportRequiredFieldName = (typeof importRequiredFieldNames)[number];
 export type ImportPreviewRow = z.infer<typeof importPreviewRowSchema>;
-export type ImportColumnMapping = z.infer<typeof importColumnMappingSchema>;
 export type ImportPreviewConfirmationRow = z.infer<
   typeof importPreviewConfirmationRowSchema
 >;
@@ -143,3 +131,10 @@ export type ImportCategoryResolutionInput = z.infer<
   typeof importCategoryResolutionSchema
 >;
 export type ConfirmImportInput = z.infer<typeof confirmImportSchema>;
+export {
+  importPreviewFieldNames,
+  importRequiredFieldNames,
+  type ImportColumnMapping,
+  type ImportPreviewFieldName,
+  type ImportRequiredFieldName,
+};

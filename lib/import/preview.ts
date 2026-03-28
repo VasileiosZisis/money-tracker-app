@@ -3,14 +3,16 @@ import { ZodError } from "zod";
 import { TransactionType } from "@/generated/prisma/enums";
 import { detectImportColumnMapping } from "@/lib/import/columns";
 import { parseCsvText } from "@/lib/import/csv";
-import { createImportPreviewToken } from "@/lib/import/token";
 import {
   importPreviewFieldNames,
-  importPreviewRowSchema,
   importRequiredFieldNames,
   type ImportColumnMapping,
-  type ImportPreviewConfirmationRow,
   type ImportPreviewFieldName,
+} from "@/lib/import/shared";
+import { createImportPreviewToken } from "@/lib/import/token";
+import {
+  importPreviewRowSchema,
+  type ImportPreviewConfirmationRow,
 } from "@/lib/validators/import";
 
 export type ImportCategoryOption = {

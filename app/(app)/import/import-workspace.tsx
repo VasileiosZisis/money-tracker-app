@@ -4,7 +4,6 @@ import { useRef, useState, useTransition } from "react";
 import { CheckCircle2, FileSpreadsheet, RefreshCcw, Upload } from "lucide-react";
 import Link from "next/link";
 
-import { confirmImport, previewImport } from "@/actions/import";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -19,16 +18,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageNotice } from "@/components/ui/page-notice";
 import { Select } from "@/components/ui/select";
-import { importPreviewFieldNames, type ImportColumnMapping } from "@/lib/validators/import";
+import { type ActionResultWithData } from "@/lib/actions/result";
+import { importPreviewFieldNames, type ImportColumnMapping } from "@/lib/import/shared";
+import { type ImportPreviewResult } from "@/lib/import/types";
 import { cn } from "@/lib/utils";
-
-type ImportPreviewResult = Extract<Awaited<ReturnType<typeof previewImport>>, { ok: true }>["data"];
 
 type ResolutionState = {
   action: "map" | "create";
   categoryId: string;
   createName: string;
 };
+
+type ImportPreviewActionResult = ActionResultWithData<ImportPreviewResult>;
+type ConfirmImportResult = ActionResultWithData<{
+  importedCount: number;
+  skippedDuplicateCount: number;
+  createdCategoryCount: number;
+}>;
 
 const fieldLabels: Record<(typeof importPreviewFieldNames)[number], string> = {
   localDate: "Date",
@@ -52,6 +58,41 @@ function buildDefaultResolutionState(preview: ImportPreviewResult) {
 
 function buildInitialColumnMapping(preview: ImportPreviewResult) {
   return { ...preview.appliedColumnMapping };
+}
+
+async function parseJsonResponse<T>(response: Response): Promise<T> {
+  return (await response.json()) as T;
+}
+
+async function requestImportPreview(formData: FormData): Promise<ImportPreviewActionResult> {
+  const response = await fetch("/api/import/preview", {
+    method: "POST",
+    body: formData,
+  });
+
+  return parseJsonResponse<ImportPreviewActionResult>(response);
+}
+
+async function requestImportConfirmation(payload: {
+  previewGeneratedAt: string;
+  confirmationToken: string;
+  rows: ImportPreviewResult["rowsForConfirmation"];
+  categoryResolutions: {
+    key: string;
+    action: "map" | "create";
+    categoryId?: string;
+    createName?: string;
+  }[];
+}): Promise<ConfirmImportResult> {
+  const response = await fetch("/api/import/confirm", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return parseJsonResponse<ConfirmImportResult>(response);
 }
 
 export function ImportWorkspace() {
@@ -91,7 +132,7 @@ export function ImportWorkspace() {
           formData.set("columnMapping", JSON.stringify(columnMapping));
         }
 
-        const result = await previewImport(formData);
+        const result = await requestImportPreview(formData);
 
         if (!result.ok) {
           setPreview(null);
@@ -152,7 +193,7 @@ export function ImportWorkspace() {
               };
         });
 
-        const result = await confirmImport({
+        const result = await requestImportConfirmation({
           previewGeneratedAt: preview.previewGeneratedAt,
           confirmationToken: preview.confirmationToken,
           rows: preview.rowsForConfirmation,
