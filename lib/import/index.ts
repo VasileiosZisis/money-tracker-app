@@ -13,6 +13,7 @@ export { createImportPreviewToken } from "@/lib/import/token";
 export type {
   ImportCategoryOption,
   ImportCategoryResolutionCandidate,
+  ImportCategoryResolutionState,
   ImportPreviewResult,
   ImportPreviewRowError,
   ImportPreviewRowResult,

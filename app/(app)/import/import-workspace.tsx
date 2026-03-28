@@ -1,8 +1,15 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { CheckCircle2, FileSpreadsheet, RefreshCcw, Upload } from "lucide-react";
+import {
+  CheckCircle2,
+  FileSpreadsheet,
+  RefreshCcw,
+  Rows3,
+  Upload,
+} from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -20,21 +27,25 @@ import { PageNotice } from "@/components/ui/page-notice";
 import { Select } from "@/components/ui/select";
 import { type ActionResultWithData } from "@/lib/actions/result";
 import { importPreviewFieldNames, type ImportColumnMapping } from "@/lib/import/shared";
-import { type ImportPreviewResult } from "@/lib/import/types";
+import {
+  type ImportCategoryResolutionState,
+  type ImportPreviewResult,
+} from "@/lib/import/types";
+import { buildPathWithSearchParams } from "@/lib/routes/search-params";
 import { cn } from "@/lib/utils";
 
-type ResolutionState = {
-  action: "map" | "create";
+type ResolutionState = Omit<ImportCategoryResolutionState, "key"> & {
   categoryId: string;
   createName: string;
 };
 
 type ImportPreviewActionResult = ActionResultWithData<ImportPreviewResult>;
-type ConfirmImportResult = ActionResultWithData<{
+type ImportConfirmationData = {
   importedCount: number;
   skippedDuplicateCount: number;
   createdCategoryCount: number;
-}>;
+};
+type ConfirmImportResult = ActionResultWithData<ImportConfirmationData>;
 
 const fieldLabels: Record<(typeof importPreviewFieldNames)[number], string> = {
   localDate: "Date",
@@ -46,11 +57,11 @@ const fieldLabels: Record<(typeof importPreviewFieldNames)[number], string> = {
 };
 
 function buildDefaultResolutionState(preview: ImportPreviewResult) {
-  return preview.categoriesToResolve.reduce<Record<string, ResolutionState>>((state, candidate) => {
-    state[candidate.key] = {
-      action: "create",
-      categoryId: "",
-      createName: candidate.sourceName,
+  return preview.categoryResolutions.reduce<Record<string, ResolutionState>>((state, resolution) => {
+    state[resolution.key] = {
+      action: resolution.action,
+      categoryId: resolution.categoryId ?? "",
+      createName: resolution.createName ?? "",
     };
     return state;
   }, {});
@@ -58,6 +69,60 @@ function buildDefaultResolutionState(preview: ImportPreviewResult) {
 
 function buildInitialColumnMapping(preview: ImportPreviewResult) {
   return { ...preview.appliedColumnMapping };
+}
+
+function countCategoriesToCreate(
+  preview: ImportPreviewResult,
+  resolutionState: Record<string, ResolutionState>,
+) {
+  return preview.categoriesToResolve.filter((candidate) => {
+    const resolution = resolutionState[candidate.key];
+    return (resolution?.action ?? "create") === "create";
+  }).length;
+}
+
+function getResolutionIssues(
+  preview: ImportPreviewResult,
+  resolutionState: Record<string, ResolutionState>,
+) {
+  return preview.categoriesToResolve.flatMap((candidate) => {
+    const resolution = resolutionState[candidate.key];
+
+    if (!resolution) {
+      return [`Choose how to resolve "${candidate.sourceName}".`];
+    }
+
+    if (resolution.action === "map" && resolution.categoryId.trim().length === 0) {
+      return [`Select an existing category for "${candidate.sourceName}".`];
+    }
+
+    if (resolution.action === "create" && resolution.createName.trim().length === 0) {
+      return [`Provide a category name for "${candidate.sourceName}".`];
+    }
+
+    return [];
+  });
+}
+
+function getMostRecentImportedMonth(rows: ImportPreviewResult["rowsForConfirmation"]) {
+  const months = rows.map((row) => row.localDate.slice(0, 7)).filter((month) => month.length === 7);
+
+  if (months.length === 0) {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  }
+
+  return [...months].sort().at(-1) ?? months[0];
+}
+
+function buildImportSuccessMessage(result: ImportConfirmationData) {
+  const details = [
+    `${result.importedCount} imported`,
+    `${result.createdCategoryCount} categories created`,
+    `${result.skippedDuplicateCount} duplicates skipped`,
+  ];
+
+  return `Import complete: ${details.join(", ")}.`;
 }
 
 async function parseJsonResponse<T>(response: Response): Promise<T> {
@@ -96,6 +161,7 @@ async function requestImportConfirmation(payload: {
 }
 
 export function ImportWorkspace() {
+  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<ImportPreviewResult | null>(null);
@@ -105,6 +171,11 @@ export function ImportWorkspace() {
   const [success, setSuccess] = useState<string>("");
   const [isPreviewPending, startPreviewTransition] = useTransition();
   const [isConfirmPending, startConfirmTransition] = useTransition();
+
+  const resolutionIssues = preview ? getResolutionIssues(preview, resolutionState) : [];
+  const categoriesToCreateCount = preview
+    ? countCategoriesToCreate(preview, resolutionState)
+    : 0;
 
   function resetPreviewState() {
     setPreview(null);
@@ -171,25 +242,30 @@ export function ImportWorkspace() {
       return;
     }
 
+    if (resolutionIssues.length > 0) {
+      setError(resolutionIssues[0]);
+      return;
+    }
+
     startConfirmTransition(() => {
       void (async () => {
-        const categoryResolutions = preview.categoriesToResolve.map((candidate) => {
-          const resolution = resolutionState[candidate.key] ?? {
-            action: "create" as const,
-            categoryId: "",
-            createName: candidate.sourceName,
+        const categoryResolutions = preview.categoryResolutions.map((resolution) => {
+          const resolvedState = resolutionState[resolution.key] ?? {
+            action: resolution.action,
+            categoryId: resolution.categoryId ?? "",
+            createName: resolution.createName ?? "",
           };
 
-          return resolution.action === "map"
+          return resolvedState.action === "map"
             ? {
-                key: candidate.key,
+                key: resolution.key,
                 action: "map" as const,
-                categoryId: resolution.categoryId,
+                categoryId: resolvedState.categoryId,
               }
             : {
-                key: candidate.key,
+                key: resolution.key,
                 action: "create" as const,
-                createName: resolution.createName,
+                createName: resolvedState.createName,
               };
         });
 
@@ -205,18 +281,21 @@ export function ImportWorkspace() {
           return;
         }
 
-        setSuccess(
-          `${result.data.importedCount} rows imported, ${result.data.createdCategoryCount} categories created, ${result.data.skippedDuplicateCount} duplicates skipped.`,
-        );
-        setError("");
-        setPreview(null);
-        setColumnMapping({});
-        setResolutionState({});
-        setSelectedFile(null);
+        const successMessage = buildImportSuccessMessage(result.data);
+        const targetMonth = getMostRecentImportedMonth(preview.rowsForConfirmation);
 
-        if (fileInputRef.current) {
-          fileInputRef.current.value = "";
+        if (result.data.importedCount > 0) {
+          router.push(
+            buildPathWithSearchParams("/transactions", {
+              month: targetMonth,
+              success: successMessage,
+            }),
+          );
+          return;
         }
+
+        setSuccess(successMessage);
+        setError("");
       })();
     });
   }
@@ -224,7 +303,10 @@ export function ImportWorkspace() {
   const canConfirm =
     preview !== null &&
     preview.rowsForConfirmation.length > 0 &&
-    preview.missingRequiredFields.length === 0;
+    preview.missingRequiredFields.length === 0 &&
+    resolutionIssues.length === 0 &&
+    !isPreviewPending &&
+    !isConfirmPending;
 
   return (
     <div className="space-y-6">
@@ -329,6 +411,14 @@ export function ImportWorkspace() {
         </Card>
       </section>
 
+      {!preview ? (
+        <EmptyState
+          icon={FileSpreadsheet}
+          title="No import preview yet"
+          description="Upload a CSV to review detected columns, row-level validation, and category mapping before anything is written."
+        />
+      ) : null}
+
       {preview ? (
         <>
           <section className="grid gap-4 md:grid-cols-4">
@@ -358,9 +448,9 @@ export function ImportWorkspace() {
             </Card>
             <Card>
               <CardContent className="space-y-1 p-5">
-                <p className="text-sm font-medium text-muted-foreground">Category mappings</p>
+                <p className="text-sm font-medium text-muted-foreground">Categories to create</p>
                 <p className="text-xl font-semibold tracking-tight text-foreground">
-                  {preview.summary.categoriesToResolve}
+                  {categoriesToCreateCount}
                 </p>
               </CardContent>
             </Card>
@@ -402,13 +492,34 @@ export function ImportWorkspace() {
                   </div>
                 ))}
 
+                <div className="rounded-[24px] border border-border/80 bg-background/60 p-4 sm:col-span-2">
+                  <div className="flex items-center gap-2">
+                    <Rows3 className="size-[18px] text-muted-foreground" />
+                    <p className="text-sm font-medium text-muted-foreground">Detected columns</p>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {preview.detectedColumns.map((column) => (
+                      <Badge key={column.index} variant="outline" className="rounded-full">
+                        {column.header || `Column ${column.index + 1}`}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
                 {preview.missingRequiredFields.length > 0 ? (
                   <div className="sm:col-span-2">
                     <PageNotice variant="error" title="Required columns are still missing">
                       {preview.missingRequiredFields.map((field) => fieldLabels[field]).join(", ")}
                     </PageNotice>
                   </div>
-                ) : null}
+                ) : (
+                  <div className="sm:col-span-2">
+                    <PageNotice variant="success" title="Column mapping looks good">
+                      Refresh the preview after changing any column selection so validation runs
+                      against the updated mapping.
+                    </PageNotice>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -433,8 +544,24 @@ export function ImportWorkspace() {
                   </p>
                 </div>
 
+                {preview.missingRequiredFields.length > 0 ? (
+                  <PageNotice variant="error" title="Confirm is blocked">
+                    Required columns still need to be mapped and previewed again.
+                  </PageNotice>
+                ) : null}
+
+                {!preview.missingRequiredFields.length && resolutionIssues.length > 0 ? (
+                  <PageNotice variant="error" title="Confirm is blocked">
+                    {resolutionIssues[0]}
+                  </PageNotice>
+                ) : null}
+
                 <div className="flex flex-wrap gap-3">
-                  <Button type="button" onClick={handleConfirmImport} disabled={!canConfirm || isConfirmPending}>
+                  <Button
+                    type="button"
+                    onClick={handleConfirmImport}
+                    disabled={!canConfirm}
+                  >
                     <CheckCircle2 />
                     {isConfirmPending ? "Importing..." : "Confirm import"}
                   </Button>
@@ -532,6 +659,11 @@ export function ImportWorkspace() {
                                 </option>
                               ))}
                             </Select>
+                            {resolution.categoryId.trim().length === 0 ? (
+                              <p className="text-sm text-destructive">
+                                Select a category before confirming.
+                              </p>
+                            ) : null}
                           </div>
                         ) : (
                           <div className="space-y-2">
@@ -549,6 +681,11 @@ export function ImportWorkspace() {
                                 }));
                               }}
                             />
+                            {resolution.createName.trim().length === 0 ? (
+                              <p className="text-sm text-destructive">
+                                Enter a name before confirming.
+                              </p>
+                            ) : null}
                           </div>
                         )}
                       </div>

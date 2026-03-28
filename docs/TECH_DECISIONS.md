@@ -87,7 +87,7 @@ Two layers are required.
 
 Use:
 
-- `middleware.ts` with `next-auth/middleware`
+- `proxy.ts` with `next-auth/middleware`
 
 Protected authenticated routes include:
 
@@ -330,7 +330,8 @@ Import persistence rule:
 
 Locked implementation pattern:
 
-- use server actions in `/actions/*` for mutations
+- use server actions in `/actions/*` as the default for app mutations
+- route handlers in `app/api/*/route.ts` are allowed for interactive client-side workflows that need a server boundary, such as import preview/confirm
 - validate all inputs on the server using Zod schemas in `/lib/validators/*`
 - all DB access must be server-side
 - no direct client DB access
@@ -341,7 +342,7 @@ This applies to:
 - categories
 - transactions
 - planned bills
-- import confirmation
+- import validation and confirmation
 
 ---
 
@@ -423,6 +424,7 @@ Do not store formatted money strings in the database.
 Preferred structure:
 
 - server actions in `/actions`
+- route handlers in `app/api/*/route.ts` when a client workflow needs a server transport boundary
 - validators in `/lib/validators`
 - auth helpers in `/lib/auth`
 - month/date helpers in `/lib/dates`

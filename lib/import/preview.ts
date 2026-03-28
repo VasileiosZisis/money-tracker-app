@@ -56,6 +56,13 @@ export type ImportCategoryResolutionCandidate = {
   rowNumbers: number[];
 };
 
+export type ImportCategoryResolutionState = {
+  key: string;
+  action: "map" | "create";
+  categoryId?: string;
+  createName?: string;
+};
+
 export type ImportPreviewResult = {
   fileName: string;
   previewGeneratedAt: string;
@@ -76,6 +83,7 @@ export type ImportPreviewResult = {
   missingRequiredFields: ImportPreviewFieldName[];
   categoryOptions: ImportCategoryOption[];
   categoriesToResolve: ImportCategoryResolutionCandidate[];
+  categoryResolutions: ImportCategoryResolutionState[];
   rows: ImportPreviewRowResult[];
   rowsForConfirmation: ImportPreviewConfirmationRow[];
 };
@@ -300,6 +308,13 @@ export function buildImportPreview(input: {
     categoriesToResolve: [...categoriesToResolve.values()].sort((left, right) =>
       left.sourceName.localeCompare(right.sourceName),
     ),
+    categoryResolutions: [...categoriesToResolve.values()]
+      .sort((left, right) => left.sourceName.localeCompare(right.sourceName))
+      .map((candidate) => ({
+        key: candidate.key,
+        action: "create" as const,
+        createName: candidate.sourceName,
+      })),
     rows: previewRows,
     rowsForConfirmation,
   } satisfies ImportPreviewResult;

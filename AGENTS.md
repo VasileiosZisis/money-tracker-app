@@ -304,7 +304,6 @@ categories.ts
 transactions.ts
 planned-bills.ts
 import.ts
-export.ts
 lib/
 db.ts
 auth/options.ts
@@ -316,13 +315,14 @@ transaction.ts
 dates/
 csv/
 forecast/
+export/
 money/
 prisma/
 schema.prisma
 migrations/
 types/
 next-auth.d.ts
-middleware.ts
+proxy.ts
 
 Route groups:
 
@@ -333,7 +333,8 @@ Route groups:
 
 ## Implementation approach
 
-- Use server actions under `/actions` for mutations
+- Use server actions under `/actions` as the default for app mutations
+- Route handlers under `app/api/*/route.ts` are allowed when an interactive client workflow needs a server boundary, such as the Import preview/confirm flow
 - Keep DB access on the server only
 - Use Zod validators under `/lib/validators`
 - Month helpers under `/lib/dates` should work with `localDate` strings
@@ -401,7 +402,7 @@ Optional fields:
 
 ## Redirect / protection requirements
 
-- `middleware.ts` protects authenticated routes
+- `proxy.ts` protects authenticated routes
 - In `app/(app)/layout.tsx` (server component), enforce setup:
   - if `user.hasCompletedSetup` is false and route is not `/setup`, redirect to `/setup`
   - after setup completion, redirect `/setup` -> `/dashboard`
