@@ -3,6 +3,12 @@ import { Prisma } from "@/generated/prisma/client";
 import { getUserIdOrThrow } from "@/lib/auth/session";
 import { getMonthRange } from "@/lib/dates/month";
 import { db } from "@/lib/db";
+import {
+  buildForecastMonthContext,
+  computeForecastSummary,
+  getTodayLocalDate,
+  type ForecastSummary,
+} from "@/lib/forecast";
 
 export type DashboardMonthData = {
   month: string;
@@ -10,6 +16,7 @@ export type DashboardMonthData = {
   incomeSum: Prisma.Decimal;
   expenseSum: Prisma.Decimal;
   netLeft: Prisma.Decimal;
+  forecast: ForecastSummary;
   recentTransactions: Array<{
     id: string;
     localDate: string;
@@ -26,9 +33,24 @@ export type DashboardMonthData = {
 
 export async function getDashboardMonthData(month: string): Promise<DashboardMonthData> {
   const userId = await getUserIdOrThrow();
+  const referenceDate = getTodayLocalDate();
+  const forecastMonthContext = buildForecastMonthContext({
+    selectedMonth: month,
+    referenceDate,
+  });
   const { start, endExclusive } = getMonthRange(month);
+  const earliestHistoryMonth =
+    forecastMonthContext.trailingFullMonths[0] ?? forecastMonthContext.selectedMonth;
+  const historyStart = getMonthRange(earliestHistoryMonth).start;
 
-  const [incomeAggregate, expenseAggregate, recentTransactions, user] = await Promise.all([
+  const [
+    incomeAggregate,
+    expenseAggregate,
+    recentTransactions,
+    forecastTransactions,
+    plannedBills,
+    user,
+  ] = await Promise.all([
     db.transaction.aggregate({
       where: {
         userId,
@@ -74,6 +96,33 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
       orderBy: [{ localDate: "desc" }, { createdAt: "desc" }],
       take: 10,
     }),
+    db.transaction.findMany({
+      where: {
+        userId,
+        localDate: {
+          gte: historyStart,
+          lt: endExclusive,
+        },
+      },
+      select: {
+        type: true,
+        amount: true,
+        localDate: true,
+        categoryId: true,
+      },
+    }),
+    db.plannedBill.findMany({
+      where: {
+        userId,
+        isActive: true,
+      },
+      select: {
+        amount: true,
+        dueDayOfMonth: true,
+        categoryId: true,
+        isActive: true,
+      },
+    }),
     db.user.findUnique({
       where: { id: userId },
       select: { currency: true },
@@ -82,6 +131,12 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
 
   const incomeSum = incomeAggregate._sum.amount ?? new Prisma.Decimal(0);
   const expenseSum = expenseAggregate._sum.amount ?? new Prisma.Decimal(0);
+  const forecast = computeForecastSummary({
+    selectedMonth: month,
+    referenceDate,
+    transactions: forecastTransactions,
+    plannedBills,
+  });
 
   return {
     month,
@@ -89,6 +144,7 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
     incomeSum,
     expenseSum,
     netLeft: incomeSum.minus(expenseSum),
+    forecast,
     recentTransactions: recentTransactions.map((transaction) => ({
       id: transaction.id,
       localDate: transaction.localDate,
