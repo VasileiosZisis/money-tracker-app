@@ -7,8 +7,11 @@ import {
   buildForecastMonthContext,
   computeForecastSummary,
   getTodayLocalDate,
+  type ForecastMonthRelation,
   type ForecastSummary,
 } from "@/lib/forecast";
+
+export type DashboardPlannedBillStatus = "upcoming" | "due-today" | "passed";
 
 export type DashboardMonthData = {
   month: string;
@@ -17,6 +20,17 @@ export type DashboardMonthData = {
   expenseSum: Prisma.Decimal;
   netLeft: Prisma.Decimal;
   forecast: ForecastSummary;
+  plannedBills: Array<{
+    id: string;
+    name: string;
+    amount: Prisma.Decimal;
+    dueDayOfMonth: number;
+    status: DashboardPlannedBillStatus;
+    category: {
+      name: string;
+      isArchived: boolean;
+    };
+  }>;
   recentTransactions: Array<{
     id: string;
     localDate: string;
@@ -30,6 +44,30 @@ export type DashboardMonthData = {
     };
   }>;
 };
+
+function getPlannedBillStatus(
+  monthRelation: ForecastMonthRelation,
+  currentDayOfMonth: number | null,
+  dueDayOfMonth: number,
+): DashboardPlannedBillStatus {
+  if (monthRelation === "past") {
+    return "passed";
+  }
+
+  if (monthRelation === "future") {
+    return "upcoming";
+  }
+
+  if (dueDayOfMonth < (currentDayOfMonth ?? 1)) {
+    return "passed";
+  }
+
+  if (dueDayOfMonth === currentDayOfMonth) {
+    return "due-today";
+  }
+
+  return "upcoming";
+}
 
 export async function getDashboardMonthData(month: string): Promise<DashboardMonthData> {
   const userId = await getUserIdOrThrow();
@@ -116,11 +154,20 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
         userId,
         isActive: true,
       },
+      orderBy: [{ dueDayOfMonth: "asc" }, { name: "asc" }],
       select: {
+        id: true,
+        name: true,
         amount: true,
         dueDayOfMonth: true,
         categoryId: true,
         isActive: true,
+        category: {
+          select: {
+            name: true,
+            isArchived: true,
+          },
+        },
       },
     }),
     db.user.findUnique({
@@ -145,6 +192,21 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
     expenseSum,
     netLeft: incomeSum.minus(expenseSum),
     forecast,
+    plannedBills: plannedBills.map((plannedBill) => ({
+      id: plannedBill.id,
+      name: plannedBill.name,
+      amount: plannedBill.amount,
+      dueDayOfMonth: plannedBill.dueDayOfMonth,
+      status: getPlannedBillStatus(
+        forecast.monthContext.monthRelation,
+        forecast.monthContext.currentDayOfMonth,
+        plannedBill.dueDayOfMonth,
+      ),
+      category: {
+        name: plannedBill.category.name,
+        isArchived: plannedBill.category.isArchived,
+      },
+    })),
     recentTransactions: recentTransactions.map((transaction) => ({
       id: transaction.id,
       localDate: transaction.localDate,
