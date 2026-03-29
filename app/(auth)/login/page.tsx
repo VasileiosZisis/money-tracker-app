@@ -14,8 +14,23 @@ import {
 } from "@/components/ui/card";
 import { db } from "@/lib/db";
 
-export default async function LoginPage() {
+type LoginPageProps = {
+  searchParams: Promise<{
+    error?: string;
+  }>;
+};
+
+function getAuthErrorMessage(error: string | undefined) {
+  if (error === "OAuthCallback") {
+    return "Google sign-in could not complete. Check the deployed auth host, Google redirect URI, and auth cookies.";
+  }
+
+  return "Sign-in could not complete. Please try again.";
+}
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
   const session = await getSession();
+  const { error } = await searchParams;
 
   if (session?.user?.id) {
     const user = await db.user.findUnique({
@@ -104,6 +119,11 @@ export default async function LoginPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6 pt-6">
+            {error ? (
+              <div className="rounded-[24px] border border-destructive/30 bg-destructive/10 p-4 text-sm leading-6 text-foreground">
+                {getAuthErrorMessage(error)}
+              </div>
+            ) : null}
             <div className="rounded-[24px] border border-border/80 bg-background/60 p-4">
               <p className="text-sm font-medium text-muted-foreground">What happens next</p>
               <p className="mt-2 text-sm leading-6 text-foreground">
