@@ -1,53 +1,92 @@
-# Money Tracker (Free MVP)
+# Money Tracker
 
-A web app for manual money tracking (income and expenses) with a monthly view, built to replace a personal Excel workflow.
+A manual-first personal money tracking web app for monthly cashflow planning.
+
+The app started as an Excel replacement for income and expense tracking, then
+grew into a lightweight monthly planner with CSV import, planned bills,
+forecasting, and a safe-to-spend estimate.
 
 ## Status
 
-- Task 1 complete: Next.js App Router + TypeScript scaffold, Tailwind design tokens, route groups, base layouts.
-- Task 2 complete: Prisma + PostgreSQL schema (NextAuth models + MVP domain models).
-- Task 3 complete: NextAuth Google OAuth, protected routes with middleware, typed session user id.
-- Task 4 complete: mandatory setup flow with onboarding route group, setup actions, validators, and setup enforcement redirects.
-- Task 5 complete: Categories CRUD (create, rename, archive/unarchive), user-scoped server actions, validation, and active/archived UI sections.
-- Task 6 complete: Transactions CRUD + list + filters, user-scoped server actions, strict transaction validation, and archived-category-safe edit behavior.
-- Task 7 complete: Dashboard month totals (income/expense/net) + recent transactions, with month query param support and currency formatting.
-- Task 8 complete: Monthly CSV export (`localDate,type,category,amount,source,note`) with safe CSV escaping and per-user route-based download.
+Implemented through the current next-phase polish work:
+
+- Free MVP baseline:
+  - Google sign-in with NextAuth
+  - mandatory setup flow
+  - categories CRUD with archiving
+  - transactions CRUD with month/type/category filters
+  - monthly dashboard totals
+  - CSV export
+- Next phase:
+  - CSV import with preview, row validation, category mapping, and confirm flow
+  - planned bills CRUD
+  - current-month forecast helpers and dashboard metrics
+  - safe-to-spend indicator
+  - empty/error/limited-history polish for import, planned bills, and dashboard
 
 ## Current behavior
 
-- Unauthenticated access to `/setup`, `/dashboard`, `/transactions`, `/categories`, `/export` redirects to `/login`.
+- Unauthenticated access to `/setup`, `/dashboard`, `/transactions`, `/categories`, `/planned`, `/import`, and `/export` redirects to `/login`.
 - Visiting `/login` while authenticated redirects:
   - to `/setup` if `hasCompletedSetup` is `false`
   - to `/dashboard` if `hasCompletedSetup` is `true`
-- App routes (`/dashboard`, `/transactions`, `/categories`, `/export`) require completed setup.
-- Onboarding route (`/setup`) redirects to `/dashboard` when setup is already complete.
+- App routes under the authenticated shell require completed setup.
 - `/transactions` supports month/type/category filters plus create, edit, and delete.
-- `/dashboard` supports month selection (`?month=YYYY-MM`) and shows income, expense, net left, and recent monthly transactions.
+- `/dashboard` supports month selection (`?month=YYYY-MM`) and shows:
+  - income total
+  - expense total
+  - net left now
+  - forecast remaining spend
+  - projected end-of-month net
+  - safe to spend
+  - planned bills for the selected month
+  - recent monthly transactions
+- `/planned` supports create, edit, activate/deactivate, and delete for monthly planned bills.
+- `/import` supports CSV upload, preview, validation, category resolution, and explicit confirm.
 - `/export` downloads a CSV for the selected month via `/export/download`.
+
+## Product scope
+
+### In scope today
+
+- Single-user web app
+- Google OAuth only
+- Per-user base currency
+- Manual transaction entry
+- Month-based tracking using `localDate = "YYYY-MM-DD"`
+- Planned monthly expense templates
+- Simple explainable forecasting
+- Safe-to-spend planning indicator
+- CSV import and CSV export
+
+### Explicitly out of scope
+
+- Bank sync
+- multi-currency transactions or FX conversion
+- recurring income systems
+- advanced recurring rules
+- budgets / envelopes / rollover systems
+- paid subscriptions or billing
+- shared household accounts
+- native mobile apps
+- AI categorization or AI forecasting
 
 ## Route groups
 
 - `app/(auth)` for public auth pages (`/login`)
 - `app/(onboarding)` for setup onboarding (`/setup`)
-- `app/(app)` for main authenticated pages (`/dashboard`, `/transactions`, `/categories`, `/export`)
-
-## MVP scope
-
-- Google sign-in (NextAuth)
-- First-login setup flow:
-  - choose base currency
-  - optionally create default income/expense categories
-  - complete setup
-- Transaction CRUD (income/expense, amount, local date, category, source, note)
-- Monthly dashboard totals (income, expense, net left)
-- Transactions filters (month/type/category)
-- Category archive/unarchive
-- Monthly CSV export
+- `app/(app)` for authenticated app pages:
+  - `/dashboard`
+  - `/transactions`
+  - `/categories`
+  - `/planned`
+  - `/import`
+  - `/export`
 
 ## Tech stack
 
 - Next.js App Router + React + TypeScript
-- Tailwind CSS (token-based theme, light/dark mode)
+- Tailwind CSS with token-based theming and dark mode
 - PostgreSQL + Prisma
 - NextAuth (Google OAuth) + Prisma adapter
 
@@ -57,15 +96,20 @@ UI follows `docs/DESIGN_SYSTEM.md`:
 
 - token-based colors in components
 - light/dark mode via `dark` class
-- Inter for UI text, JetBrains Mono for numeric values
+- Inter for UI text
+- JetBrains Mono for numeric values
 
 ## Project docs
 
-- `AGENTS.md`
-- `docs/MVP_SPEC.md`
-- `docs/TECH_DECISIONS.md`
-- `docs/TASKS.md`
-- `docs/DESIGN_SYSTEM.md`
+Read these in order for product and implementation rules:
+
+1. `AGENTS.md`
+2. `docs/DESIGN_SYSTEM.md`
+3. `docs/TECH_DECISIONS.md`
+4. `docs/MVP_SPEC.md`
+5. `docs/TASKS.md`
+6. `docs/NEXT_PHASE_SPEC.md`
+7. `docs/TASKS_NEXT.md`
 
 ## Local setup
 
@@ -89,11 +133,21 @@ GOOGLE_CLIENT_SECRET=...
 
 ```bash
 npx prisma generate
-npx prisma migrate dev --name init
+npx prisma migrate dev
 ```
 
 ### 4. Run the app
 
 ```bash
+npm run dev
+```
+
+## Verification
+
+Typical manual verification commands:
+
+```bash
+npm run lint
+npx tsc --noEmit
 npm run dev
 ```
