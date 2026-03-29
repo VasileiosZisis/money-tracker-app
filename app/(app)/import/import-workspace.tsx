@@ -307,6 +307,7 @@ export function ImportWorkspace() {
     resolutionIssues.length === 0 &&
     !isPreviewPending &&
     !isConfirmPending;
+  const hasNoValidRows = preview !== null && preview.rowsForConfirmation.length === 0;
 
   return (
     <div className="space-y-6">
@@ -371,10 +372,11 @@ export function ImportWorkspace() {
             <div className="rounded-[24px] border border-border/80 bg-background/60 p-4">
               <p className="text-sm font-medium text-muted-foreground">Required columns</p>
               <p className="mt-2 text-sm leading-6 text-foreground">
-                `localDate`, `type`, `category`, and `amount`
+                localDate, type, category, and amount
               </p>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Optional columns: `source`, `note`
+                Optional columns: source, note. Unsupported file shapes should use a
+                comma-separated header row before previewing again.
               </p>
             </div>
           </CardContent>
@@ -414,8 +416,8 @@ export function ImportWorkspace() {
       {!preview ? (
         <EmptyState
           icon={FileSpreadsheet}
-          title="No import preview yet"
-          description="Upload a CSV to review detected columns, row-level validation, and category mapping before anything is written."
+          title="No import data yet"
+          description="Upload a CSV with headers for localDate, type, category, and amount to review row-level validation and category mapping before anything is written."
         />
       ) : null}
 
@@ -543,6 +545,13 @@ export function ImportWorkspace() {
                     mappings are resolved.
                   </p>
                 </div>
+
+                {hasNoValidRows ? (
+                  <PageNotice variant="error" title="No valid rows yet">
+                    Fix the row errors or adjust the column mapping, then refresh the preview.
+                    Nothing will be imported until at least one row is valid.
+                  </PageNotice>
+                ) : null}
 
                 {preview.missingRequiredFields.length > 0 ? (
                   <PageNotice variant="error" title="Confirm is blocked">
@@ -704,11 +713,21 @@ export function ImportWorkspace() {
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4">
+              {hasNoValidRows ? (
+                <div className="rounded-[24px] border border-warning/20 bg-warning/5 p-4">
+                  <p className="text-sm font-medium text-foreground">No valid preview rows yet</p>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                    The file was parsed, but none of the rows are valid yet. Check the column
+                    mapping and row errors below before confirming.
+                  </p>
+                </div>
+              ) : null}
+
               {preview.rows.length === 0 ? (
                 <EmptyState
                   icon={FileSpreadsheet}
                   title="No rows in preview"
-                  description="Upload a CSV to see the parsed rows here."
+                  description="Upload a CSV with data rows to see the parsed preview here."
                 />
               ) : (
                 preview.rows.slice(0, 20).map((row) => (

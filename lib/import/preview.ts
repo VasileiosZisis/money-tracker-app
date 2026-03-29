@@ -159,6 +159,12 @@ export function buildImportPreview(input: {
     throw new Error("CSV must include at least one data row.");
   }
 
+  if (parsedCsv.headers.every((header) => header.trim().length === 0)) {
+    throw new Error(
+      "The CSV needs a header row. Include at least localDate, type, category, and amount.",
+    );
+  }
+
   const { columns, mapping } = detectImportColumnMapping(
     parsedCsv.headers,
     input.columnMapping,
@@ -167,6 +173,12 @@ export function buildImportPreview(input: {
   const missingRequiredFields = importRequiredFieldNames.filter(
     (field) => mapping[field] === undefined,
   );
+
+  if (columns.length === 1 && missingRequiredFields.length === importRequiredFieldNames.length) {
+    throw new Error(
+      "This CSV shape could not be recognized. Make sure the file is comma-separated and has headers for localDate, type, category, and amount.",
+    );
+  }
 
   const categoryLookup = input.categories.reduce<Map<string, ImportCategoryOption>>(
     (lookup, category) => {

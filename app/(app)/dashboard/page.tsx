@@ -290,6 +290,30 @@ function getPlannedBillsDescription(forecast: ForecastData) {
   return "Upcoming and due-today items flow directly into the current-month estimate.";
 }
 
+function getLimitedHistoryMessage(forecast: ForecastData) {
+  if (forecast.monthContext.monthRelation === "past") {
+    return null;
+  }
+
+  if (forecast.variableForecastSource === "current-month-run-rate") {
+    return {
+      title: "Lower-confidence estimate",
+      description:
+        "There are not enough full history months yet, so the forecast leans on the current-month spending run rate.",
+    };
+  }
+
+  if (forecast.variableForecastSource === "none") {
+    return {
+      title: "No variable-spend history yet",
+      description:
+        "This estimate currently uses planned bills only because there is not enough variable spending history to project the rest of the month.",
+    };
+  }
+
+  return null;
+}
+
 function sumPlannedBillAmounts(data: DashboardData["plannedBills"]) {
   return data.reduce((total, plannedBill) => total.plus(plannedBill.amount), new Prisma.Decimal(0));
 }
@@ -387,7 +411,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const netTone = getNetTone(data.netLeft);
   const expenseShare = getRatio(data.expenseSum, data.incomeSum);
   const latestTransaction = data.recentTransactions[0];
-  const plannedBillsTotal = sumPlannedBillAmounts(data.plannedBills);
+  const limitedHistoryMessage = getLimitedHistoryMessage(data.forecast);
+  const displayedPlannedBills =
+    data.forecast.monthContext.monthRelation === "current"
+      ? data.plannedBills.filter((plannedBill) => plannedBill.status !== "passed")
+      : data.plannedBills;
+  const displayedPlannedBillsTotal = sumPlannedBillAmounts(displayedPlannedBills);
 
   return (
     <div className="space-y-6">
@@ -459,6 +488,17 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                   ))}
                 </div>
               </div>
+
+              {limitedHistoryMessage ? (
+                <div className="rounded-[24px] border border-warning/20 bg-warning/5 p-4">
+                  <p className="text-sm font-medium text-foreground">
+                    {limitedHistoryMessage.title}
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                    {limitedHistoryMessage.description}
+                  </p>
+                </div>
+              ) : null}
 
               <div className="flex flex-wrap gap-3">
                 <Link href="/transactions" className={cn(buttonVariants(), "rounded-2xl px-4")}>
@@ -694,17 +734,27 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 <CardDescription>{getPlannedBillsDescription(data.forecast)}</CardDescription>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Badge variant="outline">{data.plannedBills.length}</Badge>
-                <Badge variant="outline">{formatMoney(formatter, plannedBillsTotal)}</Badge>
+                <Badge variant="outline">{displayedPlannedBills.length}</Badge>
+                <Badge variant="outline">
+                  {formatMoney(formatter, displayedPlannedBillsTotal)}
+                </Badge>
               </div>
             </div>
           </CardHeader>
           <CardContent className="grid gap-4 p-6">
-            {data.plannedBills.length === 0 ? (
+            {displayedPlannedBills.length === 0 ? (
               <EmptyState
                 icon={CalendarClock}
-                title="No active planned bills"
-                description="Add expected monthly bills to make the forecast more grounded."
+                title={
+                  data.forecast.monthContext.monthRelation === "current" && data.plannedBills.length > 0
+                    ? "No upcoming planned bills left"
+                    : "No active planned bills"
+                }
+                description={
+                  data.forecast.monthContext.monthRelation === "current" && data.plannedBills.length > 0
+                    ? "The remaining estimate is currently driven by recorded spending patterns because all active monthly bill templates have already passed for this month."
+                    : "Add expected monthly bills to make the forecast more grounded."
+                }
                 action={
                   <Link
                     href="/planned"
@@ -719,7 +769,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 }
               />
             ) : (
-              data.plannedBills.map((plannedBill) => {
+              displayedPlannedBills.map((plannedBill) => {
                 const statusMeta = getPlannedBillStatusMeta(plannedBill.status);
 
                 return (

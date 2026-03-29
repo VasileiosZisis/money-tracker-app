@@ -351,7 +351,8 @@ export default async function PlannedBillsPage({
           <CardTitle>Add planned bill</CardTitle>
           <CardDescription>
             Planned bills stay separate from actual transactions and represent expected
-            monthly expenses used for forecasting.
+            monthly expenses used for forecasting. Use a positive amount and a due day
+            between 1 and 28.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -405,7 +406,7 @@ export default async function PlannedBillsPage({
         <EmptyState
           icon={ScrollText}
           title="No planned bills yet"
-          description="Planned bills are expected monthly expenses used for forecasting. Add items like rent, internet, or utilities here before they become real transactions."
+          description="Planned bills are expected monthly expenses used for forecasting. Add recurring items like rent, internet, or utilities so the dashboard has clearer upcoming-bill input."
           action={
             <Link
               href="#planned-bill-form"
