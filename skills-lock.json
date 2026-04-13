@@ -35,6 +35,11 @@
       "source": "prisma/skills",
       "sourceType": "github",
       "computedHash": "c849747348f37b3a63db4b663b85358d0d1ac8a45ec8f860c1b8ed95334d84a8"
+    },
+    "shadcn": {
+      "source": "shadcn/ui",
+      "sourceType": "github",
+      "computedHash": "642a177bee320618caa49f5106cadb4e7594c606e867f61ba7b56d19cf745cd5"
     }
   }
 }

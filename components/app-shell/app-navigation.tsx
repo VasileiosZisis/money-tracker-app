@@ -1,5 +1,7 @@
 "use client";
 
+import type * as React from "react";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -8,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 export type AppNavigationProps = {
   orientation: "desktop" | "mobile";
+  children?: React.ReactNode;
 };
 
 function isActivePath(pathname: string, href: string) {
@@ -18,7 +21,7 @@ function isActivePath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function AppNavigation({ orientation }: AppNavigationProps) {
+export function AppNavigation({ orientation, children }: AppNavigationProps) {
   const pathname = usePathname();
 
   if (orientation === "desktop") {
@@ -33,7 +36,7 @@ export function AppNavigation({ orientation }: AppNavigationProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                "group flex items-start gap-3 rounded-2xl px-3.5 py-3 transition-colors",
+                "group flex items-center gap-3 rounded-2xl px-3.5 py-3 transition-colors",
                 active
                   ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-floating"
                   : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground",
@@ -41,7 +44,7 @@ export function AppNavigation({ orientation }: AppNavigationProps) {
             >
               <span
                 className={cn(
-                  "mt-0.5 flex size-9 items-center justify-center rounded-xl border transition-colors",
+                  "flex size-9 items-center justify-center rounded-xl border transition-colors",
                   active
                     ? "border-white/15 bg-white/10"
                     : "border-border/50 bg-background/60 text-muted-foreground group-hover:text-foreground",
@@ -49,22 +52,11 @@ export function AppNavigation({ orientation }: AppNavigationProps) {
               >
                 <Icon className="size-[18px]" />
               </span>
-              <span className="space-y-0.5">
-                <span className="block text-sm font-semibold">{item.label}</span>
-                <span
-                  className={cn(
-                    "block text-xs",
-                    active
-                      ? "text-sidebar-primary-foreground/75"
-                      : "text-muted-foreground",
-                  )}
-                >
-                  {item.description}
-                </span>
-              </span>
+              <span className="block text-sm font-semibold">{item.label}</span>
             </Link>
           );
         })}
+        {children}
       </nav>
     );
   }

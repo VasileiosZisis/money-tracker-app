@@ -13,7 +13,7 @@ Core traits:
 - strong hierarchy around money totals and monthly context
 - roomy but controlled spacing
 - subtle borders and soft elevation
-- desktop-first shell with left sidebar and utility top bar
+- desktop-first shell with a left sidebar rail and no persistent desktop top bar
 - responsive layouts that collapse cleanly on smaller screens
 
 ## Theme tokens
@@ -164,14 +164,20 @@ Rules:
 
 ### App shell
 
-- Desktop uses a left sidebar rail starting at `lg`.
+- Desktop uses the shadcn sidebar pattern with `SidebarProvider`, an inset sidebar rail, and `SidebarInset` for the main content area.
 - Primary navigation lives in the sidebar.
-- A utility top bar sits above page content.
-- Main content is constrained to a centered readable width inside the shell.
+- Desktop sidebar branding should stay concise: app name plus mark, without supporting tagline copy.
+- Desktop sidebar nav items should use icon plus single-line labels, not secondary description text.
+- Sidebar user identity can show avatar and display name, but should avoid extra metadata lines unless they are genuinely necessary.
+- Desktop sidebar user identity and utility controls should visually reuse the same row treatment as the primary nav links: matching spacing, icon box sizing, corner radius, and hover language.
+- Desktop sidebar utility controls such as sign-out and theme toggle should sit in the sidebar footer/menu area after the account identity block.
+- Desktop content should start directly in the page body without a shell-level top bar.
+- Main content should use the full available width inside the shell, with individual pages deciding their own internal width constraints where needed.
 
 ### Mobile behavior
 
-- Sidebar collapses into a horizontal nav strip inside the top bar.
+- Mobile uses the same shadcn sidebar as an off-canvas drawer.
+- The page body should expose a compact trigger row so the off-canvas sidebar is reachable on small screens.
 - Keep actions reachable without requiring dense toolbars.
 - Tables should degrade into stacked cards where needed.
 

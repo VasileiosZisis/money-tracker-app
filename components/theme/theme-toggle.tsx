@@ -4,6 +4,7 @@ import { MoonStar, SunMedium } from "lucide-react";
 import { useSyncExternalStore } from "react";
 
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const storageKey = "money-tracker-theme";
 const themeChangeEvent = "money-tracker-theme-change";
@@ -51,7 +52,11 @@ function applyTheme(theme: Theme) {
   document.documentElement.dataset.theme = theme;
 }
 
-export function ThemeToggle() {
+type ThemeToggleProps = {
+  variant?: "icon" | "sidebar";
+};
+
+export function ThemeToggle({ variant = "icon" }: ThemeToggleProps) {
   const theme = useSyncExternalStore(subscribe, getThemeSnapshot, () => "light");
 
   function toggleTheme() {
@@ -59,6 +64,28 @@ export function ThemeToggle() {
     applyTheme(nextTheme);
     window.localStorage.setItem(storageKey, nextTheme);
     window.dispatchEvent(new Event(themeChangeEvent));
+  }
+
+  const icon =
+    theme === "dark" ? <SunMedium className="size-[18px]" /> : <MoonStar className="size-[18px]" />;
+
+  if (variant === "sidebar") {
+    return (
+      <Button
+        variant="ghost"
+        onClick={toggleTheme}
+        className={cn(
+          "h-auto w-full justify-start gap-3 rounded-2xl px-3.5 py-3 text-sidebar-foreground shadow-none",
+          "hover:bg-sidebar-accent hover:text-foreground",
+        )}
+        aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+      >
+        <span className="flex size-9 items-center justify-center rounded-xl border border-border/50 bg-background/60 text-muted-foreground">
+          {icon}
+        </span>
+        <span className="text-sm font-semibold">Theme</span>
+      </Button>
+    );
   }
 
   return (
