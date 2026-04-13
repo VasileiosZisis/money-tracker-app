@@ -92,7 +92,7 @@ export function AppSidebar({ displayName, initials, userImage }: AppSidebarProps
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <div className="flex items-center gap-3 rounded-2xl px-3.5 py-3 text-sidebar-foreground">
+            <div className="flex items-center gap-3 rounded-2xl px-3.5 py-2 text-sidebar-foreground">
               {userImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img

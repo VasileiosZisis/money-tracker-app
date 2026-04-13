@@ -242,7 +242,7 @@ SidebarTrigger.displayName = "SidebarTrigger";
 
 export const SidebarHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} data-slot="sidebar-header" className={cn("p-5", className)} {...props} />
+    <div ref={ref} data-slot="sidebar-header" className={cn("px-4 py-5", className)} {...props} />
   ),
 );
 
@@ -253,7 +253,7 @@ export const SidebarContent = React.forwardRef<HTMLDivElement, React.HTMLAttribu
     <div
       ref={ref}
       data-slot="sidebar-content"
-      className={cn("flex flex-1 flex-col overflow-y-auto px-5 pb-5", className)}
+      className={cn("flex flex-1 flex-col overflow-y-auto px-4 pb-5", className)}
       {...props}
     />
   ),
@@ -266,7 +266,7 @@ export const SidebarFooter = React.forwardRef<HTMLDivElement, React.HTMLAttribut
     <div
       ref={ref}
       data-slot="sidebar-footer"
-      className={cn("px-5 pb-5 pt-2", className)}
+      className={cn("px-4 pb-5 pt-2", className)}
       {...props}
     />
   ),
@@ -354,7 +354,7 @@ export const SidebarMenuButton = React.forwardRef<
   SidebarMenuButtonProps
 >(({ asChild = false, isActive = false, className, children, ...props }, ref) => {
   const menuButtonClassName = cn(
-    "group/menu-button flex w-full items-center gap-3 rounded-2xl px-3.5 py-3 text-sm font-semibold transition-colors",
+    "group/menu-button flex w-full items-center gap-3 rounded-2xl px-3.5 py-2 text-sm font-semibold transition-colors",
     isActive
       ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-floating"
       : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground",

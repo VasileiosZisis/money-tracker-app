@@ -75,12 +75,12 @@ export function ThemeToggle({ variant = "icon" }: ThemeToggleProps) {
         variant="ghost"
         onClick={toggleTheme}
         className={cn(
-          "h-auto w-full justify-start gap-3 rounded-2xl px-3.5 py-3 text-sidebar-foreground shadow-none",
+          "group/menu-button h-auto w-full justify-start gap-3 rounded-2xl px-3.5 py-2 text-sidebar-foreground shadow-none",
           "hover:bg-sidebar-accent hover:text-foreground",
         )}
         aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
       >
-        <span className="flex size-9 items-center justify-center rounded-xl border border-border/50 bg-background/60 text-muted-foreground">
+        <span className="flex size-9 items-center justify-center rounded-xl border border-border/50 bg-background/60 text-muted-foreground transition-colors group-hover/menu-button:text-foreground">
           {icon}
         </span>
         <span className="text-sm font-semibold">Theme</span>

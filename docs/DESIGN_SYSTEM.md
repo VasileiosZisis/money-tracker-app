@@ -43,7 +43,7 @@ Theme tokens live in `app/globals.css` as CSS variables.
 - `--warning`: `#b7791f`
 - `--warning-foreground`: `#fff9ef`
 - `--info`: `#15586b`
-- `--border`: `rgba(148, 163, 184, 0.22)`
+- `--border`: `rgba(148, 163, 184, 0.36)`
 - `--input`: `#d6e0e9`
 - `--ring`: `rgba(21, 88, 107, 0.24)`
 
@@ -79,7 +79,7 @@ Theme tokens live in `app/globals.css` as CSS variables.
 - `--sidebar`: translucent surface used by the desktop rail
 - `--sidebar-primary`: active nav background
 - `--sidebar-accent`: hover background for inactive nav items
-- `--sidebar-border`: border treatment for the rail
+- `--sidebar-border`: border treatment for the rail, slightly stronger than before in light mode so the flush-left shell and icon chrome stay readable
 
 ### Background treatment
 
@@ -188,6 +188,7 @@ Rules:
 - Lead with the selected month and the net result.
 - Support the main number with income, expense, and ratio-based context derived from existing data.
 - A line chart is acceptable in the lead dashboard card when it is directly grounded in real monthly data, such as day-by-day cumulative income and expense progress for the selected month.
+- In light mode, chart grid lines should read slightly darker than default border treatments so quantitative guides remain legible against bright card surfaces.
 - Keep recent transactions visible and legible.
 - Do not invent analytics or charts that are not backed by real data.
 
@@ -204,6 +205,7 @@ Rules:
 
 - Use `components/ui/card.tsx`.
 - Cards are translucent, lightly blurred, bordered, and elevated.
+- In light mode, card and icon-container borders should read a touch stronger than default shadcn neutrals so they do not wash out against the pale surface stack.
 - Nested content blocks inside cards use a lower-contrast background rather than another full shadow stack.
 
 ### Inputs, selects, and textareas

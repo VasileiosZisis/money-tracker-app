@@ -55,7 +55,8 @@ export const ChartContainer = React.forwardRef<
         className={cn(
           "flex min-h-[220px] w-full items-center justify-center text-xs",
           "[&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground",
-          "[&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/70",
+          "[&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-[color-mix(in_srgb,var(--foreground)_18%,transparent)]",
+          "dark:[&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/70",
           "[&_.recharts-curve.recharts-tooltip-cursor]:stroke-border",
           "[&_.recharts-dot[stroke='#fff']]:stroke-transparent",
           "[&_.recharts-layer]:outline-none",
