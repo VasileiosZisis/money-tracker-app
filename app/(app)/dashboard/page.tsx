@@ -3,7 +3,6 @@ import {
   ArrowRight,
   CalendarClock,
   CircleAlert,
-  Download,
   FolderClock,
   Plus,
   ReceiptText,
@@ -17,6 +16,7 @@ import type * as React from "react";
 
 import { getDashboardMonthData, type DashboardPlannedBillStatus } from "@/actions/dashboard";
 import { PageHeader } from "@/components/app-shell/page-header";
+import { MonthCashflowChart } from "@/components/dashboard/month-cashflow-chart";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -173,91 +173,6 @@ function getForecastState(forecast: ForecastData) {
   };
 }
 
-function getMonthRelationMeta(forecast: ForecastData) {
-  if (forecast.monthContext.monthRelation === "past") {
-    return {
-      label: "Past month",
-      badgeVariant: "outline" as const,
-    };
-  }
-
-  if (forecast.monthContext.monthRelation === "future") {
-    return {
-      label: "Future month",
-      badgeVariant: "warning" as const,
-    };
-  }
-
-  return {
-    label: "Current month",
-    badgeVariant: "accent" as const,
-  };
-}
-
-function getForecastExplainabilityText(forecast: ForecastData) {
-  if (forecast.monthContext.monthRelation === "past") {
-    return "This month is complete, so the forecast collapses to recorded results and no additional spend is projected.";
-  }
-
-  if (forecast.variableForecastSource === "trailing-history") {
-    const monthCount = forecast.variableForecastMonthsUsed.length;
-    return `Estimate based on upcoming bills and ${monthCount} recent full month${monthCount === 1 ? "" : "s"} of variable spending.`;
-  }
-
-  if (forecast.variableForecastSource === "current-month-run-rate") {
-    return "Estimate based on upcoming bills and your current-month variable spending run rate because trailing history is limited.";
-  }
-
-  return "Estimate based on upcoming bills only because there is not enough variable spending history yet.";
-}
-
-function getNetLeftSummaryText(data: DashboardData) {
-  if (data.forecast.monthContext.monthRelation === "past") {
-    if (data.netLeft.gt(0)) {
-      return "The selected month finished above water based on recorded income and expenses.";
-    }
-
-    if (data.netLeft.lt(0)) {
-      return "The selected month finished negative based on recorded income and expenses.";
-    }
-
-    return "The selected month closed exactly even based on recorded entries.";
-  }
-
-  if (data.netLeft.gt(0)) {
-    return "Recorded income currently stays ahead of recorded expenses for the selected month.";
-  }
-
-  if (data.netLeft.lt(0)) {
-    return "Recorded expenses are already ahead of recorded income for the selected month.";
-  }
-
-  return "Recorded income and expenses are currently balanced for the selected month.";
-}
-
-function getForecastContextBadges(forecast: ForecastData) {
-  const badges: Array<{ label: string; variant: "accent" | "warning" | "outline" }> = [];
-
-  if (forecast.monthContext.monthRelation !== "past") {
-    badges.push({ label: "Forecast estimate", variant: "accent" });
-  }
-
-  if (forecast.variableForecastSource === "trailing-history") {
-    badges.push({
-      label: `${forecast.variableForecastMonthsUsed.length} full month${
-        forecast.variableForecastMonthsUsed.length === 1 ? "" : "s"
-      } used`,
-      variant: "outline",
-    });
-  } else if (forecast.variableForecastSource === "current-month-run-rate") {
-    badges.push({ label: "Limited history", variant: "warning" });
-  } else {
-    badges.push({ label: "Bills only", variant: "warning" });
-  }
-
-  return badges;
-}
-
 function getPlannedBillStatusMeta(status: DashboardPlannedBillStatus) {
   switch (status) {
     case "due-today":
@@ -288,30 +203,6 @@ function getPlannedBillsDescription(forecast: ForecastData) {
   }
 
   return "Upcoming and due-today items flow directly into the current-month estimate.";
-}
-
-function getLimitedHistoryMessage(forecast: ForecastData) {
-  if (forecast.monthContext.monthRelation === "past") {
-    return null;
-  }
-
-  if (forecast.variableForecastSource === "current-month-run-rate") {
-    return {
-      title: "Lower-confidence estimate",
-      description:
-        "There are not enough full history months yet, so the forecast leans on the current-month spending run rate.",
-    };
-  }
-
-  if (forecast.variableForecastSource === "none") {
-    return {
-      title: "No variable-spend history yet",
-      description:
-        "This estimate currently uses planned bills only because there is not enough variable spending history to project the rest of the month.",
-    };
-  }
-
-  return null;
 }
 
 function sumPlannedBillAmounts(data: DashboardData["plannedBills"]) {
@@ -407,11 +298,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   });
 
   const forecastState = getForecastState(data.forecast);
-  const monthRelationMeta = getMonthRelationMeta(data.forecast);
   const netTone = getNetTone(data.netLeft);
   const expenseShare = getRatio(data.expenseSum, data.incomeSum);
   const latestTransaction = data.recentTransactions[0];
-  const limitedHistoryMessage = getLimitedHistoryMessage(data.forecast);
   const displayedPlannedBills =
     data.forecast.monthContext.monthRelation === "current"
       ? data.plannedBills.filter((plannedBill) => plannedBill.status !== "passed")
@@ -443,16 +332,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.9fr)]">
         <Card className="overflow-hidden">
-          <CardContent className="grid gap-8 p-6 md:grid-cols-[minmax(0,1.1fr)_280px] md:p-7">
-            <div className="space-y-6">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant={forecastState.badgeVariant}>{forecastState.label}</Badge>
-                <Badge variant={monthRelationMeta.badgeVariant}>{monthRelationMeta.label}</Badge>
-                <Badge variant={netTone.badgeVariant}>{netTone.label}</Badge>
-                <Badge variant="outline">Currency {data.currency}</Badge>
-              </div>
-
-              <div className="space-y-3">
+          <CardContent className="p-6 md:p-7">
+            <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-3">
                 <p className="text-sm font-medium text-muted-foreground">Net left now</p>
                 <p
                   className={cn(
@@ -462,98 +344,13 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 >
                   {formatMoney(formatter, data.netLeft)}
                 </p>
-                <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                  {getNetLeftSummaryText(data)}
-                </p>
               </div>
 
-              <div className="rounded-[26px] border border-border/80 bg-background/60 p-5">
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary/80">
-                    Forecast basis
-                  </p>
-                  <p className="text-sm leading-6 text-foreground">
-                    {getForecastExplainabilityText(data.forecast)}
-                  </p>
-                  <p className="text-sm leading-6 text-muted-foreground">
-                    Safe to spend is an estimate based on recent spending and upcoming bills,
-                    not an account balance.
-                  </p>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {getForecastContextBadges(data.forecast).map((badge) => (
-                    <Badge key={badge.label} variant={badge.variant}>
-                      {badge.label}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              {limitedHistoryMessage ? (
-                <div className="rounded-[24px] border border-warning/20 bg-warning/5 p-4">
-                  <p className="text-sm font-medium text-foreground">
-                    {limitedHistoryMessage.title}
-                  </p>
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    {limitedHistoryMessage.description}
-                  </p>
-                </div>
-              ) : null}
-
-              <div className="flex flex-wrap gap-3">
-                <Link href="/transactions" className={cn(buttonVariants(), "rounded-2xl px-4")}>
-                  <Plus />
-                  Add transaction
-                </Link>
-                <Link
-                  href="/planned"
-                  className={cn(buttonVariants({ variant: "outline" }), "rounded-2xl px-4")}
-                >
-                  <CalendarClock />
-                  Planned bills
-                </Link>
-                <Link
-                  href="/export"
-                  className={cn(buttonVariants({ variant: "outline" }), "rounded-2xl px-4")}
-                >
-                  <Download />
-                  Export CSV
-                </Link>
-              </div>
-            </div>
-
-            <div className="grid gap-4">
-              <div className="rounded-[28px] border border-border/80 bg-[linear-gradient(160deg,rgba(229,241,241,0.88),rgba(255,255,255,0.6))] p-5 dark:bg-[linear-gradient(160deg,rgba(120,184,176,0.14),rgba(12,23,38,0.82))]">
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">Month context</p>
-                  <h2 className="text-xl font-semibold tracking-tight text-foreground">
-                    Keep the estimate explainable.
-                  </h2>
-                  <p className="text-sm leading-6 text-muted-foreground">
-                    Forecast values are server-computed from recorded transactions, active
-                    planned bills, and simple recent-spending patterns.
-                  </p>
-                </div>
-              </div>
-
-              <div className="rounded-[24px] border border-border/80 bg-background/60 p-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary/80">
-                  Latest activity
-                </p>
-                <p className="mt-2 text-sm font-medium text-foreground">
-                  {latestTransaction
-                    ? `Latest entry on ${formatLocalDate(latestTransaction.localDate)}`
-                    : "No activity recorded yet"}
-                </p>
-                <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                  {latestTransaction
-                    ? `${latestTransaction.category.name} / ${getSourceOrNote(
-                        latestTransaction.source,
-                        latestTransaction.note,
-                      )}`
-                    : "Start by adding the first income or expense for this month."}
-                </p>
-              </div>
+              <MonthCashflowChart
+                currency={data.currency}
+                data={data.chartSeries}
+                yAxisMax={data.chartYAxisMax}
+              />
             </div>
           </CardContent>
         </Card>

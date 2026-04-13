@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 
 import { AppSidebar } from '@/components/app-shell/app-sidebar'
 import { getSession } from '@/lib/auth/session'
-import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { db } from '@/lib/db'
 
 function getDisplayName (
@@ -70,30 +70,28 @@ export default async function AppLayout ({
   return (
     <div className='min-h-screen'>
       <SidebarProvider>
-        <div className='mx-auto flex min-h-screen gap-4 px-4 py-4 sm:px-6 lg:gap-6 lg:px-6 lg:py-6'>
+        <div className='mx-auto flex min-h-screen gap-4 px-4 py-4 sm:px-6 lg:gap-6 lg:py-0 lg:pr-6 lg:pl-0'>
           <AppSidebar
             displayName={displayName}
             initials={initials}
             userImage={userImage}
           />
 
-          <SidebarInset className='flex min-w-0 flex-1 flex-col gap-4 lg:gap-6'>
-            <main className='flex-1 pb-6'>
-              <div className='mb-4 flex items-center gap-3 lg:hidden'>
-                <SidebarTrigger />
-                <Link
-                  href='/dashboard'
-                  className='text-base font-semibold tracking-tight text-foreground'
-                >
-                  Money Tracker
-                </Link>
-              </div>
+          <main className='flex min-w-0 flex-1 flex-col gap-4 py-6 lg:gap-6'>
+            <div className='mb-4 flex items-center gap-3 lg:hidden'>
+              <SidebarTrigger />
+              <Link
+                href='/dashboard'
+                className='text-base font-semibold tracking-tight text-foreground'
+              >
+                Money Tracker
+              </Link>
+            </div>
 
-              <div className='mx-auto w-full space-y-8'>
-                {children}
-              </div>
-            </main>
-          </SidebarInset>
+            <div className='mx-auto w-full space-y-8'>
+              {children}
+            </div>
+          </main>
         </div>
       </SidebarProvider>
     </div>

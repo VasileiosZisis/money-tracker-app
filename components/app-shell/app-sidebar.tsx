@@ -45,7 +45,7 @@ export function AppSidebar({ displayName, initials, userImage }: AppSidebarProps
   }
 
   return (
-    <Sidebar variant="inset">
+    <Sidebar variant="sidebar">
       <SidebarHeader>
         <Link href="/dashboard" className="flex items-center gap-3" onClick={handleNavigate}>
           <div className="flex size-12 items-center justify-center rounded-2xl bg-sidebar-primary text-sidebar-primary-foreground shadow-floating">

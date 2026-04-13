@@ -155,7 +155,7 @@ export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
           <div
             data-slot="sidebar-mobile"
             className={cn(
-              "fixed inset-y-0 z-50 w-[--sidebar-width-mobile] p-3 transition-transform duration-200 ease-out lg:hidden",
+              "fixed inset-y-0 z-50 w-[--sidebar-width-mobile] transition-transform duration-200 ease-out lg:hidden",
               side === "left" ? "left-0" : "right-0",
               openMobile
                 ? "translate-x-0"
@@ -189,7 +189,7 @@ export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
         <div
           ref={ref}
           className={cn(
-            "sticky top-6 h-[calc(100svh-3rem)]",
+            "sticky top-0 h-screen",
             side === "right" ? "ml-auto" : "",
             !open && "pointer-events-none opacity-0",
           )}

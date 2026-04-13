@@ -164,19 +164,21 @@ Rules:
 
 ### App shell
 
-- Desktop uses the shadcn sidebar pattern with `SidebarProvider`, an inset sidebar rail, and `SidebarInset` for the main content area.
+- Desktop uses the shadcn sidebar pattern with `SidebarProvider`, a full-height flush-left sidebar rail, and the page `main` element as the primary content container.
 - Primary navigation lives in the sidebar.
 - Desktop sidebar branding should stay concise: app name plus mark, without supporting tagline copy.
 - Desktop sidebar nav items should use icon plus single-line labels, not secondary description text.
 - Sidebar user identity can show avatar and display name, but should avoid extra metadata lines unless they are genuinely necessary.
 - Desktop sidebar user identity and utility controls should visually reuse the same row treatment as the primary nav links: matching spacing, icon box sizing, corner radius, and hover language.
 - Desktop sidebar utility controls such as sign-out and theme toggle should sit in the sidebar footer/menu area after the account identity block.
+- The desktop sidebar should sit flush against the left edge, span the full viewport height, and use square outer corners instead of an inset card treatment.
 - Desktop content should start directly in the page body without a shell-level top bar.
 - Main content should use the full available width inside the shell, with individual pages deciding their own internal width constraints where needed.
 
 ### Mobile behavior
 
 - Mobile uses the same shadcn sidebar as an off-canvas drawer.
+- The mobile drawer should also open edge-to-edge without outer padding or rounded outer corners.
 - The page body should expose a compact trigger row so the off-canvas sidebar is reachable on small screens.
 - Keep actions reachable without requiring dense toolbars.
 - Tables should degrade into stacked cards where needed.
@@ -185,6 +187,7 @@ Rules:
 
 - Lead with the selected month and the net result.
 - Support the main number with income, expense, and ratio-based context derived from existing data.
+- A line chart is acceptable in the lead dashboard card when it is directly grounded in real monthly data, such as day-by-day cumulative income and expense progress for the selected month.
 - Keep recent transactions visible and legible.
 - Do not invent analytics or charts that are not backed by real data.
 
