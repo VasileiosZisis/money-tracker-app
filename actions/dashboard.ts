@@ -225,7 +225,7 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
         },
       },
       orderBy: [{ localDate: "desc" }, { createdAt: "desc" }],
-      take: 10,
+      take: 5,
     }),
     db.transaction.findMany({
       where: {

@@ -2,10 +2,8 @@ import { Prisma } from '@/generated/prisma/client'
 import {
   ArrowRight,
   CalendarClock,
-  CircleAlert,
   FolderClock,
   Plus,
-  ReceiptText,
   ShieldAlert,
   ShieldCheck,
   TrendingDown,
@@ -25,13 +23,11 @@ import { buttonVariants } from '@/components/ui/button'
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle
 } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
-import { formatMonthLabel } from '@/lib/dates/month'
 import { cn } from '@/lib/utils'
 
 type DashboardPageProps = {
@@ -118,14 +114,6 @@ function formatLocalDate (localDate: string) {
   }).format(date)
 }
 
-function getRatio (value: Prisma.Decimal, total: Prisma.Decimal) {
-  if (total.lte(0)) {
-    return 0
-  }
-
-  return Number(value.dividedBy(total).mul(100).toDecimalPlaces(1).toString())
-}
-
 function getForecastState (forecast: ForecastData) {
   if (forecast.monthContext.monthRelation === 'past') {
     if (forecast.projectedEndOfMonthNet.gt(0)) {
@@ -198,18 +186,6 @@ function getPlannedBillStatusMeta (status: DashboardPlannedBillStatus) {
   }
 }
 
-function getPlannedBillsDescription (forecast: ForecastData) {
-  if (forecast.monthContext.monthRelation === 'past') {
-    return 'These active monthly bill templates applied to the selected month. Current-month forecasting only uses upcoming items.'
-  }
-
-  if (forecast.monthContext.monthRelation === 'future') {
-    return 'These active monthly bills shape the forward estimate for the selected month.'
-  }
-
-  return 'Upcoming and due-today items flow directly into the current-month estimate.'
-}
-
 function sumPlannedBillAmounts (data: DashboardData['plannedBills']) {
   return data.reduce(
     (total, plannedBill) => total.plus(plannedBill.amount),
@@ -256,7 +232,7 @@ function MetricCard ({
 }: {
   title: string
   value: string
-  helper: string
+  helper?: string
   tone?: MetricTone
   icon: React.ReactNode
   badgeLabel?: string
@@ -289,9 +265,11 @@ function MetricCard ({
           </div>
         </div>
         {badgeLabel ? <Badge variant={badgeVariant}>{badgeLabel}</Badge> : null}
-        <p className='mt-auto text-sm leading-6 text-muted-foreground'>
-          {helper}
-        </p>
+        {helper ? (
+          <p className='mt-auto text-sm leading-6 text-muted-foreground'>
+            {helper}
+          </p>
+        ) : null}
       </CardContent>
     </Card>
   )
@@ -311,8 +289,6 @@ export default async function DashboardPage ({
 
   const forecastState = getForecastState(data.forecast)
   const netTone = getNetTone(data.netLeft)
-  const expenseShare = getRatio(data.expenseSum, data.incomeSum)
-  const latestTransaction = data.recentTransactions[0]
   const displayedPlannedBills =
     data.forecast.monthContext.monthRelation === 'current'
       ? data.plannedBills.filter(plannedBill => plannedBill.status !== 'passed')
@@ -339,34 +315,18 @@ export default async function DashboardPage ({
         </button>
       </form>
 
-      <section className='grid gap-5 md:grid-cols-3'>
+      <section className='grid gap-5 md:grid-cols-2'>
         <MetricCard
           title='Income total'
           value={formatMoney(formatter, data.incomeSum)}
-          helper='Recorded income for the selected month.'
           tone='success'
           icon={<TrendingUp className='size-5' />}
         />
         <MetricCard
           title='Expense total'
           value={formatMoney(formatter, data.expenseSum)}
-          helper={
-            data.incomeSum.gt(0)
-              ? `${expenseShare.toFixed(1)}% of recorded income`
-              : 'Expenses recorded before any income'
-          }
           tone='danger'
           icon={<TrendingDown className='size-5' />}
-        />
-        <MetricCard
-          title='Recent entries'
-          value={String(data.recentTransactions.length)}
-          helper={
-            latestTransaction
-              ? `Last logged ${formatLocalDate(latestTransaction.localDate)}`
-              : 'No transactions recorded for this month yet'
-          }
-          icon={<ReceiptText className='size-5' />}
         />
       </section>
 
@@ -447,13 +407,7 @@ export default async function DashboardPage ({
       <section className='grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]'>
         <Card className='overflow-hidden'>
           <CardHeader className='flex flex-row items-end justify-between gap-4 pb-0'>
-            <div className='space-y-1.5'>
-              <CardTitle>Recent transactions</CardTitle>
-              <CardDescription>
-                The latest entries recorded for{' '}
-                {formatMonthLabel(selectedMonth)}.
-              </CardDescription>
-            </div>
+            <CardTitle>Recent transactions</CardTitle>
             <Link
               href='/transactions'
               className={cn(
@@ -559,20 +513,25 @@ export default async function DashboardPage ({
         <Card className='overflow-hidden'>
           <CardHeader className='border-b border-border/70 pb-5'>
             <div className='flex flex-wrap items-start justify-between gap-3'>
-              <div className='space-y-1.5'>
-                <CardTitle>
-                  Planned bills for {formatMonthLabel(selectedMonth)}
-                </CardTitle>
-                <CardDescription>
-                  {getPlannedBillsDescription(data.forecast)}
-                </CardDescription>
+              <div className='space-y-3'>
+                <CardTitle>Planned bills</CardTitle>
+                <div className='flex flex-wrap gap-2'>
+                  <Badge variant='outline'>{displayedPlannedBills.length}</Badge>
+                  <Badge variant='outline'>
+                    {formatMoney(formatter, displayedPlannedBillsTotal)}
+                  </Badge>
+                </div>
               </div>
-              <div className='flex flex-wrap gap-2'>
-                <Badge variant='outline'>{displayedPlannedBills.length}</Badge>
-                <Badge variant='outline'>
-                  {formatMoney(formatter, displayedPlannedBillsTotal)}
-                </Badge>
-              </div>
+              <Link
+                href='/planned'
+                className={cn(
+                  buttonVariants({ variant: 'ghost', size: 'sm' }),
+                  'rounded-xl px-0 text-primary hover:bg-transparent'
+                )}
+              >
+                View all
+                <ArrowRight />
+              </Link>
             </div>
           </CardHeader>
           <CardContent className='grid gap-4 p-6'>
@@ -611,65 +570,43 @@ export default async function DashboardPage ({
                 return (
                   <div
                     key={plannedBill.id}
-                    className='rounded-[24px] border border-border/80 bg-background/60 p-4'
+                    className='flex flex-col gap-4 rounded-[24px] border border-border/80 bg-background/60 p-4 md:flex-row md:items-center md:justify-between'
                   >
-                    <div className='space-y-4'>
-                      <div className='flex flex-wrap items-center gap-2'>
-                        <h3 className='text-sm font-semibold text-foreground'>
-                          {plannedBill.name}
-                        </h3>
-                        <Badge variant={statusMeta.variant}>
-                          {statusMeta.label}
-                        </Badge>
-                        <Badge variant='outline'>
-                          Due day {plannedBill.dueDayOfMonth}
-                        </Badge>
-                        {plannedBill.category.isArchived ? (
-                          <Badge variant='outline'>Archived category</Badge>
-                        ) : null}
+                    <div className='flex min-w-0 items-start gap-3'>
+                      <div className='mt-1 flex size-10 items-center justify-center rounded-2xl bg-accent text-accent-foreground'>
+                        <CalendarClock className='size-[18px]' />
                       </div>
-
-                      <div className='grid gap-3 sm:grid-cols-2'>
-                        <div className='rounded-2xl border border-border/70 bg-card/70 p-3'>
-                          <p className='text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground'>
-                            Category
-                          </p>
-                          <p className='mt-2 text-sm font-semibold text-foreground'>
+                      <div className='min-w-0 space-y-2'>
+                        <div className='flex flex-wrap items-center gap-2'>
+                          <h3 className='text-sm font-semibold text-foreground'>
                             {plannedBill.category.name}
-                          </p>
+                          </h3>
+                          <Badge variant={statusMeta.variant}>
+                            {statusMeta.label}
+                          </Badge>
+                          {plannedBill.category.isArchived ? (
+                            <Badge variant='outline'>Archived category</Badge>
+                          ) : null}
                         </div>
-                        <div className='rounded-2xl border border-border/70 bg-card/70 p-3'>
-                          <p className='text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground'>
-                            Amount
-                          </p>
-                          <p className='mt-2 font-mono text-base font-semibold tracking-tight text-foreground'>
-                            {formatMoney(formatter, plannedBill.amount)}
-                          </p>
-                        </div>
+                        <p className='text-sm leading-6 text-muted-foreground'>
+                          {plannedBill.name}
+                        </p>
                       </div>
+                    </div>
+
+                    <div className='flex items-center justify-between gap-3 md:flex-col md:items-end'>
+                      <p className='text-sm font-medium text-muted-foreground'>
+                        Due day {plannedBill.dueDayOfMonth}
+                      </p>
+                      <p className='font-mono text-base font-semibold tracking-tight text-foreground'>
+                        {formatMoney(formatter, plannedBill.amount)}
+                      </p>
                     </div>
                   </div>
                 )
               })
             )}
 
-            <div className='rounded-[22px] border border-border/80 bg-background/60 p-4'>
-              <div className='flex items-start gap-3'>
-                <div className='mt-0.5 flex size-9 items-center justify-center rounded-2xl bg-accent text-accent-foreground'>
-                  <CircleAlert className='size-4' />
-                </div>
-                <div className='space-y-1'>
-                  <p className='text-sm font-medium text-foreground'>
-                    Planning note
-                  </p>
-                  <p className='text-sm leading-6 text-muted-foreground'>
-                    In this phase, projected end-of-month net and safe to spend
-                    can match because the forecast only adds expected remaining
-                    expenses.
-                  </p>
-                </div>
-              </div>
-            </div>
           </CardContent>
         </Card>
       </section>
