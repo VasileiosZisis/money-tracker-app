@@ -9,6 +9,7 @@ import {
   type ImportRequiredFieldName,
 } from "@/lib/import/shared";
 import { categoryIdSchema, categoryNameSchema } from "@/lib/validators/category";
+import { tagNameSchema } from "@/lib/validators/tag";
 import { localDateSchema, transactionTypeSchema } from "@/lib/validators/transaction";
 
 const importRequiredString = (message: string) =>
@@ -60,6 +61,7 @@ export const importPreviewRowSchema = z.object({
   localDate: importRequiredString("Date is required.").pipe(localDateSchema),
   type: importNormalizedTypeSchema,
   category: importCategoryNameSchema,
+  tag: optionalImportString(50),
   amount: importAmountSchema,
   source: optionalImportString(120),
   note: optionalImportString(500),
@@ -70,6 +72,7 @@ export const importColumnMappingSchema = z
     localDate: z.number().int().min(0).optional(),
     type: z.number().int().min(0).optional(),
     category: z.number().int().min(0).optional(),
+    tag: z.number().int().min(0).optional(),
     amount: z.number().int().min(0).optional(),
     source: z.number().int().min(0).optional(),
     note: z.number().int().min(0).optional(),
@@ -81,6 +84,7 @@ export const importPreviewConfirmationRowSchema = z.object({
   localDate: localDateSchema,
   type: transactionTypeSchema,
   categoryName: importCategoryNameSchema,
+  tagName: tagNameSchema.optional(),
   amount: z.string().regex(
     /^(?:0|[1-9]\d*)(?:\.\d{2})$/,
     "Amount must be a normalized decimal string.",

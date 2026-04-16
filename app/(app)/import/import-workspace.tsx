@@ -44,6 +44,7 @@ type ImportConfirmationData = {
   importedCount: number;
   skippedDuplicateCount: number;
   createdCategoryCount: number;
+  createdTagCount: number;
 };
 type ConfirmImportResult = ActionResultWithData<ImportConfirmationData>;
 
@@ -51,6 +52,7 @@ const fieldLabels: Record<(typeof importPreviewFieldNames)[number], string> = {
   localDate: "Date",
   type: "Type",
   category: "Category",
+  tag: "Tag",
   amount: "Amount",
   source: "Source",
   note: "Note",
@@ -119,6 +121,7 @@ function buildImportSuccessMessage(result: ImportConfirmationData) {
   const details = [
     `${result.importedCount} imported`,
     `${result.createdCategoryCount} categories created`,
+    `${result.createdTagCount} tags created`,
     `${result.skippedDuplicateCount} duplicates skipped`,
   ];
 
@@ -375,7 +378,7 @@ export function ImportWorkspace() {
                 localDate, type, category, and amount
               </p>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Optional columns: source, note. Unsupported file shapes should use a
+                Optional columns: tag, source, note. Unsupported file shapes should use a
                 comma-separated header row before previewing again.
               </p>
             </div>
@@ -759,7 +762,8 @@ export function ImportWorkspace() {
                         </div>
                         <p className="text-sm leading-6 text-muted-foreground">
                           {row.normalized.localDate ?? "No date"} / {row.normalized.type ?? "No type"} /{" "}
-                          {row.normalized.category ?? "No category"} / {row.normalized.amount ?? "No amount"}
+                          {row.normalized.category ?? "No category"} / {row.normalized.tag ?? "No tag"} /{" "}
+                          {row.normalized.amount ?? "No amount"}
                         </p>
                       </div>
                     </div>

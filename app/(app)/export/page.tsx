@@ -58,7 +58,7 @@ export default function ExportPage() {
           <CardHeader>
             <CardTitle>What&apos;s included</CardTitle>
             <CardDescription>
-              The export stays limited to existing MVP fields and monthly scope.
+              The export stays limited to tracked transaction fields for the selected month.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -70,7 +70,7 @@ export default function ExportPage() {
                 <div>
                   <p className="text-sm font-semibold text-foreground">Columns</p>
                   <p className="text-sm text-muted-foreground">
-                    `localDate`, `type`, `category`, `amount`, `source`, `note`
+                    `localDate`, `type`, `category`, `tag`, `amount`, `source`, `note`
                   </p>
                 </div>
               </div>

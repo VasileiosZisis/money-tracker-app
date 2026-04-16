@@ -15,21 +15,27 @@ import { getMonthRange } from "@/lib/dates/month";
 import { getUserIdOrThrow } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { transactionInputSchema, transactionTypeSchema } from "@/lib/validators/transaction";
+import { tagIdSchema } from "@/lib/validators/tag";
 
 const listTransactionsParamsSchema = z.object({
   month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
   type: transactionTypeSchema.optional(),
   categoryId: z.string().trim().min(1).optional(),
+  tagId: tagIdSchema.optional(),
 });
 
 const transactionIdSchema = z.string().trim().min(1, "Invalid transaction id.");
 
 type TransactionWriteResult = ActionResultWithData<{ id: string }>;
+type ValidatedTagResult =
+  | { tagId: string | null }
+  | { error: string };
 
 export async function listTransactions(params: {
   month: string;
   type?: "INCOME" | "EXPENSE";
   categoryId?: string;
+  tagId?: string;
 }) {
   const userId = await getUserIdOrThrow();
   const parsed = listTransactionsParamsSchema.parse(params);
@@ -44,6 +50,7 @@ export async function listTransactions(params: {
       },
       type: parsed.type,
       categoryId: parsed.categoryId,
+      tagId: parsed.tagId,
     },
     include: {
       category: {
@@ -52,6 +59,12 @@ export async function listTransactions(params: {
           name: true,
           type: true,
           isArchived: true,
+        },
+      },
+      tag: {
+        select: {
+          id: true,
+          name: true,
         },
       },
     },
@@ -64,6 +77,7 @@ export async function listTransactions(params: {
     amount: transaction.amount.toString(),
     localDate: transaction.localDate,
     categoryId: transaction.categoryId,
+    tagId: transaction.tagId,
     source: transaction.source,
     note: transaction.note,
     category: {
@@ -72,6 +86,7 @@ export async function listTransactions(params: {
       type: transaction.category.type,
       isArchived: transaction.category.isArchived,
     },
+    tag: transaction.tag,
   }));
 }
 
@@ -86,6 +101,13 @@ export async function getTransactionFormMeta() {
         name: true,
         type: true,
         isArchived: true,
+        tags: {
+          select: {
+            id: true,
+            name: true,
+          },
+          orderBy: { name: "asc" },
+        },
       },
       orderBy: [{ type: "asc" }, { name: "asc" }],
     }),
@@ -128,6 +150,69 @@ async function assertCategoryForTransaction(
   return null;
 }
 
+async function getValidatedTagIdForCreate(
+  userId: string,
+  categoryId: string,
+  tagId: string | undefined,
+): Promise<ValidatedTagResult> {
+  if (!tagId) {
+    return { tagId: null as string | null };
+  }
+
+  const tag = await db.tag.findFirst({
+    where: {
+      id: tagId,
+      categoryId,
+      category: {
+        userId,
+      },
+    },
+    select: { id: true },
+  });
+
+  if (!tag) {
+    return { error: "Tag does not belong to the selected category." };
+  }
+
+  return { tagId: tag.id };
+}
+
+async function getValidatedTagIdForUpdate(params: {
+  userId: string;
+  nextCategoryId: string;
+  nextTagId: string | undefined;
+  existingCategoryId: string;
+  existingTagId: string | null;
+}): Promise<ValidatedTagResult> {
+  if (!params.nextTagId) {
+    return { tagId: null as string | null };
+  }
+
+  const tag = await db.tag.findFirst({
+    where: {
+      id: params.nextTagId,
+      categoryId: params.nextCategoryId,
+      category: {
+        userId: params.userId,
+      },
+    },
+    select: { id: true },
+  });
+
+  if (tag) {
+    return { tagId: tag.id };
+  }
+
+  if (
+    params.existingTagId === params.nextTagId &&
+    params.existingCategoryId !== params.nextCategoryId
+  ) {
+    return { tagId: null as string | null };
+  }
+
+  return { error: "Tag does not belong to the selected category." };
+}
+
 function revalidateTransactionPaths() {
   revalidatePath("/transactions");
   revalidatePath("/dashboard");
@@ -139,6 +224,7 @@ export async function createTransaction(input: {
   amount: string | number;
   localDate: string;
   categoryId: string;
+  tagId?: string;
   source?: string;
   note?: string;
 }): Promise<TransactionWriteResult> {
@@ -159,6 +245,16 @@ export async function createTransaction(input: {
     return actionError(categoryError);
   }
 
+  const tagResult = await getValidatedTagIdForCreate(
+    userId,
+    parsed.data.categoryId,
+    parsed.data.tagId,
+  );
+
+  if ("error" in tagResult) {
+    return actionError(tagResult.error);
+  }
+
   try {
     const created = await db.transaction.create({
       data: {
@@ -167,6 +263,7 @@ export async function createTransaction(input: {
         amount: parsed.data.amount as Prisma.Decimal,
         localDate: parsed.data.localDate,
         categoryId: parsed.data.categoryId,
+        tagId: tagResult.tagId,
         source: parsed.data.source ?? null,
         note: parsed.data.note ?? null,
       },
@@ -187,6 +284,7 @@ export async function updateTransaction(
     amount: string | number;
     localDate: string;
     categoryId: string;
+    tagId?: string;
     source?: string;
     note?: string;
   },
@@ -208,7 +306,11 @@ export async function updateTransaction(
       id: parsedId.data,
       userId,
     },
-    select: { id: true },
+    select: {
+      id: true,
+      categoryId: true,
+      tagId: true,
+    },
   });
 
   if (!existing) {
@@ -225,6 +327,18 @@ export async function updateTransaction(
     return actionError(categoryError);
   }
 
+  const tagResult = await getValidatedTagIdForUpdate({
+    userId,
+    nextCategoryId: parsed.data.categoryId,
+    nextTagId: parsed.data.tagId,
+    existingCategoryId: existing.categoryId,
+    existingTagId: existing.tagId,
+  });
+
+  if ("error" in tagResult) {
+    return actionError(tagResult.error);
+  }
+
   try {
     const updated = await db.transaction.update({
       where: { id: parsedId.data },
@@ -233,6 +347,7 @@ export async function updateTransaction(
         amount: parsed.data.amount as Prisma.Decimal,
         localDate: parsed.data.localDate,
         categoryId: parsed.data.categoryId,
+        tagId: tagResult.tagId,
         source: parsed.data.source ?? null,
         note: parsed.data.note ?? null,
       },

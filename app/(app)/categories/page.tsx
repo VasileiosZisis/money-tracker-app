@@ -1,11 +1,14 @@
-import { FolderKanban, FolderOpen, Plus } from "lucide-react";
+import { FolderKanban, FolderOpen, Plus, Tag, Trash2 } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import {
   archiveCategory,
   createCategory,
+  createTag,
+  deleteTag,
   listCategories,
   renameCategory,
+  renameTag,
   unarchiveCategory,
 } from "@/actions/categories";
 import { PageHeader } from "@/components/app-shell/page-header";
@@ -28,6 +31,92 @@ import {
   resolveSearchParams,
   type PageSearchParams,
 } from "@/lib/routes/search-params";
+
+type CategoryRow = Awaited<ReturnType<typeof listCategories>>[number];
+
+function CategoryTagsSection({
+  category,
+  createTagAction,
+  renameTagAction,
+  deleteTagAction,
+}: {
+  category: CategoryRow;
+  createTagAction: (formData: FormData) => Promise<void>;
+  renameTagAction: (formData: FormData) => Promise<void>;
+  deleteTagAction: (formData: FormData) => Promise<void>;
+}) {
+  return (
+    <div className="rounded-[22px] border border-border/80 bg-card/70 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Tag className="size-[16px] text-muted-foreground" />
+          <h4 className="text-sm font-semibold text-foreground">Tags</h4>
+        </div>
+        <Badge variant="outline" className="rounded-full">
+          {category.tags.length} {category.tags.length === 1 ? "tag" : "tags"}
+        </Badge>
+      </div>
+
+      <div className="mt-4 space-y-3">
+        {category.tags.length === 0 ? (
+          <p className="text-sm leading-6 text-muted-foreground">
+            No tags yet. Add optional tags for more precise transaction labels in this category.
+          </p>
+        ) : (
+          category.tags.map((tag) => (
+            <div
+              key={tag.id}
+              className="rounded-[20px] border border-border/70 bg-background/70 p-3"
+            >
+              <div className="flex flex-col gap-3">
+                <form action={renameTagAction} className="flex flex-col gap-3 sm:flex-row">
+                  <input type="hidden" name="id" value={tag.id} />
+                  <Input
+                    type="text"
+                    name="name"
+                    defaultValue={tag.name}
+                    required
+                    maxLength={50}
+                    className="flex-1"
+                  />
+                  <Button type="submit" variant="outline">
+                    Rename
+                  </Button>
+                </form>
+
+                <form action={deleteTagAction}>
+                  <input type="hidden" name="id" value={tag.id} />
+                  <Button type="submit" variant="outline" className="w-full sm:w-auto">
+                    <Trash2 />
+                    Delete tag
+                  </Button>
+                </form>
+              </div>
+            </div>
+          ))
+        )}
+
+        <form
+          action={createTagAction}
+          className="grid gap-3 rounded-[20px] border border-dashed border-border/80 bg-background/50 p-3 sm:grid-cols-[minmax(0,1fr)_auto]"
+        >
+          <input type="hidden" name="categoryId" value={category.id} />
+          <Input
+            type="text"
+            name="name"
+            placeholder="Add tag"
+            required
+            maxLength={50}
+          />
+          <Button type="submit" variant="outline">
+            <Plus />
+            Add tag
+          </Button>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 export default async function CategoriesPage({
   searchParams,
@@ -93,6 +182,48 @@ export default async function CategoriesPage({
     redirect(buildPathWithSearchParams("/categories", { success: "Category restored." }));
   }
 
+  async function createTagAction(formData: FormData) {
+    "use server";
+
+    const result = await createTag({
+      categoryId: String(formData.get("categoryId") ?? ""),
+      name: String(formData.get("name") ?? ""),
+    });
+
+    if (!result.ok) {
+      redirect(buildPathWithSearchParams("/categories", { error: result.error }));
+    }
+
+    redirect(buildPathWithSearchParams("/categories", { success: "Tag created." }));
+  }
+
+  async function renameTagAction(formData: FormData) {
+    "use server";
+
+    const result = await renameTag({
+      id: String(formData.get("id") ?? ""),
+      name: String(formData.get("name") ?? ""),
+    });
+
+    if (!result.ok) {
+      redirect(buildPathWithSearchParams("/categories", { error: result.error }));
+    }
+
+    redirect(buildPathWithSearchParams("/categories", { success: "Tag renamed." }));
+  }
+
+  async function deleteTagAction(formData: FormData) {
+    "use server";
+
+    const result = await deleteTag(String(formData.get("id") ?? ""));
+
+    if (!result.ok) {
+      redirect(buildPathWithSearchParams("/categories", { error: result.error }));
+    }
+
+    redirect(buildPathWithSearchParams("/categories", { success: "Tag deleted." }));
+  }
+
   const categories = await listCategories();
 
   const incomeCategories = categories.filter((category) => category.type === "INCOME");
@@ -140,9 +271,9 @@ export default async function CategoriesPage({
         </Card>
         <Card>
           <CardContent className="space-y-1 p-5">
-            <p className="text-sm font-medium text-muted-foreground">Archived</p>
+            <p className="text-sm font-medium text-muted-foreground">Total tags</p>
             <p className="text-xl font-semibold tracking-tight text-foreground">
-              {categories.filter((category) => category.isArchived).length}
+              {categories.reduce((sum, category) => sum + category.tags.length, 0)}
             </p>
           </CardContent>
         </Card>
@@ -250,6 +381,12 @@ export default async function CategoriesPage({
                               Archive
                             </Button>
                           </form>
+                          <CategoryTagsSection
+                            category={category}
+                            createTagAction={createTagAction}
+                            renameTagAction={renameTagAction}
+                            deleteTagAction={deleteTagAction}
+                          />
                         </div>
                       </div>
                     ))}
@@ -300,6 +437,12 @@ export default async function CategoriesPage({
                               Restore
                             </Button>
                           </form>
+                          <CategoryTagsSection
+                            category={category}
+                            createTagAction={createTagAction}
+                            renameTagAction={renameTagAction}
+                            deleteTagAction={deleteTagAction}
+                          />
                         </div>
                       </div>
                     ))}

@@ -23,6 +23,7 @@ export type ConfirmImportResult = ActionResultWithData<{
   importedCount: number;
   skippedDuplicateCount: number;
   createdCategoryCount: number;
+  createdTagCount: number;
 }>;
 
 function normalizeCategoryName(value: string) {
@@ -33,11 +34,20 @@ function buildCategoryLookupKey(type: TransactionType, categoryName: string) {
   return `${type}:${normalizeCategoryName(categoryName).toLowerCase()}`;
 }
 
+function normalizeTagName(value: string) {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+function buildTagLookupKey(categoryId: string, tagName: string) {
+  return `${categoryId}:${normalizeTagName(tagName).toLowerCase()}`;
+}
+
 function buildDuplicateRowKey(row: {
   type: TransactionType;
   localDate: string;
   amount: { toFixed: (digits: number) => string };
   categoryId: string;
+  tagId?: string | null;
   source?: string | null;
   note?: string | null;
 }) {
@@ -46,6 +56,7 @@ function buildDuplicateRowKey(row: {
     row.localDate,
     row.amount.toFixed(2),
     row.categoryId,
+    row.tagId ?? "",
     row.source ?? "",
     row.note ?? "",
   ].join("|");
@@ -246,9 +257,25 @@ export async function confirmImportForUser(
       const categoriesByLookupKey = new Map(
         categories.map((category) => [buildCategoryLookupKey(category.type, category.name), category]),
       );
+      const tags = await transaction.tag.findMany({
+        where: {
+          category: {
+            userId,
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+          categoryId: true,
+        },
+      });
+      const tagsByLookupKey = new Map(
+        tags.map((tag) => [buildTagLookupKey(tag.categoryId, tag.name), tag]),
+      );
 
       const resolvedCategoryIds = new Map<string, string>();
       let createdCategoryCount = 0;
+      let createdTagCount = 0;
 
       for (const requiredResolution of requiredResolutions.values()) {
         const resolution = providedResolutionMap.get(requiredResolution.key);
@@ -306,7 +333,9 @@ export async function confirmImportForUser(
         resolvedCategoryIds.set(requiredResolution.key, createdCategory.id);
       }
 
-      const validatedRows = parsed.data.rows.map((row) => {
+      const validatedRows = [];
+
+      for (const row of parsed.data.rows) {
         const categoryId =
           row.resolvedCategoryId ??
           (row.categoryResolutionKey ? resolvedCategoryIds.get(row.categoryResolutionKey) : undefined);
@@ -330,6 +359,7 @@ export async function confirmImportForUser(
           amount: row.amount,
           localDate: row.localDate,
           categoryId,
+          tagId: undefined,
           source: row.source,
           note: row.note,
         });
@@ -340,16 +370,45 @@ export async function confirmImportForUser(
           );
         }
 
-        return {
+        let tagId: string | null = null;
+
+        if (row.tagName) {
+          const normalizedTagName = normalizeTagName(row.tagName);
+          const tagLookupKey = buildTagLookupKey(categoryId, normalizedTagName);
+          const existingTag = tagsByLookupKey.get(tagLookupKey);
+
+          if (existingTag) {
+            tagId = existingTag.id;
+          } else {
+            const createdTag = await transaction.tag.create({
+              data: {
+                categoryId,
+                name: normalizedTagName,
+              },
+              select: {
+                id: true,
+                name: true,
+                categoryId: true,
+              },
+            });
+
+            tagsByLookupKey.set(buildTagLookupKey(createdTag.categoryId, createdTag.name), createdTag);
+            createdTagCount += 1;
+            tagId = createdTag.id;
+          }
+        }
+
+        validatedRows.push({
           rowNumber: row.rowNumber,
           type: transactionInput.data.type,
           amount: transactionInput.data.amount,
           localDate: transactionInput.data.localDate,
           categoryId: transactionInput.data.categoryId,
+          tagId,
           source: transactionInput.data.source,
           note: transactionInput.data.note,
-        };
-      });
+        });
+      }
 
       const importedLocalDates = [...new Set(validatedRows.map((row) => row.localDate))];
       const recentRows =
@@ -370,6 +429,7 @@ export async function confirmImportForUser(
                 amount: true,
                 localDate: true,
                 categoryId: true,
+                tagId: true,
                 source: true,
                 note: true,
               },
@@ -406,6 +466,7 @@ export async function confirmImportForUser(
           amount: row.amount,
           localDate: row.localDate,
           categoryId: row.categoryId,
+          tagId: row.tagId,
           source: row.source ?? null,
           note: row.note ?? null,
         });
@@ -421,6 +482,7 @@ export async function confirmImportForUser(
         importedCount: createData.length,
         skippedDuplicateCount,
         createdCategoryCount,
+        createdTagCount,
       };
     });
 

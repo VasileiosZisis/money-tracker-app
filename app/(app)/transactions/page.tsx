@@ -9,6 +9,7 @@ import {
   listTransactions,
   updateTransaction,
 } from "@/actions/transactions";
+import { TransactionFormFields } from "@/app/(app)/transactions/transaction-form-fields";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -19,13 +20,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { CurrencyInput } from "@/components/ui/currency-input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { PageNotice } from "@/components/ui/page-notice";
 import { Select } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { formatMonthLabel } from "@/lib/dates/month";
 import {
   buildPathWithSearchParams,
@@ -98,6 +97,7 @@ function buildTransactionsPageUrl(params: {
   month: string;
   type?: TypeFilter;
   categoryId?: string;
+  tagId?: string;
   edit?: string;
   error?: string;
   success?: string;
@@ -106,107 +106,11 @@ function buildTransactionsPageUrl(params: {
     month: params.month,
     type: params.type && params.type !== "ALL" ? params.type : undefined,
     categoryId: params.categoryId,
+    tagId: params.tagId,
     edit: params.edit,
     error: params.error,
     success: params.success,
   });
-}
-
-function TransactionFormFields({
-  idPrefix,
-  categories,
-  currency,
-  defaultValues,
-  showTypeField,
-}: {
-  idPrefix: string;
-  categories: CategoryRow[];
-  currency: string;
-  defaultValues: {
-    type: TransactionType;
-    amount: string;
-    localDate: string;
-    categoryId: string;
-    source: string;
-    note: string;
-  };
-  showTypeField: boolean;
-}) {
-  return (
-    <>
-      <div className="grid gap-4 md:grid-cols-2">
-        {showTypeField ? (
-          <FormField htmlFor={`${idPrefix}-type`} label="Type">
-            <Select id={`${idPrefix}-type`} name="type" defaultValue={defaultValues.type}>
-              <option value="INCOME">Income</option>
-              <option value="EXPENSE">Expense</option>
-            </Select>
-          </FormField>
-        ) : (
-          <input type="hidden" name="type" value={defaultValues.type} />
-        )}
-
-        <FormField htmlFor={`${idPrefix}-amount`} label="Amount">
-          <CurrencyInput
-            id={`${idPrefix}-amount`}
-            name="amount"
-            currency={currency}
-            defaultValue={defaultValues.amount}
-            placeholder="0.00"
-            required
-          />
-        </FormField>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <FormField htmlFor={`${idPrefix}-date`} label="Date">
-          <Input
-            id={`${idPrefix}-date`}
-            name="localDate"
-            type="date"
-            defaultValue={defaultValues.localDate}
-            required
-          />
-        </FormField>
-
-        <FormField htmlFor={`${idPrefix}-category`} label="Category">
-          <Select
-            id={`${idPrefix}-category`}
-            name="categoryId"
-            defaultValue={defaultValues.categoryId}
-            required
-          >
-            <option value="">Select category</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {formatCategoryLabel(category)}
-              </option>
-            ))}
-          </Select>
-        </FormField>
-      </div>
-
-      <FormField htmlFor={`${idPrefix}-source`} label="Source">
-        <Input
-          id={`${idPrefix}-source`}
-          name="source"
-          type="text"
-          defaultValue={defaultValues.source}
-          placeholder="Salary, cash, bank transfer, and so on"
-        />
-      </FormField>
-
-      <FormField htmlFor={`${idPrefix}-note`} label="Note">
-        <Textarea
-          id={`${idPrefix}-note`}
-          name="note"
-          defaultValue={defaultValues.note}
-          placeholder="Optional context for this entry"
-          rows={4}
-        />
-      </FormField>
-    </>
-  );
 }
 
 export default async function TransactionsPage({
@@ -218,6 +122,7 @@ export default async function TransactionsPage({
   const selectedMonth = normalizeMonthParam(firstSearchParamValue(resolvedSearchParams.month));
   const selectedType = normalizeTypeFilter(firstSearchParamValue(resolvedSearchParams.type));
   const requestedCategoryId = firstSearchParamValue(resolvedSearchParams.categoryId);
+  const requestedTagId = firstSearchParamValue(resolvedSearchParams.tagId);
   const editId = firstSearchParamValue(resolvedSearchParams.edit);
   const errorMessage = firstSearchParamValue(resolvedSearchParams.error);
   const successMessage = firstSearchParamValue(resolvedSearchParams.success);
@@ -236,11 +141,30 @@ export default async function TransactionsPage({
     categoryFilterOptions.some((category) => category.id === validCategoryFilter)
       ? validCategoryFilter
       : undefined;
+  const tagFilterOptions = effectiveCategoryFilter
+    ? (meta.categories.find((category) => category.id === effectiveCategoryFilter)?.tags ?? []).map(
+        (tag) => ({
+          id: tag.id,
+          name: tag.name,
+          categoryName: null as string | null,
+        }),
+      )
+    : categoryFilterOptions.flatMap((category) =>
+        category.tags.map((tag) => ({
+          id: tag.id,
+          name: tag.name,
+          categoryName: category.name,
+        })),
+      );
+  const effectiveTagFilter = requestedTagId
+    ? tagFilterOptions.find((tag) => tag.id === requestedTagId)?.id
+    : undefined;
 
   const transactions = await listTransactions({
     month: selectedMonth,
     type: selectedType === "ALL" ? undefined : selectedType,
     categoryId: effectiveCategoryFilter,
+    tagId: effectiveTagFilter,
   });
 
   const formatter = new Intl.NumberFormat(undefined, {
@@ -266,6 +190,7 @@ export default async function TransactionsPage({
       amount: String(formData.get("amount") ?? ""),
       localDate: String(formData.get("localDate") ?? ""),
       categoryId: String(formData.get("categoryId") ?? ""),
+      tagId: String(formData.get("tagId") ?? ""),
       source: String(formData.get("source") ?? ""),
       note: String(formData.get("note") ?? ""),
     });
@@ -276,6 +201,7 @@ export default async function TransactionsPage({
           month: selectedMonth,
           type: selectedType,
           categoryId: effectiveCategoryFilter,
+          tagId: effectiveTagFilter,
           error: result.error,
         }),
       );
@@ -286,6 +212,7 @@ export default async function TransactionsPage({
         month: selectedMonth,
         type: selectedType,
         categoryId: effectiveCategoryFilter,
+        tagId: effectiveTagFilter,
         success: "Transaction created.",
       }),
     );
@@ -300,6 +227,7 @@ export default async function TransactionsPage({
       amount: String(formData.get("amount") ?? ""),
       localDate: String(formData.get("localDate") ?? ""),
       categoryId: String(formData.get("categoryId") ?? ""),
+      tagId: String(formData.get("tagId") ?? ""),
       source: String(formData.get("source") ?? ""),
       note: String(formData.get("note") ?? ""),
     });
@@ -310,6 +238,7 @@ export default async function TransactionsPage({
           month: selectedMonth,
           type: selectedType,
           categoryId: effectiveCategoryFilter,
+          tagId: effectiveTagFilter,
           edit: id,
           error: result.error,
         }),
@@ -321,6 +250,7 @@ export default async function TransactionsPage({
         month: selectedMonth,
         type: selectedType,
         categoryId: effectiveCategoryFilter,
+        tagId: effectiveTagFilter,
         success: "Transaction updated.",
       }),
     );
@@ -337,6 +267,7 @@ export default async function TransactionsPage({
           month: selectedMonth,
           type: selectedType,
           categoryId: effectiveCategoryFilter,
+          tagId: effectiveTagFilter,
           error: result.error,
         }),
       );
@@ -347,6 +278,7 @@ export default async function TransactionsPage({
         month: selectedMonth,
         type: selectedType,
         categoryId: effectiveCategoryFilter,
+        tagId: effectiveTagFilter,
         success: "Transaction deleted.",
       }),
     );
@@ -412,7 +344,7 @@ export default async function TransactionsPage({
                 Filters
               </CardTitle>
               <CardDescription>
-                Narrow the visible list by month, type, and category.
+                Narrow the visible list by month, type, category, and tag.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -453,6 +385,23 @@ export default async function TransactionsPage({
                   </Select>
                 </FormField>
 
+                <FormField htmlFor="filter-tag" label="Tag">
+                  <Select
+                    id="filter-tag"
+                    name="tagId"
+                    defaultValue={effectiveTagFilter ?? ""}
+                  >
+                    <option value="">
+                      {effectiveCategoryFilter ? "All tags in category" : "All tags"}
+                    </option>
+                    {tagFilterOptions.map((tag) => (
+                      <option key={tag.id} value={tag.id}>
+                        {tag.categoryName ? `${tag.categoryName} / ${tag.name}` : tag.name}
+                      </option>
+                    ))}
+                  </Select>
+                </FormField>
+
                 <div className="flex flex-wrap gap-3">
                   <Button type="submit" className="flex-1">
                     Apply filters
@@ -470,7 +419,8 @@ export default async function TransactionsPage({
                 <p className="text-sm font-medium text-muted-foreground">Context</p>
                 <p className="mt-2 text-sm leading-6 text-foreground">
                   New entries only show active categories by default. Archived categories remain
-                  editable on existing transactions.
+                  editable on existing transactions. Tag filters narrow to the chosen category
+                  when one is selected.
                 </p>
               </div>
             </CardContent>
@@ -494,6 +444,7 @@ export default async function TransactionsPage({
                     amount: "",
                     localDate: getTodayLocalDate(),
                     categoryId: "",
+                    tagId: "",
                     source: "",
                     note: "",
                   }}
@@ -552,6 +503,9 @@ export default async function TransactionsPage({
                             {transaction.category.isArchived ? (
                               <Badge variant="outline">Archived category</Badge>
                             ) : null}
+                            {transaction.tag ? (
+                              <Badge variant="outline">{transaction.tag.name}</Badge>
+                            ) : null}
                           </div>
                           <p className="text-sm leading-6 text-muted-foreground">
                             {formatLocalDate(transaction.localDate)} /{" "}
@@ -573,6 +527,7 @@ export default async function TransactionsPage({
                               month: selectedMonth,
                               type: selectedType,
                               categoryId: effectiveCategoryFilter,
+                              tagId: effectiveTagFilter,
                               edit: transaction.id,
                             })}
                             className={cn(
@@ -605,6 +560,7 @@ export default async function TransactionsPage({
                               amount: transaction.amount,
                               localDate: transaction.localDate,
                               categoryId: transaction.categoryId,
+                              tagId: transaction.tagId ?? "",
                               source: transaction.source ?? "",
                               note: transaction.note ?? "",
                             }}
@@ -617,6 +573,7 @@ export default async function TransactionsPage({
                                 month: selectedMonth,
                                 type: selectedType,
                                 categoryId: effectiveCategoryFilter,
+                                tagId: effectiveTagFilter,
                               })}
                               className={cn(buttonVariants({ variant: "outline" }), "rounded-xl")}
                             >

@@ -34,6 +34,7 @@ export type ImportPreviewRowResult = {
     localDate: string | null;
     type: string | null;
     category: string | null;
+    tag: string | null;
     amount: string | null;
     source: string | null;
     note: string | null;
@@ -92,6 +93,10 @@ function normalizeCategoryName(value: string) {
   return value.trim().replace(/\s+/g, " ");
 }
 
+function normalizeTagName(value: string) {
+  return value.trim().replace(/\s+/g, " ");
+}
+
 function buildCategoryLookupKey(type: TransactionType, categoryName: string) {
   return `${type}:${normalizeCategoryName(categoryName).toLowerCase()}`;
 }
@@ -99,6 +104,11 @@ function buildCategoryLookupKey(type: TransactionType, categoryName: string) {
 function normalizeRawField(field: ImportPreviewFieldName, value: string) {
   if (field === "category") {
     const normalized = normalizeCategoryName(value);
+    return normalized.length > 0 ? normalized : null;
+  }
+
+  if (field === "tag") {
+    const normalized = normalizeTagName(value);
     return normalized.length > 0 ? normalized : null;
   }
 
@@ -202,6 +212,7 @@ export function buildImportPreview(input: {
         localDate: "",
         type: "",
         category: "",
+        tag: "",
         amount: "",
         source: "",
         note: "",
@@ -218,6 +229,7 @@ export function buildImportPreview(input: {
           localDate: normalizeRawField("localDate", raw.localDate),
           type: normalizeRawField("type", raw.type),
           category: normalizeRawField("category", raw.category),
+          tag: normalizeRawField("tag", raw.tag),
           amount: normalizeRawField("amount", raw.amount),
           source: normalizeRawField("source", raw.source),
           note: normalizeRawField("note", raw.note),
@@ -245,6 +257,7 @@ export function buildImportPreview(input: {
       localDate: parsedRow.data.localDate,
       type: parsedRow.data.type,
       categoryName: normalizedCategory,
+      tagName: parsedRow.data.tag ? normalizeTagName(parsedRow.data.tag) : undefined,
       amount: parsedRow.data.amount.toFixed(2),
       source: parsedRow.data.source,
       note: parsedRow.data.note,
@@ -277,6 +290,7 @@ export function buildImportPreview(input: {
         localDate: parsedRow.data.localDate,
         type: parsedRow.data.type,
         category: normalizedCategory,
+        tag: parsedRow.data.tag ? normalizeTagName(parsedRow.data.tag) : null,
         amount: parsedRow.data.amount.toFixed(2),
         source: parsedRow.data.source ?? null,
         note: parsedRow.data.note ?? null,

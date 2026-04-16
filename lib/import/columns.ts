@@ -14,6 +14,7 @@ const headerAliases: Record<ImportPreviewFieldName, string[]> = {
   localDate: ["localdate", "date", "transactiondate", "entrydate"],
   type: ["type", "transactiontype", "entrytype"],
   category: ["category", "categoryname"],
+  tag: ["tag", "tags", "label", "transactiontag"],
   amount: ["amount", "value", "sum"],
   source: ["source", "paymentsource", "account", "paymentmethod"],
   note: ["note", "notes", "memo", "description", "details"],
