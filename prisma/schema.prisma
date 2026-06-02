@@ -12,21 +12,27 @@ enum TransactionType {
   EXPENSE
 }
 
+enum PlannedBillOccurrenceStatus {
+  PAID
+  SKIPPED
+}
+
 model User {
-  id                String        @id @default(cuid())
-  name              String?
-  email             String?       @unique
-  emailVerified     DateTime?
-  image             String?
-  currency          String        @default("EUR")
-  hasCompletedSetup Boolean       @default(false)
-  accounts          Account[]
-  sessions          Session[]
-  categories        Category[]
-  transactions      Transaction[]
-  plannedBills      PlannedBill[]
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  id                     String                  @id @default(cuid())
+  name                   String?
+  email                  String?                 @unique
+  emailVerified          DateTime?
+  image                  String?
+  currency               String                  @default("EUR")
+  hasCompletedSetup      Boolean                 @default(false)
+  accounts               Account[]
+  sessions               Session[]
+  categories             Category[]
+  transactions           Transaction[]
+  plannedBills           PlannedBill[]
+  plannedBillOccurrences PlannedBillOccurrence[]
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
 }
 
 model Account {
@@ -100,6 +106,7 @@ model Transaction {
   user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   category   Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   tag        Tag?            @relation(fields: [tagId], references: [id], onDelete: SetNull)
+  plannedBillOccurrence PlannedBillOccurrence?
 
   @@index([userId, localDate])
   @@index([categoryId, localDate])
@@ -120,18 +127,38 @@ model Tag {
 }
 
 model PlannedBill {
-  id            String   @id @default(cuid())
+  id            String                  @id @default(cuid())
   userId        String
   name          String
-  amount        Decimal  @db.Decimal(14, 2)
+  amount        Decimal                 @db.Decimal(14, 2)
   dueDayOfMonth Int
   categoryId    String
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category      Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  isActive      Boolean                 @default(true)
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  user          User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category      Category                @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  occurrences   PlannedBillOccurrence[]
 
   @@index([userId, isActive])
   @@index([userId, dueDayOfMonth])
+}
+
+model PlannedBillOccurrence {
+  id              String                      @id @default(cuid())
+  userId          String
+  plannedBillId   String
+  month           String
+  status          PlannedBillOccurrenceStatus
+  transactionId   String?                     @unique
+  paidAtLocalDate String?
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+  user            User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plannedBill     PlannedBill                 @relation(fields: [plannedBillId], references: [id], onDelete: Cascade)
+  transaction     Transaction?                @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@unique([plannedBillId, month])
+  @@index([userId, month])
+  @@index([userId, status])
 }

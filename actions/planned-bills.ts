@@ -1,6 +1,6 @@
 "use server";
 
-import { TransactionType } from "@/generated/prisma/enums";
+import { PlannedBillOccurrenceStatus, TransactionType } from "@/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
 import {
   actionError,
@@ -11,12 +11,18 @@ import {
 import { getUserIdOrThrow } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import {
+  markPlannedBillPaidSchema,
   plannedBillIdSchema,
   plannedBillInputSchema,
+  skipPlannedBillForMonthSchema,
   togglePlannedBillActiveSchema,
+  undoPlannedBillOccurrenceSchema,
   updatePlannedBillSchema,
+  type MarkPlannedBillPaidInput,
   type PlannedBillInput,
+  type SkipPlannedBillForMonthInput,
   type TogglePlannedBillActiveInput,
+  type UndoPlannedBillOccurrenceInput,
   type UpdatePlannedBillInput,
 } from "@/lib/validators/planned-bill";
 
@@ -57,6 +63,14 @@ async function assertExpenseCategoryForPlannedBill(userId: string, categoryId: s
 }
 
 function revalidatePlannedBillPaths() {
+  revalidatePath("/planned");
+  revalidatePath("/dashboard");
+}
+
+function revalidatePlannedBillOccurrencePaths() {
+  revalidatePath("/dashboard");
+  revalidatePath("/transactions");
+  revalidatePath("/export");
   revalidatePath("/planned");
 }
 
@@ -258,5 +272,242 @@ export async function deletePlannedBill(id: string): Promise<PlannedBillActionRe
   }
 
   revalidatePlannedBillPaths();
+  return actionSuccess();
+}
+
+export async function markPlannedBillPaid(
+  input: MarkPlannedBillPaidInput,
+): Promise<PlannedBillActionResult> {
+  const userId = await getUserIdOrThrow();
+  const parsed = markPlannedBillPaidSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return getValidationError(
+      parsed.error.issues[0]?.message,
+      "Invalid planned bill payment input.",
+    );
+  }
+
+  const plannedBill = await db.plannedBill.findFirst({
+    where: {
+      id: parsed.data.plannedBillId,
+      userId,
+    },
+    include: {
+      category: {
+        select: {
+          id: true,
+          userId: true,
+          type: true,
+        },
+      },
+      occurrences: {
+        where: {
+          month: parsed.data.month,
+        },
+        select: {
+          id: true,
+          status: true,
+          transactionId: true,
+        },
+        take: 1,
+      },
+    },
+  });
+
+  if (!plannedBill) {
+    return actionError("Planned bill not found.");
+  }
+
+  if (
+    plannedBill.category.userId !== userId ||
+    plannedBill.category.type !== TransactionType.EXPENSE
+  ) {
+    return actionError("Planned bills must use an expense category.");
+  }
+
+  const existingOccurrence = plannedBill.occurrences[0];
+
+  if (
+    existingOccurrence?.status === PlannedBillOccurrenceStatus.PAID &&
+    existingOccurrence.transactionId
+  ) {
+    return actionError("This planned bill is already marked paid for the selected month.");
+  }
+
+  try {
+    await db.$transaction(async (tx) => {
+      const createdTransaction = await tx.transaction.create({
+        data: {
+          userId,
+          type: TransactionType.EXPENSE,
+          amount: parsed.data.amount,
+          localDate: parsed.data.localDate,
+          categoryId: plannedBill.categoryId,
+          source: plannedBill.name,
+          note: parsed.data.note ?? null,
+        },
+        select: { id: true },
+      });
+
+      if (existingOccurrence) {
+        await tx.plannedBillOccurrence.update({
+          where: { id: existingOccurrence.id },
+          data: {
+            status: PlannedBillOccurrenceStatus.PAID,
+            transactionId: createdTransaction.id,
+            paidAtLocalDate: parsed.data.localDate,
+          },
+        });
+        return;
+      }
+
+      await tx.plannedBillOccurrence.create({
+        data: {
+          userId,
+          plannedBillId: plannedBill.id,
+          month: parsed.data.month,
+          status: PlannedBillOccurrenceStatus.PAID,
+          transactionId: createdTransaction.id,
+          paidAtLocalDate: parsed.data.localDate,
+        },
+      });
+    });
+  } catch {
+    return getMutationError("Could not mark planned bill as paid. Please try again.");
+  }
+
+  revalidatePlannedBillOccurrencePaths();
+  return actionSuccess();
+}
+
+export async function skipPlannedBillForMonth(
+  input: SkipPlannedBillForMonthInput,
+): Promise<PlannedBillActionResult> {
+  const userId = await getUserIdOrThrow();
+  const parsed = skipPlannedBillForMonthSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return getValidationError(
+      parsed.error.issues[0]?.message,
+      "Invalid planned bill skip input.",
+    );
+  }
+
+  const plannedBill = await db.plannedBill.findFirst({
+    where: {
+      id: parsed.data.plannedBillId,
+      userId,
+    },
+    select: {
+      id: true,
+      occurrences: {
+        where: {
+          month: parsed.data.month,
+        },
+        select: {
+          id: true,
+          status: true,
+          transactionId: true,
+        },
+        take: 1,
+      },
+    },
+  });
+
+  if (!plannedBill) {
+    return actionError("Planned bill not found.");
+  }
+
+  const existingOccurrence = plannedBill.occurrences[0];
+
+  if (
+    existingOccurrence?.status === PlannedBillOccurrenceStatus.PAID &&
+    existingOccurrence.transactionId
+  ) {
+    return actionError("Undo the paid occurrence before skipping this bill.");
+  }
+
+  try {
+    await db.plannedBillOccurrence.upsert({
+      where: {
+        plannedBillId_month: {
+          plannedBillId: plannedBill.id,
+          month: parsed.data.month,
+        },
+      },
+      create: {
+        userId,
+        plannedBillId: plannedBill.id,
+        month: parsed.data.month,
+        status: PlannedBillOccurrenceStatus.SKIPPED,
+      },
+      update: {
+        status: PlannedBillOccurrenceStatus.SKIPPED,
+        transactionId: null,
+        paidAtLocalDate: null,
+      },
+    });
+  } catch {
+    return getMutationError("Could not skip planned bill. Please try again.");
+  }
+
+  revalidatePlannedBillOccurrencePaths();
+  return actionSuccess();
+}
+
+export async function undoPlannedBillOccurrence(
+  input: UndoPlannedBillOccurrenceInput,
+): Promise<PlannedBillActionResult> {
+  const userId = await getUserIdOrThrow();
+  const parsed = undoPlannedBillOccurrenceSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return getValidationError(
+      parsed.error.issues[0]?.message,
+      "Invalid planned bill undo input.",
+    );
+  }
+
+  const occurrence = await db.plannedBillOccurrence.findFirst({
+    where: {
+      userId,
+      plannedBillId: parsed.data.plannedBillId,
+      month: parsed.data.month,
+    },
+    select: {
+      id: true,
+      transactionId: true,
+    },
+  });
+
+  if (!occurrence) {
+    return actionError("Planned bill occurrence not found.");
+  }
+
+  try {
+    await db.$transaction(async (tx) => {
+      if (occurrence.transactionId) {
+        await tx.transaction.deleteMany({
+          where: {
+            id: occurrence.transactionId,
+            userId,
+          },
+        });
+        return;
+      }
+
+      await tx.plannedBillOccurrence.deleteMany({
+        where: {
+          id: occurrence.id,
+          userId,
+        },
+      });
+    });
+  } catch {
+    return getMutationError("Could not undo planned bill status. Please try again.");
+  }
+
+  revalidatePlannedBillOccurrencePaths();
   return actionSuccess();
 }

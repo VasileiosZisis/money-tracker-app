@@ -8,6 +8,7 @@ export type ForecastPlannedBillLike = {
   dueDayOfMonth: number;
   categoryId: string;
   isActive: boolean;
+  occurrenceStatus?: "PAID" | "SKIPPED" | null;
 };
 
 export function getPlannedExpenseCategoryIds(plannedBills: readonly ForecastPlannedBillLike[]) {
@@ -18,20 +19,18 @@ export function calculateUnpaidPlannedBills(
   plannedBills: readonly ForecastPlannedBillLike[],
   monthContext: ForecastMonthContext,
 ) {
-  const activeBills = plannedBills.filter((plannedBill) => plannedBill.isActive);
+  const activeBills = plannedBills.filter(
+    (plannedBill) =>
+      plannedBill.isActive &&
+      plannedBill.occurrenceStatus !== "PAID" &&
+      plannedBill.occurrenceStatus !== "SKIPPED",
+  );
 
   if (activeBills.length === 0 || monthContext.monthRelation === "past") {
     return ZERO_DECIMAL;
   }
 
-  const unpaidBills =
-    monthContext.monthRelation === "future"
-      ? activeBills
-      : activeBills.filter(
-          (plannedBill) => plannedBill.dueDayOfMonth >= (monthContext.currentDayOfMonth ?? 1),
-        );
-
-  return unpaidBills.length > 0
-    ? sumDecimals(unpaidBills.map((plannedBill) => plannedBill.amount))
+  return activeBills.length > 0
+    ? sumDecimals(activeBills.map((plannedBill) => plannedBill.amount))
     : ZERO_DECIMAL;
 }

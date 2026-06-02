@@ -4,18 +4,26 @@ import {
   CalendarClock,
   FolderClock,
   Plus,
+  RotateCcw,
   ShieldAlert,
   ShieldCheck,
+  SkipForward,
   TrendingDown,
   TrendingUp
 } from 'lucide-react'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import type * as React from 'react'
 
 import {
   getDashboardMonthData,
   type DashboardPlannedBillStatus
 } from '@/actions/dashboard'
+import {
+  markPlannedBillPaid,
+  skipPlannedBillForMonth,
+  undoPlannedBillOccurrence
+} from '@/actions/planned-bills'
 import { PageHeader } from '@/components/app-shell/page-header'
 import { MonthCashflowChart } from '@/components/dashboard/month-cashflow-chart'
 import { Badge } from '@/components/ui/badge'
@@ -28,11 +36,14 @@ import {
 } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
+import { PageNotice } from '@/components/ui/page-notice'
 import { cn } from '@/lib/utils'
 
 type DashboardPageProps = {
   searchParams?: Promise<{
     month?: string | string[]
+    error?: string | string[]
+    success?: string | string[]
   }>
 }
 
@@ -61,6 +72,28 @@ function normalizeMonthParam (
   }
 
   return raw
+}
+
+function firstSearchParamValue (value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value
+}
+
+function buildDashboardUrl (params: {
+  month: string
+  error?: string
+  success?: string
+}) {
+  const searchParams = new URLSearchParams({ month: params.month })
+
+  if (params.error) {
+    searchParams.set('error', params.error)
+  }
+
+  if (params.success) {
+    searchParams.set('success', params.success)
+  }
+
+  return `/dashboard?${searchParams.toString()}`
 }
 
 function formatMoney (formatter: Intl.NumberFormat, amount: Prisma.Decimal) {
@@ -168,10 +201,25 @@ function getForecastState (forecast: ForecastData) {
 
 function getPlannedBillStatusMeta (status: DashboardPlannedBillStatus) {
   switch (status) {
+    case 'paid':
+      return {
+        label: 'Paid',
+        variant: 'success' as const
+      }
+    case 'skipped':
+      return {
+        label: 'Skipped',
+        variant: 'outline' as const
+      }
     case 'due-today':
       return {
         label: 'Due today',
         variant: 'warning' as const
+      }
+    case 'overdue':
+      return {
+        label: 'Overdue',
+        variant: 'destructive' as const
       }
     case 'passed':
       return {
@@ -184,13 +232,6 @@ function getPlannedBillStatusMeta (status: DashboardPlannedBillStatus) {
         variant: 'accent' as const
       }
   }
-}
-
-function sumPlannedBillAmounts (data: DashboardData['plannedBills']) {
-  return data.reduce(
-    (total, plannedBill) => total.plus(plannedBill.amount),
-    new Prisma.Decimal(0)
-  )
 }
 
 function getToneStyles (tone: MetricTone) {
@@ -280,6 +321,59 @@ export default async function DashboardPage ({
 }: DashboardPageProps) {
   const resolvedSearchParams = (await searchParams) ?? {}
   const selectedMonth = normalizeMonthParam(resolvedSearchParams?.month)
+  const errorMessage = firstSearchParamValue(resolvedSearchParams?.error)
+  const successMessage = firstSearchParamValue(resolvedSearchParams?.success)
+
+  async function markPaidAction (formData: FormData) {
+    'use server'
+
+    const month = String(formData.get('month') ?? '')
+    const result = await markPlannedBillPaid({
+      plannedBillId: String(formData.get('plannedBillId') ?? ''),
+      month,
+      amount: String(formData.get('amount') ?? ''),
+      localDate: String(formData.get('localDate') ?? '')
+    })
+
+    if (!result.ok) {
+      redirect(buildDashboardUrl({ month, error: result.error }))
+    }
+
+    redirect(buildDashboardUrl({ month, success: 'Planned bill marked paid.' }))
+  }
+
+  async function skipBillAction (formData: FormData) {
+    'use server'
+
+    const month = String(formData.get('month') ?? '')
+    const result = await skipPlannedBillForMonth({
+      plannedBillId: String(formData.get('plannedBillId') ?? ''),
+      month
+    })
+
+    if (!result.ok) {
+      redirect(buildDashboardUrl({ month, error: result.error }))
+    }
+
+    redirect(buildDashboardUrl({ month, success: 'Planned bill skipped for this month.' }))
+  }
+
+  async function undoOccurrenceAction (formData: FormData) {
+    'use server'
+
+    const month = String(formData.get('month') ?? '')
+    const result = await undoPlannedBillOccurrence({
+      plannedBillId: String(formData.get('plannedBillId') ?? ''),
+      month
+    })
+
+    if (!result.ok) {
+      redirect(buildDashboardUrl({ month, error: result.error }))
+    }
+
+    redirect(buildDashboardUrl({ month, success: 'Planned bill status undone.' }))
+  }
+
   const data = await getDashboardMonthData(selectedMonth)
 
   const formatter = new Intl.NumberFormat(undefined, {
@@ -289,17 +383,24 @@ export default async function DashboardPage ({
 
   const forecastState = getForecastState(data.forecast)
   const netTone = getNetTone(data.netLeft)
-  const displayedPlannedBills =
-    data.forecast.monthContext.monthRelation === 'current'
-      ? data.plannedBills.filter(plannedBill => plannedBill.status !== 'passed')
-      : data.plannedBills
-  const displayedPlannedBillsTotal = sumPlannedBillAmounts(
-    displayedPlannedBills
-  )
+  const displayedPlannedBills = data.plannedBills
+  const displayedPlannedBillsTotal = data.forecast.unpaidPlannedBills
 
   return (
     <div className='space-y-6'>
       <PageHeader title='Monthly snapshot' />
+
+      {errorMessage ? (
+        <PageNotice variant='error' title='Something needs attention'>
+          {errorMessage}
+        </PageNotice>
+      ) : null}
+
+      {!errorMessage && successMessage ? (
+        <PageNotice variant='success' title='Saved'>
+          {successMessage}
+        </PageNotice>
+      ) : null}
 
       <form className='flex flex-wrap items-end gap-3' method='get'>
         <div className='space-y-1.5'>
@@ -377,7 +478,7 @@ export default async function DashboardPage ({
         <MetricCard
           title='Forecast remaining spend'
           value={formatMoney(formatter, data.forecast.forecastRemainingSpend)}
-          helper='Upcoming planned bills plus the variable-spending estimate for the rest of the selected month.'
+          helper='Unpaid planned bills plus the variable-spending estimate for the rest of the selected month.'
           tone={
             data.forecast.forecastRemainingSpend.gt(0) ? 'warning' : 'default'
           }
@@ -515,10 +616,14 @@ export default async function DashboardPage ({
             <div className='flex flex-wrap items-start justify-between gap-3'>
               <div className='space-y-3'>
                 <CardTitle>Planned bills</CardTitle>
+                <p className='max-w-md text-sm leading-6 text-muted-foreground'>
+                  Active bills stay reserved until you mark them paid or skip
+                  them for this month.
+                </p>
                 <div className='flex flex-wrap gap-2'>
                   <Badge variant='outline'>{displayedPlannedBills.length}</Badge>
                   <Badge variant='outline'>
-                    {formatMoney(formatter, displayedPlannedBillsTotal)}
+                    Reserved {formatMoney(formatter, displayedPlannedBillsTotal)}
                   </Badge>
                 </div>
               </div>
@@ -538,18 +643,8 @@ export default async function DashboardPage ({
             {displayedPlannedBills.length === 0 ? (
               <EmptyState
                 icon={CalendarClock}
-                title={
-                  data.forecast.monthContext.monthRelation === 'current' &&
-                  data.plannedBills.length > 0
-                    ? 'No upcoming planned bills left'
-                    : 'No active planned bills'
-                }
-                description={
-                  data.forecast.monthContext.monthRelation === 'current' &&
-                  data.plannedBills.length > 0
-                    ? 'The remaining estimate is currently driven by recorded spending patterns because all active monthly bill templates have already passed for this month.'
-                    : 'Add expected monthly bills to make the forecast more grounded.'
-                }
+                title='No active planned bills'
+                description='Add expected monthly bills to make the forecast more grounded.'
                 action={
                   <Link
                     href='/planned'
@@ -566,42 +661,142 @@ export default async function DashboardPage ({
             ) : (
               displayedPlannedBills.map(plannedBill => {
                 const statusMeta = getPlannedBillStatusMeta(plannedBill.status)
+                const isHandled =
+                  plannedBill.status === 'paid' ||
+                  plannedBill.status === 'skipped'
 
                 return (
                   <div
                     key={plannedBill.id}
-                    className='flex flex-col gap-4 rounded-[24px] border border-border/80 bg-background/60 p-4 md:flex-row md:items-center md:justify-between'
+                    className='grid gap-4 rounded-[24px] border border-border/80 bg-background/60 p-4'
                   >
-                    <div className='flex min-w-0 items-start gap-3'>
-                      <div className='mt-1 flex size-10 items-center justify-center rounded-2xl bg-accent text-accent-foreground'>
-                        <CalendarClock className='size-[18px]' />
-                      </div>
-                      <div className='min-w-0 space-y-2'>
-                        <div className='flex flex-wrap items-center gap-2'>
-                          <h3 className='text-sm font-semibold text-foreground'>
-                            {plannedBill.category.name}
-                          </h3>
-                          <Badge variant={statusMeta.variant}>
-                            {statusMeta.label}
-                          </Badge>
-                          {plannedBill.category.isArchived ? (
-                            <Badge variant='outline'>Archived category</Badge>
+                    <div className='flex flex-col gap-4 md:flex-row md:items-start md:justify-between'>
+                      <div className='flex min-w-0 items-start gap-3'>
+                        <div className='mt-1 flex size-10 items-center justify-center rounded-2xl bg-accent text-accent-foreground'>
+                          <CalendarClock className='size-[18px]' />
+                        </div>
+                        <div className='min-w-0 space-y-1'>
+                          <div className='flex flex-wrap items-center gap-2'>
+                            <h3 className='text-sm font-semibold text-foreground'>
+                              {plannedBill.category.name}
+                            </h3>
+                            <Badge variant={statusMeta.variant}>
+                              {statusMeta.label}
+                            </Badge>
+                            {plannedBill.category.isArchived ? (
+                              <Badge variant='outline'>Archived category</Badge>
+                            ) : null}
+                          </div>
+                          <p className='text-sm leading-6 text-muted-foreground'>
+                            {plannedBill.name}
+                          </p>
+                          {plannedBill.occurrence?.paidAtLocalDate ? (
+                            <p className='text-xs font-medium text-muted-foreground'>
+                              Paid {formatLocalDate(plannedBill.occurrence.paidAtLocalDate)}
+                            </p>
                           ) : null}
                         </div>
-                        <p className='text-sm leading-6 text-muted-foreground'>
-                          {plannedBill.name}
+                      </div>
+
+                      <div className='flex items-center justify-between gap-3 md:flex-col md:items-end'>
+                        <p className='text-sm font-medium text-muted-foreground'>
+                          Due day {plannedBill.dueDayOfMonth}
+                        </p>
+                        <p className='font-mono text-base font-semibold tracking-tight text-foreground'>
+                          {formatMoney(formatter, plannedBill.amount)}
                         </p>
                       </div>
                     </div>
 
-                    <div className='flex items-center justify-between gap-3 md:flex-col md:items-end'>
-                      <p className='text-sm font-medium text-muted-foreground'>
-                        Due day {plannedBill.dueDayOfMonth}
-                      </p>
-                      <p className='font-mono text-base font-semibold tracking-tight text-foreground'>
-                        {formatMoney(formatter, plannedBill.amount)}
-                      </p>
-                    </div>
+                    {isHandled ? (
+                      <form action={undoOccurrenceAction} className='flex justify-end'>
+                        <input
+                          type='hidden'
+                          name='plannedBillId'
+                          value={plannedBill.id}
+                        />
+                        <input type='hidden' name='month' value={selectedMonth} />
+                        <button
+                          className={buttonVariants({ variant: 'outline', size: 'sm' })}
+                          type='submit'
+                        >
+                          <RotateCcw />
+                          Undo
+                        </button>
+                      </form>
+                    ) : (
+                      <div className='grid gap-3 border-t border-border/70 pt-4'>
+                        <form
+                          action={markPaidAction}
+                          className='grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]'
+                        >
+                          <input
+                            type='hidden'
+                            name='plannedBillId'
+                            value={plannedBill.id}
+                          />
+                          <input type='hidden' name='month' value={selectedMonth} />
+                          <div className='space-y-1.5'>
+                            <label
+                              className='text-xs font-medium text-muted-foreground'
+                              htmlFor={`paid-date-${plannedBill.id}`}
+                            >
+                              Payment date
+                            </label>
+                            <Input
+                              id={`paid-date-${plannedBill.id}`}
+                              name='localDate'
+                              type='date'
+                              defaultValue={plannedBill.defaultPaymentLocalDate}
+                              required
+                            />
+                          </div>
+                          <div className='space-y-1.5'>
+                            <label
+                              className='text-xs font-medium text-muted-foreground'
+                              htmlFor={`paid-amount-${plannedBill.id}`}
+                            >
+                              Amount
+                            </label>
+                            <Input
+                              id={`paid-amount-${plannedBill.id}`}
+                              name='amount'
+                              type='text'
+                              inputMode='decimal'
+                              defaultValue={plannedBill.amount.toString()}
+                              required
+                            />
+                          </div>
+                          <button
+                            className={cn(
+                              buttonVariants({ size: 'default' }),
+                              'self-end'
+                            )}
+                            type='submit'
+                          >
+                            Mark paid
+                          </button>
+                        </form>
+                        <form action={skipBillAction} className='flex justify-end'>
+                          <input
+                            type='hidden'
+                            name='plannedBillId'
+                            value={plannedBill.id}
+                          />
+                          <input type='hidden' name='month' value={selectedMonth} />
+                          <button
+                            className={buttonVariants({
+                              variant: 'outline',
+                              size: 'sm'
+                            })}
+                            type='submit'
+                          >
+                            <SkipForward />
+                            Skip this month
+                          </button>
+                        </form>
+                      </div>
+                    )}
                   </div>
                 )
               })

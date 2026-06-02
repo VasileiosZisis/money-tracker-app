@@ -11,7 +11,13 @@ import {
   type ForecastSummary,
 } from "@/lib/forecast";
 
-export type DashboardPlannedBillStatus = "upcoming" | "due-today" | "passed";
+export type DashboardPlannedBillStatus =
+  | "paid"
+  | "skipped"
+  | "upcoming"
+  | "due-today"
+  | "overdue"
+  | "passed";
 
 export type DashboardMonthData = {
   month: string;
@@ -33,6 +39,13 @@ export type DashboardMonthData = {
     amount: Prisma.Decimal;
     dueDayOfMonth: number;
     status: DashboardPlannedBillStatus;
+    defaultPaymentLocalDate: string;
+    occurrence: {
+      id: string;
+      status: "PAID" | "SKIPPED";
+      paidAtLocalDate: string | null;
+      transactionId: string | null;
+    } | null;
     category: {
       name: string;
       isArchived: boolean;
@@ -56,7 +69,16 @@ function getPlannedBillStatus(
   monthRelation: ForecastMonthRelation,
   currentDayOfMonth: number | null,
   dueDayOfMonth: number,
+  occurrenceStatus?: "PAID" | "SKIPPED" | null,
 ): DashboardPlannedBillStatus {
+  if (occurrenceStatus === "PAID") {
+    return "paid";
+  }
+
+  if (occurrenceStatus === "SKIPPED") {
+    return "skipped";
+  }
+
   if (monthRelation === "past") {
     return "passed";
   }
@@ -66,7 +88,7 @@ function getPlannedBillStatus(
   }
 
   if (dueDayOfMonth < (currentDayOfMonth ?? 1)) {
-    return "passed";
+    return "overdue";
   }
 
   if (dueDayOfMonth === currentDayOfMonth) {
@@ -74,6 +96,21 @@ function getPlannedBillStatus(
   }
 
   return "upcoming";
+}
+
+function getDefaultPaymentLocalDate(params: {
+  selectedMonth: string;
+  monthRelation: ForecastMonthRelation;
+  referenceDate: string;
+  dueDayOfMonth: number;
+}) {
+  if (params.monthRelation === "current") {
+    return params.referenceDate;
+  }
+
+  return `${params.selectedMonth}-${params.dueDayOfMonth
+    .toString()
+    .padStart(2, "0")}`;
 }
 
 function buildChartSeries(params: {
@@ -269,6 +306,18 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
         dueDayOfMonth: true,
         categoryId: true,
         isActive: true,
+        occurrences: {
+          where: {
+            month,
+          },
+          select: {
+            id: true,
+            status: true,
+            paidAtLocalDate: true,
+            transactionId: true,
+          },
+          take: 1,
+        },
         category: {
           select: {
             name: true,
@@ -285,11 +334,18 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
 
   const incomeSum = incomeAggregate._sum.amount ?? new Prisma.Decimal(0);
   const expenseSum = expenseAggregate._sum.amount ?? new Prisma.Decimal(0);
+  const forecastPlannedBills = plannedBills.map((plannedBill) => ({
+    amount: plannedBill.amount,
+    dueDayOfMonth: plannedBill.dueDayOfMonth,
+    categoryId: plannedBill.categoryId,
+    isActive: plannedBill.isActive,
+    occurrenceStatus: plannedBill.occurrences[0]?.status ?? null,
+  }));
   const forecast = computeForecastSummary({
     selectedMonth: month,
     referenceDate,
     transactions: forecastTransactions,
-    plannedBills,
+    plannedBills: forecastPlannedBills,
   });
   const { chartSeries, chartYAxisMax } = buildChartSeries({
     monthContext: forecast.monthContext,
@@ -315,7 +371,22 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
         forecast.monthContext.monthRelation,
         forecast.monthContext.currentDayOfMonth,
         plannedBill.dueDayOfMonth,
+        plannedBill.occurrences[0]?.status ?? null,
       ),
+      defaultPaymentLocalDate: getDefaultPaymentLocalDate({
+        selectedMonth: month,
+        monthRelation: forecast.monthContext.monthRelation,
+        referenceDate,
+        dueDayOfMonth: plannedBill.dueDayOfMonth,
+      }),
+      occurrence: plannedBill.occurrences[0]
+        ? {
+            id: plannedBill.occurrences[0].id,
+            status: plannedBill.occurrences[0].status,
+            paidAtLocalDate: plannedBill.occurrences[0].paidAtLocalDate,
+            transactionId: plannedBill.occurrences[0].transactionId,
+          }
+        : null,
       category: {
         name: plannedBill.category.name,
         isArchived: plannedBill.category.isArchived,

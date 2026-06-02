@@ -225,6 +225,8 @@ Rules:
 - planned bill category must be `EXPENSE`
 - `dueDayOfMonth` must be `1–28`
 - planned bills do not automatically create transactions in this phase
+- monthly paid/skipped state belongs in `PlannedBillOccurrence`, not on the reusable planned bill template
+- forecasts must use explicit occurrence state rather than fuzzy matching to decide whether a planned bill is still unpaid for a month
 
 Do not merge planned bills into the transaction table.
 

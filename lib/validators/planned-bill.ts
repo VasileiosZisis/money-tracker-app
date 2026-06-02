@@ -2,8 +2,12 @@ import { Prisma } from "@/generated/prisma/client";
 import { z } from "zod";
 
 import { categoryIdSchema } from "@/lib/validators/category";
+import { localDateSchema } from "@/lib/validators/transaction";
 
 export const plannedBillIdSchema = z.string().cuid("Invalid planned bill id.");
+export const plannedBillOccurrenceMonthSchema = z
+  .string()
+  .regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Month must be in YYYY-MM format.");
 
 export const plannedBillAmountSchema = z
   .union([z.string(), z.number()])
@@ -51,6 +55,34 @@ export const togglePlannedBillActiveSchema = z.object({
   }),
 });
 
+export const markPlannedBillPaidSchema = z
+  .object({
+    plannedBillId: plannedBillIdSchema,
+    month: plannedBillOccurrenceMonthSchema,
+    amount: plannedBillAmountSchema,
+    localDate: localDateSchema,
+    note: z
+      .string()
+      .trim()
+      .max(500, "Note must be 500 characters or fewer.")
+      .optional()
+      .transform((value) => (value && value.length > 0 ? value : undefined)),
+  })
+  .refine((value) => value.localDate.startsWith(`${value.month}-`), {
+    message: "Payment date must be inside the selected month.",
+    path: ["localDate"],
+  });
+
+export const skipPlannedBillForMonthSchema = z.object({
+  plannedBillId: plannedBillIdSchema,
+  month: plannedBillOccurrenceMonthSchema,
+});
+
+export const undoPlannedBillOccurrenceSchema = z.object({
+  plannedBillId: plannedBillIdSchema,
+  month: plannedBillOccurrenceMonthSchema,
+});
+
 export type PlannedBillInput = {
   name: string;
   amount: string | number;
@@ -66,4 +98,22 @@ export type UpdatePlannedBillInput = PlannedBillInput & {
 export type TogglePlannedBillActiveInput = {
   id: string;
   isActive: boolean;
+};
+
+export type MarkPlannedBillPaidInput = {
+  plannedBillId: string;
+  month: string;
+  amount: string | number;
+  localDate: string;
+  note?: string;
+};
+
+export type SkipPlannedBillForMonthInput = {
+  plannedBillId: string;
+  month: string;
+};
+
+export type UndoPlannedBillOccurrenceInput = {
+  plannedBillId: string;
+  month: string;
 };
