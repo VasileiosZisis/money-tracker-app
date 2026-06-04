@@ -90,6 +90,17 @@ Implemented through the current next-phase polish work:
 - PostgreSQL + Prisma
 - NextAuth (Google OAuth) + Prisma adapter
 
+## Deployment
+
+Vercel Git deployments are opt-in for this repo. The ignored build step in
+`vercel.json` skips builds by default.
+
+To deploy a commit, include `[deploy]` in the commit message:
+
+```bash
+git commit -m "Update dashboard forecast [deploy]"
+```
+
 ## Design system
 
 UI follows `docs/DESIGN_SYSTEM.md`:
