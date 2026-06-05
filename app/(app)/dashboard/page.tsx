@@ -8,6 +8,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   SkipForward,
+  TimerReset,
   TrendingDown,
   TrendingUp
 } from 'lucide-react'
@@ -100,6 +101,10 @@ function formatMoney (formatter: Intl.NumberFormat, amount: Prisma.Decimal) {
   return formatter.format(Number(amount.toString()))
 }
 
+function formatDailyMoney (formatter: Intl.NumberFormat, amount: Prisma.Decimal) {
+  return `${formatMoney(formatter, amount)}/day`
+}
+
 function getNetTone (netLeft: Prisma.Decimal) {
   if (netLeft.gt(0)) {
     return {
@@ -149,7 +154,7 @@ function formatLocalDate (localDate: string) {
 
 function getForecastState (forecast: ForecastData) {
   if (forecast.monthContext.monthRelation === 'past') {
-    if (forecast.projectedEndOfMonthNet.gt(0)) {
+    if (forecast.safeToSpend.gt(0)) {
       return {
         badgeVariant: 'success' as const,
         label: 'Month closed positive',
@@ -157,7 +162,7 @@ function getForecastState (forecast: ForecastData) {
       }
     }
 
-    if (forecast.projectedEndOfMonthNet.lt(0)) {
+    if (forecast.safeToSpend.lt(0)) {
       return {
         badgeVariant: 'destructive' as const,
         label: 'Month closed negative',
@@ -273,7 +278,7 @@ function MetricCard ({
 }: {
   title: string
   value: string
-  helper?: string
+  helper?: React.ReactNode
   tone?: MetricTone
   icon: React.ReactNode
   badgeLabel?: string
@@ -307,13 +312,54 @@ function MetricCard ({
         </div>
         {badgeLabel ? <Badge variant={badgeVariant}>{badgeLabel}</Badge> : null}
         {helper ? (
-          <p className='mt-auto text-sm leading-6 text-muted-foreground'>
+          <div className='mt-auto text-sm leading-6 text-muted-foreground'>
             {helper}
-          </p>
+          </div>
         ) : null}
       </CardContent>
     </Card>
   )
+}
+
+function ForecastBreakdown ({
+  formatter,
+  forecast
+}: {
+  formatter: Intl.NumberFormat
+  forecast: ForecastData
+}) {
+  return (
+    <div className='space-y-2'>
+      <p>
+        Unpaid planned bills plus the variable-spending estimate for the rest
+        of the selected month.
+      </p>
+      <dl className='grid gap-1.5'>
+        <div className='flex items-center justify-between gap-3'>
+          <dt>Reserved planned bills</dt>
+          <dd className='font-mono text-foreground'>
+            {formatMoney(formatter, forecast.unpaidPlannedBills)}
+          </dd>
+        </div>
+        <div className='flex items-center justify-between gap-3'>
+          <dt>Variable spend estimate</dt>
+          <dd className='font-mono text-foreground'>
+            {formatMoney(formatter, forecast.variableCategoryForecast)}
+          </dd>
+        </div>
+      </dl>
+    </div>
+  )
+}
+
+function getDailySafeSpendHelper (forecast: ForecastData) {
+  if (forecast.monthContext.monthRelation === 'past') {
+    return 'The selected month is complete, so there is no daily spending room left to plan.'
+  }
+
+  const dayLabel = forecast.dailySafeSpendDays === 1 ? 'day' : 'days'
+
+  return `Estimated daily room across ${forecast.dailySafeSpendDays} remaining ${dayLabel}, including today.`
 }
 
 export default async function DashboardPage ({
@@ -476,24 +522,13 @@ export default async function DashboardPage ({
           }
         />
         <MetricCard
-          title='Forecast remaining spend'
-          value={formatMoney(formatter, data.forecast.forecastRemainingSpend)}
-          helper='Unpaid planned bills plus the variable-spending estimate for the rest of the selected month.'
-          tone={
-            data.forecast.forecastRemainingSpend.gt(0) ? 'warning' : 'default'
-          }
-          badgeLabel='Estimate'
-          badgeVariant='warning'
-          icon={<TrendingDown className='size-5' />}
-        />
-        <MetricCard
-          title='Projected end-of-month net'
-          value={formatMoney(formatter, data.forecast.projectedEndOfMonthNet)}
-          helper='Where the selected month would likely land if the estimate holds through month-end.'
+          title='Daily safe spend'
+          value={formatDailyMoney(formatter, data.forecast.dailySafeSpend)}
+          helper={getDailySafeSpendHelper(data.forecast)}
           tone={forecastState.tone}
           badgeLabel={
             data.forecast.monthContext.monthRelation === 'past'
-              ? 'Final result'
+              ? 'Month complete'
               : 'Estimate'
           }
           badgeVariant={
@@ -501,7 +536,23 @@ export default async function DashboardPage ({
               ? 'outline'
               : forecastState.badgeVariant
           }
-          icon={<TrendingUp className='size-5' />}
+          icon={<TimerReset className='size-5' />}
+        />
+        <MetricCard
+          title='Forecast remaining spend'
+          value={formatMoney(formatter, data.forecast.forecastRemainingSpend)}
+          helper={
+            <ForecastBreakdown
+              formatter={formatter}
+              forecast={data.forecast}
+            />
+          }
+          tone={
+            data.forecast.forecastRemainingSpend.gt(0) ? 'warning' : 'default'
+          }
+          badgeLabel='Estimate'
+          badgeVariant='warning'
+          icon={<TrendingDown className='size-5' />}
         />
       </section>
 

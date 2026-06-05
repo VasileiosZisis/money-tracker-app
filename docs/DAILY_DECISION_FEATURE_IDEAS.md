@@ -33,28 +33,25 @@ But under the current simple forecast model, showing both is redundant.
 
 Keep `Safe to spend` as the headline planning metric.
 
-Replace `Projected end-of-month net` with a more useful metric or explanation, such as:
-
-- `Reserved planned bills`
-- `Estimated variable spending`
-- `Days left in month`
-- `Daily safe spend`
+Decision: replace `Projected end-of-month net` with `Daily safe spend`.
 
 Suggested dashboard metric set:
 
 ```text
 Net left now
 Safe to spend
-Reserved planned bills
-Variable spend estimate
+Daily safe spend
+Forecast remaining spend
 ```
+
+`Forecast remaining spend` should show `Reserved planned bills` and `Variable spend estimate` as supporting breakdown values rather than separate top-level cards.
 
 ### 2. Add daily safe spend
 
 Add a practical daily number:
 
 ```text
-dailySafeSpend = safeToSpend / remainingDays
+dailySafeSpend = safeToSpend / remainingDaysIncludingToday
 ```
 
 Example:
@@ -66,6 +63,12 @@ Daily safe spend: €20/day
 ```
 
 This helps the user translate the monthly forecast into a daily spending decision.
+
+Rules:
+
+- include today in the remaining-day count
+- show negative values when safe-to-spend is negative
+- show non-actionable completed-month copy for past months
 
 ### 3. Add a forecast breakdown
 
@@ -176,13 +179,12 @@ This helps prevent the user from over-trusting stale data.
 
 ## Recommended Priority Order
 
-1. Replace duplicate `Projected end-of-month net` card.
-2. Add forecast breakdown.
-3. Add daily safe spend.
-4. Add needs-attention panel.
-5. Add link-existing-transaction for planned bills.
-6. Add category run-rate warnings.
-7. Add manual expected income.
+1. Replace duplicate `Projected end-of-month net` card with `Daily safe spend`.
+2. Add forecast breakdown to `Forecast remaining spend`.
+3. Add needs-attention panel.
+4. Add link-existing-transaction for planned bills.
+5. Add category run-rate warnings.
+6. Add manual expected income.
 
 ## Product Direction
 

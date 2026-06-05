@@ -6,7 +6,7 @@ import {
   calculateNetLeftNow,
   type ForecastTransactionLike,
 } from "@/lib/forecast/actuals";
-import { roundMoney } from "@/lib/forecast/decimal";
+import { roundMoney, ZERO_DECIMAL } from "@/lib/forecast/decimal";
 import {
   buildForecastMonthContext,
   getTodayLocalDate,
@@ -35,6 +35,8 @@ export type ForecastSummary = {
   forecastRemainingSpend: Prisma.Decimal;
   projectedEndOfMonthNet: Prisma.Decimal;
   safeToSpend: Prisma.Decimal;
+  dailySafeSpend: Prisma.Decimal;
+  dailySafeSpendDays: number;
   variableForecastSource: VariableForecastSource;
   variableForecastMonthsUsed: string[];
   variableForecastAverageDailyExpense: Prisma.Decimal;
@@ -61,6 +63,26 @@ export function calculateSafeToSpend(
   forecastRemainingSpend: Prisma.Decimal,
 ) {
   return roundMoney(netLeftNow.minus(forecastRemainingSpend));
+}
+
+export function calculateDailySafeSpendDays(monthContext: ForecastMonthContext) {
+  if (monthContext.monthRelation === "past") {
+    return 0;
+  }
+
+  if (monthContext.monthRelation === "future") {
+    return monthContext.daysInMonth;
+  }
+
+  return Math.max(monthContext.remainingDays + 1, 1);
+}
+
+export function calculateDailySafeSpend(safeToSpend: Prisma.Decimal, days: number) {
+  if (days <= 0) {
+    return ZERO_DECIMAL;
+  }
+
+  return roundMoney(safeToSpend.div(days));
 }
 
 export function computeForecastSummary(params: {
@@ -92,6 +114,8 @@ export function computeForecastSummary(params: {
     forecastRemainingSpend,
   );
   const safeToSpend = calculateSafeToSpend(netLeftNow, forecastRemainingSpend);
+  const dailySafeSpendDays = calculateDailySafeSpendDays(monthContext);
+  const dailySafeSpend = calculateDailySafeSpend(safeToSpend, dailySafeSpendDays);
 
   return {
     monthContext,
@@ -103,6 +127,8 @@ export function computeForecastSummary(params: {
     forecastRemainingSpend,
     projectedEndOfMonthNet,
     safeToSpend,
+    dailySafeSpend,
+    dailySafeSpendDays,
     variableForecastSource: variableForecast.source,
     variableForecastMonthsUsed: variableForecast.monthsUsed,
     variableForecastAverageDailyExpense: variableForecast.averageDailyExpense,
