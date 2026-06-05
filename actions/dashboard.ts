@@ -19,6 +19,41 @@ export type DashboardPlannedBillStatus =
   | "overdue"
   | "passed";
 
+export type DashboardAttentionItemType =
+  | "OVERDUE_PLANNED_BILL"
+  | "DUE_TODAY_PLANNED_BILL"
+  | "NEGATIVE_SAFE_TO_SPEND"
+  | "STALE_TRANSACTIONS"
+  | "LOW_FORECAST_CONFIDENCE";
+
+export type DashboardAttentionItemTone = "danger" | "warning" | "info" | "success";
+
+export type DashboardAttentionItem = {
+  type: DashboardAttentionItemType;
+  title: string;
+  description: string;
+  tone: DashboardAttentionItemTone;
+};
+
+type DashboardPlannedBill = {
+  id: string;
+  name: string;
+  amount: Prisma.Decimal;
+  dueDayOfMonth: number;
+  status: DashboardPlannedBillStatus;
+  defaultPaymentLocalDate: string;
+  occurrence: {
+    id: string;
+    status: "PAID" | "SKIPPED";
+    paidAtLocalDate: string | null;
+    transactionId: string | null;
+  } | null;
+  category: {
+    name: string;
+    isArchived: boolean;
+  };
+};
+
 export type DashboardMonthData = {
   month: string;
   currency: string;
@@ -33,24 +68,11 @@ export type DashboardMonthData = {
   }>;
   chartYAxisMax: number;
   forecast: ForecastSummary;
-  plannedBills: Array<{
-    id: string;
-    name: string;
-    amount: Prisma.Decimal;
-    dueDayOfMonth: number;
-    status: DashboardPlannedBillStatus;
-    defaultPaymentLocalDate: string;
-    occurrence: {
-      id: string;
-      status: "PAID" | "SKIPPED";
-      paidAtLocalDate: string | null;
-      transactionId: string | null;
-    } | null;
-    category: {
-      name: string;
-      isArchived: boolean;
-    };
-  }>;
+  attentionItems: DashboardAttentionItem[];
+  latestTransactionEntry: {
+    createdAt: Date;
+  } | null;
+  plannedBills: DashboardPlannedBill[];
   recentTransactions: Array<{
     id: string;
     localDate: string;
@@ -64,6 +86,10 @@ export type DashboardMonthData = {
     };
   }>;
 };
+
+const ATTENTION_ITEM_LIMIT = 5;
+const STALE_TRANSACTION_DAYS = 3;
+const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
 
 function getPlannedBillStatus(
   monthRelation: ForecastMonthRelation,
@@ -111,6 +137,107 @@ function getDefaultPaymentLocalDate(params: {
   return `${params.selectedMonth}-${params.dueDayOfMonth
     .toString()
     .padStart(2, "0")}`;
+}
+
+function formatDashboardMoney(currency: string, amount: Prisma.Decimal) {
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency,
+  }).format(Number(amount.toString()));
+}
+
+function getDaysSinceDate(date: Date, now = new Date()) {
+  return Math.floor((now.getTime() - date.getTime()) / ONE_DAY_IN_MS);
+}
+
+function buildAttentionItems(params: {
+  currency: string;
+  forecast: ForecastSummary;
+  plannedBills: DashboardPlannedBill[];
+  latestTransactionEntry: { createdAt: Date } | null;
+}): DashboardAttentionItem[] {
+  const attentionItems: DashboardAttentionItem[] = [];
+  const isCurrentMonth = params.forecast.monthContext.monthRelation === "current";
+
+  for (const plannedBill of params.plannedBills) {
+    if (plannedBill.status !== "overdue") {
+      continue;
+    }
+
+    attentionItems.push({
+      type: "OVERDUE_PLANNED_BILL",
+      title: `${plannedBill.name} is overdue`,
+      description: `Due day ${plannedBill.dueDayOfMonth} · ${formatDashboardMoney(
+        params.currency,
+        plannedBill.amount,
+      )} still reserved`,
+      tone: "danger",
+    });
+  }
+
+  for (const plannedBill of params.plannedBills) {
+    if (plannedBill.status !== "due-today") {
+      continue;
+    }
+
+    attentionItems.push({
+      type: "DUE_TODAY_PLANNED_BILL",
+      title: `${plannedBill.name} is due today`,
+      description: `${formatDashboardMoney(params.currency, plannedBill.amount)} reserved`,
+      tone: "warning",
+    });
+  }
+
+  if (isCurrentMonth && params.forecast.safeToSpend.lt(0)) {
+    attentionItems.push({
+      type: "NEGATIVE_SAFE_TO_SPEND",
+      title: "Safe to spend is negative",
+      description: `Forecast is ${formatDashboardMoney(
+        params.currency,
+        params.forecast.safeToSpend.abs(),
+      )} above current recorded income.`,
+      tone: "danger",
+    });
+  }
+
+  if (isCurrentMonth) {
+    if (!params.latestTransactionEntry) {
+      attentionItems.push({
+        type: "STALE_TRANSACTIONS",
+        title: "No transactions entered yet",
+        description:
+          "Manual data may be incomplete until current income or expenses are recorded.",
+        tone: "warning",
+      });
+    } else {
+      const daysSinceLatestEntry = getDaysSinceDate(params.latestTransactionEntry.createdAt);
+
+      if (daysSinceLatestEntry >= STALE_TRANSACTION_DAYS) {
+        attentionItems.push({
+          type: "STALE_TRANSACTIONS",
+          title: `No transactions entered in ${daysSinceLatestEntry} days`,
+          description:
+            "Forecast may be less accurate if recent manual spending is missing.",
+          tone: "warning",
+        });
+      }
+    }
+  }
+
+  if (
+    isCurrentMonth &&
+    params.forecast.variableForecastSource !== "trailing-history"
+  ) {
+    attentionItems.push({
+      type: "LOW_FORECAST_CONFIDENCE",
+      title: "Forecast confidence is lower",
+      description:
+        "There is limited recent history, so variable spend uses a fallback.",
+      tone: "warning",
+    });
+  }
+
+  return attentionItems.slice(0, ATTENTION_ITEM_LIMIT);
 }
 
 function buildChartSeries(params: {
@@ -217,6 +344,7 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
     monthlyChartTransactions,
     forecastTransactions,
     plannedBills,
+    latestTransactionEntry,
     user,
   ] = await Promise.all([
     db.transaction.aggregate({
@@ -326,6 +454,17 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
         },
       },
     }),
+    db.transaction.findFirst({
+      where: {
+        userId,
+      },
+      select: {
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    }),
     db.user.findUnique({
       where: { id: userId },
       select: { currency: true },
@@ -352,46 +491,55 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
     incomeSum,
     transactions: monthlyChartTransactions,
   });
+  const currency = user?.currency ?? "USD";
+  const dashboardPlannedBills = plannedBills.map((plannedBill) => ({
+    id: plannedBill.id,
+    name: plannedBill.name,
+    amount: plannedBill.amount,
+    dueDayOfMonth: plannedBill.dueDayOfMonth,
+    status: getPlannedBillStatus(
+      forecast.monthContext.monthRelation,
+      forecast.monthContext.currentDayOfMonth,
+      plannedBill.dueDayOfMonth,
+      plannedBill.occurrences[0]?.status ?? null,
+    ),
+    defaultPaymentLocalDate: getDefaultPaymentLocalDate({
+      selectedMonth: month,
+      monthRelation: forecast.monthContext.monthRelation,
+      referenceDate,
+      dueDayOfMonth: plannedBill.dueDayOfMonth,
+    }),
+    occurrence: plannedBill.occurrences[0]
+      ? {
+          id: plannedBill.occurrences[0].id,
+          status: plannedBill.occurrences[0].status,
+          paidAtLocalDate: plannedBill.occurrences[0].paidAtLocalDate,
+          transactionId: plannedBill.occurrences[0].transactionId,
+        }
+      : null,
+    category: {
+      name: plannedBill.category.name,
+      isArchived: plannedBill.category.isArchived,
+    },
+  }));
 
   return {
     month,
-    currency: user?.currency ?? "USD",
+    currency,
     incomeSum,
     expenseSum,
     netLeft: incomeSum.minus(expenseSum),
     chartSeries,
     chartYAxisMax,
     forecast,
-    plannedBills: plannedBills.map((plannedBill) => ({
-      id: plannedBill.id,
-      name: plannedBill.name,
-      amount: plannedBill.amount,
-      dueDayOfMonth: plannedBill.dueDayOfMonth,
-      status: getPlannedBillStatus(
-        forecast.monthContext.monthRelation,
-        forecast.monthContext.currentDayOfMonth,
-        plannedBill.dueDayOfMonth,
-        plannedBill.occurrences[0]?.status ?? null,
-      ),
-      defaultPaymentLocalDate: getDefaultPaymentLocalDate({
-        selectedMonth: month,
-        monthRelation: forecast.monthContext.monthRelation,
-        referenceDate,
-        dueDayOfMonth: plannedBill.dueDayOfMonth,
-      }),
-      occurrence: plannedBill.occurrences[0]
-        ? {
-            id: plannedBill.occurrences[0].id,
-            status: plannedBill.occurrences[0].status,
-            paidAtLocalDate: plannedBill.occurrences[0].paidAtLocalDate,
-            transactionId: plannedBill.occurrences[0].transactionId,
-          }
-        : null,
-      category: {
-        name: plannedBill.category.name,
-        isArchived: plannedBill.category.isArchived,
-      },
-    })),
+    attentionItems: buildAttentionItems({
+      currency,
+      forecast,
+      plannedBills: dashboardPlannedBills,
+      latestTransactionEntry,
+    }),
+    latestTransactionEntry,
+    plannedBills: dashboardPlannedBills,
     recentTransactions: recentTransactions.map((transaction) => ({
       id: transaction.id,
       localDate: transaction.localDate,

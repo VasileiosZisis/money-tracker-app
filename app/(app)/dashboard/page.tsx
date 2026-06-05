@@ -2,6 +2,8 @@ import { Prisma } from '@/generated/prisma/client'
 import {
   ArrowRight,
   CalendarClock,
+  CircleAlert,
+  CircleCheckBig,
   FolderClock,
   Plus,
   RotateCcw,
@@ -32,6 +34,7 @@ import { buttonVariants } from '@/components/ui/button'
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle
 } from '@/components/ui/card'
@@ -51,6 +54,7 @@ type DashboardPageProps = {
 type DashboardData = Awaited<ReturnType<typeof getDashboardMonthData>>
 type ForecastData = DashboardData['forecast']
 type MetricTone = 'default' | 'success' | 'warning' | 'danger'
+type AttentionTone = DashboardData['attentionItems'][number]['tone']
 
 function getCurrentMonthKey (): string {
   const now = new Date()
@@ -267,6 +271,38 @@ function getToneStyles (tone: MetricTone) {
   }
 }
 
+function getAttentionToneStyles (tone: AttentionTone) {
+  if (tone === 'success') {
+    return {
+      iconClassName: 'bg-success/10 text-success',
+      badgeVariant: 'success' as const,
+      badgeLabel: 'Clear'
+    }
+  }
+
+  if (tone === 'warning') {
+    return {
+      iconClassName: 'bg-warning/10 text-warning',
+      badgeVariant: 'warning' as const,
+      badgeLabel: 'Check'
+    }
+  }
+
+  if (tone === 'danger') {
+    return {
+      iconClassName: 'bg-destructive/10 text-destructive',
+      badgeVariant: 'destructive' as const,
+      badgeLabel: 'Urgent'
+    }
+  }
+
+  return {
+    iconClassName: 'bg-accent text-accent-foreground',
+    badgeVariant: 'accent' as const,
+    badgeLabel: 'Info'
+  }
+}
+
 function MetricCard ({
   title,
   value,
@@ -360,6 +396,72 @@ function getDailySafeSpendHelper (forecast: ForecastData) {
   const dayLabel = forecast.dailySafeSpendDays === 1 ? 'day' : 'days'
 
   return `Estimated daily room across ${forecast.dailySafeSpendDays} remaining ${dayLabel}, including today.`
+}
+
+function NeedsAttentionSection ({
+  items
+}: {
+  items: DashboardData['attentionItems']
+}) {
+  return (
+    <Card className='overflow-hidden'>
+      <CardHeader className='border-b border-border/70 pb-5'>
+        <div className='flex flex-wrap items-start justify-between gap-3'>
+          <div className='space-y-1.5'>
+            <CardTitle>Needs attention</CardTitle>
+            <CardDescription>
+              Daily signals that can affect spending decisions.
+            </CardDescription>
+          </div>
+          <Badge variant={items.length > 0 ? 'warning' : 'success'}>
+            {items.length}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className='grid gap-4 p-6'>
+        {items.length === 0 ? (
+          <EmptyState
+            icon={CircleCheckBig}
+            title='Nothing needs attention'
+            description='No overdue bills or forecast warnings for this month.'
+          />
+        ) : (
+          items.map((item, index) => {
+            const toneStyles = getAttentionToneStyles(item.tone)
+
+            return (
+              <div
+                key={`${item.type}-${index}`}
+                className='flex gap-3 rounded-[24px] border border-border/80 bg-background/60 p-4'
+              >
+                <div
+                  className={cn(
+                    'mt-1 flex size-10 shrink-0 items-center justify-center rounded-2xl',
+                    toneStyles.iconClassName
+                  )}
+                >
+                  <CircleAlert className='size-[18px]' />
+                </div>
+                <div className='min-w-0 space-y-2'>
+                  <div className='flex flex-wrap items-center gap-2'>
+                    <h3 className='text-sm font-semibold text-foreground'>
+                      {item.title}
+                    </h3>
+                    <Badge variant={toneStyles.badgeVariant}>
+                      {toneStyles.badgeLabel}
+                    </Badge>
+                  </div>
+                  <p className='text-sm leading-6 text-muted-foreground'>
+                    {item.description}
+                  </p>
+                </div>
+              </div>
+            )
+          })
+        )}
+      </CardContent>
+    </Card>
+  )
 }
 
 export default async function DashboardPage ({
@@ -555,6 +657,8 @@ export default async function DashboardPage ({
           icon={<TrendingDown className='size-5' />}
         />
       </section>
+
+      <NeedsAttentionSection items={data.attentionItems} />
 
       <section className='grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]'>
         <Card className='overflow-hidden'>

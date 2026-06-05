@@ -97,6 +97,17 @@ Add a compact daily decision panel with items like:
 
 This should be more useful than adding more metric cards.
 
+Decision: V1 is a read-only dashboard panel placed after the planning metric
+cards. It shows up to five deterministic signals in urgency order:
+
+- overdue planned bills
+- planned bills due today
+- negative safe-to-spend
+- stale transaction entry history
+- lower forecast confidence
+
+Planned-bill actions stay in the existing planned bills panel for now.
+
 ### 5. Improve planned bill handling further
 
 The current paid/skipped state prevents planned bills from being double-counted in forecast.
