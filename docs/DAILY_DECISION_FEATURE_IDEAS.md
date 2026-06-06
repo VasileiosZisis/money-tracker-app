@@ -4,13 +4,13 @@
 
 The app goal is to help users understand their financial situation well enough to make better daily spending decisions.
 
-The current dashboard already shows actual income, actual expenses, net left, forecast remaining spend, and safe to spend. However, some metrics are redundant or not actionable enough for daily use.
+The current dashboard shows actual income, actual expenses, net left, safe to spend, daily safe spend, forecast remaining spend, planned bills, planned income, and needs-attention signals.
 
-This document collects proposed improvements so they can be refined before implementation.
+This document records the daily-decision improvements that guided the current dashboard and the next ideas that remain open.
 
-## Current Issue
+## Historical Issue
 
-`Safe to spend` and `Projected end-of-month net` currently use equivalent formulas:
+`Safe to spend` and `Projected end-of-month net` used to rely on equivalent formulas:
 
 ```text
 netLeftNow = incomeSoFar - expenseSoFar
@@ -18,14 +18,14 @@ safeToSpend = netLeftNow - forecastRemainingSpend
 projectedEndOfMonthNet = incomeSoFar - (expenseSoFar + forecastRemainingSpend)
 ```
 
-Because `netLeftNow` is `incomeSoFar - expenseSoFar`, both values resolve to the same number.
+Before planned income existed, `netLeftNow` was `incomeSoFar - expenseSoFar`, so both values resolved to the same number.
 
 The labels are different:
 
 - `Safe to spend` is a daily decision number.
 - `Projected end-of-month net` is framed as the likely month-end result.
 
-But under the current simple forecast model, showing both is redundant.
+Under that older forecast model, showing both as top-level cards was redundant. The dashboard now keeps `Safe to spend` as the conservative decision metric and shows `Projected month-end net` in the forecast breakdown because pending planned income makes it meaningfully different.
 
 ## Highest-Value Dashboard Updates
 
@@ -213,12 +213,20 @@ This helps prevent the user from over-trusting stale data.
 
 ## Recommended Priority Order
 
+Implemented:
+
 1. Replace duplicate `Projected end-of-month net` card with `Daily safe spend`.
 2. Add forecast breakdown to `Forecast remaining spend`.
 3. Add needs-attention panel.
 4. Add link-existing-transaction for planned bills.
-5. Add category run-rate warnings.
-6. Add planned income templates.
+5. Add planned income templates and dashboard polish.
+
+Still open:
+
+1. Add category run-rate warnings.
+2. Add month progress context.
+3. Add month-end review.
+4. Add a richer data completeness indicator if the current stale-entry signal is not enough.
 
 ## Product Direction
 

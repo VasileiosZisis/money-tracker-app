@@ -374,3 +374,64 @@ Definition of done:
 - app remains simple, fast, and trustworthy
 
 ---
+
+## Implemented Follow-Up Work After Task 18
+
+These items were added after the original next-phase task list. They are now
+part of the current working app and should be preserved in future changes.
+
+### Planned Bill Occurrences
+
+- Added selected-month paid/skipped occurrence state for planned bills.
+- Forecasts use explicit occurrence state instead of due-day-only logic.
+- Active planned bills stay reserved until paid or skipped, even after the due date.
+- Mark paid creates a generated expense transaction.
+- Link existing transaction marks a bill paid without creating a duplicate transaction.
+- Undo behavior depends on payment source:
+  - generated payment: delete the generated transaction
+  - linked payment: keep the existing transaction and delete only the occurrence
+
+### Planned Bill Tags
+
+- Planned bills support an optional `tagId`.
+- The tag must belong to the selected expense category.
+- Generated planned-bill transactions inherit the planned bill category and tag.
+
+### Daily Decision Dashboard
+
+- Replaced the duplicate top-level projected-net card with `Daily safe spend`.
+- Top planning cards are:
+  - `Net left now`
+  - `Safe to spend`
+  - `Daily safe spend`
+  - `Forecast remaining spend`
+- `Forecast remaining spend` shows a breakdown for reserved planned bills and variable spend estimate.
+- Added a read-only `Needs attention` panel with deterministic daily-decision signals.
+
+### Planned Income Templates
+
+- Added reusable monthly planned-income templates.
+- Planned income uses income categories and optional category-scoped tags.
+- Planned income has selected-month received/skipped occurrence state.
+- Mark received creates a generated income transaction.
+- Link existing transaction marks planned income received without creating a duplicate transaction.
+- Undo behavior depends on payment source:
+  - generated receipt: delete the generated transaction
+  - linked receipt: keep the existing transaction and delete only the occurrence
+- Pending planned income affects projected month-end net.
+- Pending planned income does not affect conservative safe-to-spend or daily safe spend.
+- Dashboard planned-income polish includes pending/received/skipped summary, next pending income, settled state, attention items, and deterministic link-candidate hints.
+
+### Current Verification Baseline
+
+Use these checks for documentation or code changes that touch the current phase:
+
+- `npm run lint`
+- `npx tsc --noEmit`
+- `npx prisma migrate dev` when schema changes are included
+- manual dashboard verification for:
+  - paid/skipped planned bills
+  - linked existing planned-bill transactions
+  - pending/received/skipped planned income
+  - linked existing planned-income transactions
+  - safe-to-spend and projected month-end net formula differences

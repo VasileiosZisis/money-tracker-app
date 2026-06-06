@@ -54,6 +54,39 @@ Instead, extend it with:
 3. Current-month forecast (basic)
 4. Safe-to-spend indicator
 
+### Current implementation addendum
+
+The items above were the original next-phase target. The implemented next
+phase has since been explicitly extended with the following manual-first
+planning features:
+
+- Category-scoped tags are supported for transactions, planned bills, and planned income.
+- Planned bills now have explicit selected-month occurrence state:
+  - `PAID`
+  - `SKIPPED`
+  - generated or linked payment source for paid occurrences
+- Planned bills can be marked paid, skipped, undone, or manually linked to an existing expense transaction.
+- Planned income templates mirror planned bills on the income side.
+- Planned income has explicit selected-month occurrence state:
+  - `RECEIVED`
+  - `SKIPPED`
+  - generated or linked payment source for received occurrences
+- Planned income can be marked received, skipped, undone, or manually linked to an existing income transaction.
+- The main dashboard planning metrics are:
+  - `Net left now`
+  - `Safe to spend`
+  - `Daily safe spend`
+  - `Forecast remaining spend`
+- Forecast breakdown shows:
+  - reserved planned bills
+  - variable spend estimate
+  - pending planned income
+  - projected month-end net
+- `Safe to spend` stays conservative and excludes pending planned income.
+- `Projected month-end net` includes pending planned income.
+- The dashboard includes a read-only `Needs attention` panel for deterministic signals such as overdue planned bills, overdue planned income, negative safe-to-spend, stale transaction entry, and lower forecast confidence.
+- No fuzzy automatic matching, background jobs, reminders, bank sync, or AI categorization are part of this phase.
+
 This is **not** the full Pro feature set.
 This is the lightweight planning layer that should still fit the product’s manual-first identity.
 
@@ -227,7 +260,7 @@ Rules:
 Do **not** implement:
 
 - bank syncing
-- recurring income
+- advanced recurring income beyond monthly planned-income templates
 - advanced recurring rules (weekly, custom intervals, end dates, pause/resume)
 - notification delivery (email, push, SMS)
 - budgets by category

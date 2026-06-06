@@ -83,9 +83,11 @@ The original Free MVP is already the baseline.
 The current implementation phase extends the MVP with:
 
 1. CSV / Excel import
-2. Planned bills (basic monthly planning)
+2. Planned bills with monthly paid/skipped occurrence state
 3. Basic current-month forecast
 4. Safe-to-spend indicator
+5. Planned income templates with monthly received/skipped occurrence state
+6. Needs-attention dashboard signals
 
 This is still a **manual-first**, **single-user**, **web-first** app.
 It is **not** yet a full budgeting suite, full subscription product, or bank-sync product.
@@ -108,9 +110,11 @@ It is **not** yet a full budgeting suite, full subscription product, or bank-syn
 
 - Import is manual and user-initiated only
 - Planned bills are separate from actual transactions
+- Planned income is separate from actual transactions
 - Forecast is computed on demand; it is not persisted
 - Safe-to-spend is an estimate, not an account balance
 - Forecasting must remain simple and explainable
+- No fuzzy automatic matching; planned items can only be marked or linked manually
 
 ---
 
@@ -145,7 +149,8 @@ Keep working/supporting:
    - create, rename, archive/unarchive
    - archived categories hidden from “new transaction” dropdown by default
 4. Transactions CRUD:
-   - fields: `type`, `amount`, `localDate`, `categoryId`, `source`, `note`
+   - fields: `type`, `amount`, `localDate`, `categoryId`, optional `tagId`, `source`, `note`
+   - tags are scoped to a category
 5. Dashboard:
    - month selector
    - totals for selected month: income, expense, net left
@@ -174,15 +179,20 @@ Implement/support:
      - `name`
      - `amount`
      - `categoryId`
+     - optional `tagId`
      - `dueDayOfMonth`
      - `isActive`
    - planned bills are expense-only
+   - paid/skipped monthly state belongs to `PlannedBillOccurrence`
    - planned bills do not automatically create actual transactions
+   - users can manually mark paid, skip, undo, or link an existing expense transaction
 
 3. Basic current-month forecast
 
    - `forecastRemainingSpend`
    - `projectedEndOfMonthNet`
+   - `pendingPlannedIncome`
+   - `dailySafeSpend`
 
 4. Safe-to-spend indicator
 
@@ -191,7 +201,25 @@ Implement/support:
 5. Dashboard extension
    - show planning-aware metrics
    - show upcoming planned bills
+   - show planned income
+   - show needs-attention signals
    - explain that forecast values are estimates
+
+6. Planned income
+
+   - create, edit, activate/deactivate, list
+   - monthly-only pattern for now
+   - fields:
+     - `name`
+     - `amount`
+     - `categoryId`
+     - optional `tagId`
+     - `expectedDayOfMonth`
+     - `isActive`
+   - planned income is income-only
+   - received/skipped monthly state belongs to `PlannedIncomeOccurrence`
+   - users can manually mark received, skip, undo, or link an existing income transaction
+   - pending planned income affects projected month-end net, not safe-to-spend
 
 ---
 
@@ -201,7 +229,6 @@ Do NOT implement unless explicitly requested later:
 
 - Bank syncing
 - Advanced recurring rules
-- Recurring income in this phase
 - Budget envelopes / category budgets
 - Rollover budgets
 - Sinking funds / reserve funds / “money on the side” fund tracking
@@ -241,14 +268,29 @@ Do NOT implement unless explicitly requested later:
 - Existing transactions keep their category relationship
 - Archived categories are hidden in new-transaction flows by default
 - During import, unknown categories may be mapped to an existing category or created as a new one
+- Tags belong to a single category and can be used by transactions, planned bills, and planned income
 
 ### Planned bills
 
 - Planned bills belong to a single user
 - Planned bills must use an EXPENSE category
+- Optional planned-bill tags must belong to the selected expense category
 - `dueDayOfMonth` must be an integer from `1` to `28`
 - Planned bills do not affect actual totals directly
 - Planned bills are used for planning/forecast logic only in this phase
+- Active planned bills reserve forecasted spend until the selected-month occurrence is marked paid or skipped
+- Linked existing transactions and generated transactions must be distinguished for undo behavior
+
+### Planned income
+
+- Planned income belongs to a single user
+- Planned income must use an INCOME category
+- Optional planned-income tags must belong to the selected income category
+- `expectedDayOfMonth` must be an integer from `1` to `28`
+- Planned income does not affect actual totals directly
+- Pending planned income affects projected month-end net
+- Pending planned income does not affect conservative safe-to-spend or daily safe spend
+- Linked existing transactions and generated transactions must be distinguished for undo behavior
 
 ### Forecast
 
@@ -256,6 +298,7 @@ Do NOT implement unless explicitly requested later:
 - Forecast must be computed from:
   - actual transactions
   - active planned bills
+  - active planned income
   - month/date helpers
   - forecast helper utilities
 - Forecast must be deterministic and explainable
@@ -295,6 +338,7 @@ app/
 (app)/transactions/page.tsx
 (app)/categories/page.tsx
 (app)/planned/page.tsx
+(app)/planned-income/page.tsx
 (app)/import/page.tsx
 (app)/export/page.tsx
 api/auth/[...nextauth]/route.ts
@@ -303,6 +347,7 @@ setup.ts
 categories.ts
 transactions.ts
 planned-bills.ts
+planned-income.ts
 import.ts
 lib/
 db.ts
@@ -310,6 +355,7 @@ auth/options.ts
 auth/session.ts
 validators/
 planned-bill.ts
+planned-income.ts
 import.ts
 transaction.ts
 dates/
@@ -357,8 +403,9 @@ Baseline formulas:
 
 - `netLeftNow = incomeSoFar - expenseSoFar`
 - `forecastRemainingSpend = unpaidPlannedBills + variableCategoryForecast`
-- `projectedEndOfMonthNet = incomeSoFar - (expenseSoFar + forecastRemainingSpend)`
 - `safeToSpend = netLeftNow - forecastRemainingSpend`
+- `dailySafeSpend = safeToSpend / remainingDaysIncludingToday`
+- `projectedEndOfMonthNet = netLeftNow + pendingPlannedIncome - forecastRemainingSpend`
 
 Recommended approach for variable forecast:
 
@@ -406,7 +453,7 @@ Optional fields:
 - In `app/(app)/layout.tsx` (server component), enforce setup:
   - if `user.hasCompletedSetup` is false and route is not `/setup`, redirect to `/setup`
   - after setup completion, redirect `/setup` -> `/dashboard`
-- New authenticated routes such as `/planned` and `/import` must also be protected
+- New authenticated routes such as `/planned`, `/planned-income`, and `/import` must also be protected
 
 ---
 
@@ -468,6 +515,7 @@ Agent work is successful when:
 - the original MVP remains stable
 - users can import spreadsheet data
 - users can manage planned bills
+- users can manage planned income
 - the dashboard shows explainable forecast metrics
 - safe-to-spend is visible and understandable
 - the app remains simple, fast, and trustworthy
