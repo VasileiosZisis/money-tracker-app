@@ -20,12 +20,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { CurrencyInput } from "@/components/ui/currency-input";
 import { EmptyState } from "@/components/ui/empty-state";
-import { FormField } from "@/components/ui/form-field";
-import { Input } from "@/components/ui/input";
 import { PageNotice } from "@/components/ui/page-notice";
-import { Select } from "@/components/ui/select";
 import { getUserIdOrThrow } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import {
@@ -35,6 +31,7 @@ import {
   type PageSearchParams,
 } from "@/lib/routes/search-params";
 import { cn } from "@/lib/utils";
+import { PlannedBillFormFields } from "./planned-bill-form-fields";
 
 type CategoryRow = Awaited<ReturnType<typeof listCategories>>[number];
 type ExpenseCategoryRow = CategoryRow;
@@ -55,111 +52,12 @@ function formatMoney(formatter: Intl.NumberFormat, amount: string) {
   return formatter.format(Number(amount));
 }
 
-function formatCategoryLabel(category: ExpenseCategoryRow) {
-  return `${category.name}${category.isArchived ? " (archived)" : ""}`;
-}
-
 function getAvailableExpenseCategories(
   categories: ExpenseCategoryRow[],
   selectedCategoryId?: string,
 ) {
   return categories.filter(
     (category) => !category.isArchived || category.id === selectedCategoryId,
-  );
-}
-
-function PlannedBillFormFields({
-  idPrefix,
-  currency,
-  categories,
-  defaultValues,
-  includeStatusField,
-  disableCategorySelection = false,
-}: {
-  idPrefix: string;
-  currency: string;
-  categories: ExpenseCategoryRow[];
-  defaultValues: {
-    name: string;
-    amount: string;
-    categoryId: string;
-    dueDayOfMonth: number | string;
-    isActive: boolean;
-  };
-  includeStatusField: boolean;
-  disableCategorySelection?: boolean;
-}) {
-  return (
-    <>
-      <div className="grid gap-4 md:grid-cols-2">
-        <FormField htmlFor={`${idPrefix}-name`} label="Name">
-          <Input
-            id={`${idPrefix}-name`}
-            name="name"
-            type="text"
-            defaultValue={defaultValues.name}
-            placeholder="Rent, utilities, internet..."
-            maxLength={120}
-            required
-          />
-        </FormField>
-
-        <FormField htmlFor={`${idPrefix}-amount`} label="Amount">
-          <CurrencyInput
-            id={`${idPrefix}-amount`}
-            name="amount"
-            currency={currency}
-            defaultValue={defaultValues.amount}
-            placeholder="0.00"
-            required
-          />
-        </FormField>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <FormField htmlFor={`${idPrefix}-category`} label="Expense category">
-          <Select
-            id={`${idPrefix}-category`}
-            name="categoryId"
-            defaultValue={defaultValues.categoryId}
-            disabled={disableCategorySelection}
-            required
-          >
-            <option value="">Select category</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {formatCategoryLabel(category)}
-              </option>
-            ))}
-          </Select>
-        </FormField>
-
-        <FormField htmlFor={`${idPrefix}-due-day`} label="Due day of month">
-          <Input
-            id={`${idPrefix}-due-day`}
-            name="dueDayOfMonth"
-            type="number"
-            min={1}
-            max={28}
-            defaultValue={defaultValues.dueDayOfMonth}
-            required
-          />
-        </FormField>
-      </div>
-
-      {includeStatusField ? (
-        <FormField htmlFor={`${idPrefix}-status`} label="Active status">
-          <Select
-            id={`${idPrefix}-status`}
-            name="isActive"
-            defaultValue={String(defaultValues.isActive)}
-          >
-            <option value="true">Active</option>
-            <option value="false">Inactive</option>
-          </Select>
-        </FormField>
-      ) : null}
-    </>
   );
 }
 
@@ -181,6 +79,7 @@ export default async function PlannedBillsPage({
       name: String(formData.get("name") ?? ""),
       amount: String(formData.get("amount") ?? ""),
       categoryId: String(formData.get("categoryId") ?? ""),
+      tagId: String(formData.get("tagId") ?? ""),
       dueDayOfMonth: String(formData.get("dueDayOfMonth") ?? ""),
       isActive: parseBooleanField(formData.get("isActive")),
     });
@@ -201,6 +100,7 @@ export default async function PlannedBillsPage({
       name: String(formData.get("name") ?? ""),
       amount: String(formData.get("amount") ?? ""),
       categoryId: String(formData.get("categoryId") ?? ""),
+      tagId: String(formData.get("tagId") ?? ""),
       dueDayOfMonth: String(formData.get("dueDayOfMonth") ?? ""),
       isActive: parseBooleanField(formData.get("isActive")),
     });
@@ -385,6 +285,7 @@ export default async function PlannedBillsPage({
                 name: "",
                 amount: "",
                 categoryId: creatableExpenseCategories[0]?.id ?? "",
+                tagId: "",
                 dueDayOfMonth: 1,
                 isActive: true,
               }}
@@ -466,6 +367,9 @@ export default async function PlannedBillsPage({
                                 <Badge variant="outline">
                                   Due day {plannedBill.dueDayOfMonth}
                                 </Badge>
+                                {plannedBill.tag ? (
+                                  <Badge variant="outline">{plannedBill.tag.name}</Badge>
+                                ) : null}
                                 {plannedBill.category.isArchived ? (
                                   <Badge variant="outline">Archived category</Badge>
                                 ) : null}
@@ -479,6 +383,11 @@ export default async function PlannedBillsPage({
                                   <p className="mt-2 text-sm font-semibold text-foreground">
                                     {plannedBill.category.name}
                                   </p>
+                                  {plannedBill.tag ? (
+                                    <p className="mt-1 text-xs font-medium text-muted-foreground">
+                                      {plannedBill.tag.name}
+                                    </p>
+                                  ) : null}
                                 </div>
                                 <div className="rounded-2xl border border-border/70 bg-card/70 p-3">
                                   <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
@@ -543,6 +452,7 @@ export default async function PlannedBillsPage({
                                   name: plannedBill.name,
                                   amount: plannedBill.amount,
                                   categoryId: plannedBill.categoryId,
+                                  tagId: plannedBill.tagId ?? "",
                                   dueDayOfMonth: plannedBill.dueDayOfMonth,
                                   isActive: plannedBill.isActive,
                                 }}

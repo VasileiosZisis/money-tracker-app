@@ -46,6 +46,8 @@ function revalidateCategoryPaths() {
   revalidatePath("/categories");
   revalidatePath("/transactions");
   revalidatePath("/export");
+  revalidatePath("/planned");
+  revalidatePath("/dashboard");
 }
 
 export async function listCategories() {

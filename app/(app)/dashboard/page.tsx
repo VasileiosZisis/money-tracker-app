@@ -835,6 +835,9 @@ export default async function DashboardPage ({
                             <h3 className='text-sm font-semibold text-foreground'>
                               {plannedBill.category.name}
                             </h3>
+                            {plannedBill.tag ? (
+                              <Badge variant='outline'>{plannedBill.tag.name}</Badge>
+                            ) : null}
                             <Badge variant={statusMeta.variant}>
                               {statusMeta.label}
                             </Badge>

@@ -52,6 +52,10 @@ type DashboardPlannedBill = {
     name: string;
     isArchived: boolean;
   };
+  tag: {
+    id: string;
+    name: string;
+  } | null;
 };
 
 export type DashboardMonthData = {
@@ -452,6 +456,12 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
             isArchived: true,
           },
         },
+        tag: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     }),
     db.transaction.findFirst({
@@ -521,6 +531,7 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
       name: plannedBill.category.name,
       isArchived: plannedBill.category.isArchived,
     },
+    tag: plannedBill.tag,
   }));
 
   return {

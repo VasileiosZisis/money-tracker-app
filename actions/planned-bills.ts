@@ -36,7 +36,11 @@ function getMutationError(fallback: string) {
   return actionError(fallback);
 }
 
-async function assertExpenseCategoryForPlannedBill(userId: string, categoryId: string) {
+async function getValidatedPlannedBillCategoryAndTag(
+  userId: string,
+  categoryId: string,
+  tagId: string | undefined,
+) {
   const category = await db.category.findFirst({
     where: {
       id: categoryId,
@@ -59,7 +63,29 @@ async function assertExpenseCategoryForPlannedBill(userId: string, categoryId: s
     };
   }
 
-  return actionSuccess();
+  if (!tagId) {
+    return { ok: true as const, tagId: null as string | null };
+  }
+
+  const tag = await db.tag.findFirst({
+    where: {
+      id: tagId,
+      categoryId: category.id,
+      category: {
+        userId,
+      },
+    },
+    select: { id: true },
+  });
+
+  if (!tag) {
+    return {
+      ok: false as const,
+      error: "Tag does not belong to the selected category.",
+    };
+  }
+
+  return { ok: true as const, tagId: tag.id };
 }
 
 function revalidatePlannedBillPaths() {
@@ -88,6 +114,12 @@ export async function listPlannedBills() {
           isArchived: true,
         },
       },
+      tag: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
     },
     orderBy: [
       { isActive: "desc" },
@@ -103,6 +135,7 @@ export async function listPlannedBills() {
     amount: plannedBill.amount.toString(),
     dueDayOfMonth: plannedBill.dueDayOfMonth,
     categoryId: plannedBill.categoryId,
+    tagId: plannedBill.tagId,
     isActive: plannedBill.isActive,
     createdAt: plannedBill.createdAt,
     updatedAt: plannedBill.updatedAt,
@@ -112,6 +145,7 @@ export async function listPlannedBills() {
       type: plannedBill.category.type,
       isArchived: plannedBill.category.isArchived,
     },
+    tag: plannedBill.tag,
   }));
 }
 
@@ -128,9 +162,10 @@ export async function createPlannedBill(
     );
   }
 
-  const categoryResult = await assertExpenseCategoryForPlannedBill(
+  const categoryResult = await getValidatedPlannedBillCategoryAndTag(
     userId,
     parsed.data.categoryId,
+    parsed.data.tagId,
   );
 
   if (!categoryResult.ok) {
@@ -145,6 +180,7 @@ export async function createPlannedBill(
         amount: parsed.data.amount,
         dueDayOfMonth: parsed.data.dueDayOfMonth,
         categoryId: parsed.data.categoryId,
+        tagId: categoryResult.tagId,
         isActive: parsed.data.isActive,
       },
     });
@@ -181,9 +217,10 @@ export async function updatePlannedBill(
     return actionError("Planned bill not found.");
   }
 
-  const categoryResult = await assertExpenseCategoryForPlannedBill(
+  const categoryResult = await getValidatedPlannedBillCategoryAndTag(
     userId,
     parsed.data.categoryId,
+    parsed.data.tagId,
   );
 
   if (!categoryResult.ok) {
@@ -198,6 +235,7 @@ export async function updatePlannedBill(
         amount: parsed.data.amount,
         dueDayOfMonth: parsed.data.dueDayOfMonth,
         categoryId: parsed.data.categoryId,
+        tagId: categoryResult.tagId,
         isActive: parsed.data.isActive,
       },
     });
@@ -301,6 +339,11 @@ export async function markPlannedBillPaid(
           type: true,
         },
       },
+      tag: {
+        select: {
+          id: true,
+        },
+      },
       occurrences: {
         where: {
           month: parsed.data.month,
@@ -344,6 +387,7 @@ export async function markPlannedBillPaid(
           amount: parsed.data.amount,
           localDate: parsed.data.localDate,
           categoryId: plannedBill.categoryId,
+          tagId: plannedBill.tagId,
           source: plannedBill.name,
           note: parsed.data.note ?? null,
         },
