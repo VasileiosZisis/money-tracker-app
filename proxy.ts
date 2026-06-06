@@ -17,6 +17,7 @@ export const config = {
     "/transactions/:path*",
     "/categories/:path*",
     "/planned/:path*",
+    "/planned-income/:path*",
     "/import/:path*",
     "/export/:path*",
   ],

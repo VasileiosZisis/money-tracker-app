@@ -20,8 +20,15 @@ import type * as React from 'react'
 
 import {
   getDashboardMonthData,
+  type DashboardPlannedIncomeStatus,
   type DashboardPlannedBillStatus
 } from '@/actions/dashboard'
+import {
+  linkExistingTransactionToPlannedIncome,
+  markPlannedIncomeReceived,
+  skipPlannedIncomeForMonth,
+  undoPlannedIncomeOccurrence
+} from '@/actions/planned-income'
 import {
   linkExistingTransactionToPlannedBill,
   markPlannedBillPaid,
@@ -149,7 +156,14 @@ function getSourceOrNote (source: string | null, note: string | null) {
 
 function getLinkCandidateLabel (
   formatter: Intl.NumberFormat,
-  candidate: DashboardData['plannedBills'][number]['linkCandidates'][number]
+  candidate: {
+    localDate: string
+    amount: Prisma.Decimal
+    source: string | null
+    note: string | null
+    category: { name: string }
+    tag: { name: string } | null
+  }
 ) {
   const tagLabel = candidate.tag ? ` / ${candidate.tag.name}` : ''
   const detail = getSourceOrNote(candidate.source, candidate.note)
@@ -225,6 +239,41 @@ function getPlannedBillStatusMeta (status: DashboardPlannedBillStatus) {
     case 'paid':
       return {
         label: 'Paid',
+        variant: 'success' as const
+      }
+    case 'skipped':
+      return {
+        label: 'Skipped',
+        variant: 'outline' as const
+      }
+    case 'due-today':
+      return {
+        label: 'Due today',
+        variant: 'warning' as const
+      }
+    case 'overdue':
+      return {
+        label: 'Overdue',
+        variant: 'destructive' as const
+      }
+    case 'passed':
+      return {
+        label: 'Passed',
+        variant: 'outline' as const
+      }
+    default:
+      return {
+        label: 'Upcoming',
+        variant: 'accent' as const
+      }
+  }
+}
+
+function getPlannedIncomeStatusMeta (status: DashboardPlannedIncomeStatus) {
+  switch (status) {
+    case 'received':
+      return {
+        label: 'Received',
         variant: 'success' as const
       }
     case 'skipped':
@@ -380,7 +429,8 @@ function ForecastBreakdown ({
     <div className='space-y-2'>
       <p>
         Unpaid planned bills plus the variable-spending estimate for the rest
-        of the selected month.
+        of the selected month. Pending planned income affects projected net,
+        not conservative safe-to-spend.
       </p>
       <dl className='grid gap-1.5'>
         <div className='flex items-center justify-between gap-3'>
@@ -393,6 +443,18 @@ function ForecastBreakdown ({
           <dt>Variable spend estimate</dt>
           <dd className='font-mono text-foreground'>
             {formatMoney(formatter, forecast.variableCategoryForecast)}
+          </dd>
+        </div>
+        <div className='flex items-center justify-between gap-3'>
+          <dt>Pending planned income</dt>
+          <dd className='font-mono text-foreground'>
+            {formatMoney(formatter, forecast.pendingPlannedIncome)}
+          </dd>
+        </div>
+        <div className='flex items-center justify-between gap-3'>
+          <dt>Projected month-end net</dt>
+          <dd className='font-mono text-foreground'>
+            {formatMoney(formatter, forecast.projectedEndOfMonthNet)}
           </dd>
         </div>
       </dl>
@@ -551,6 +613,73 @@ export default async function DashboardPage ({
     redirect(buildDashboardUrl({ month, success: 'Transaction linked to planned bill.' }))
   }
 
+  async function markIncomeReceivedAction (formData: FormData) {
+    'use server'
+
+    const month = String(formData.get('month') ?? '')
+    const result = await markPlannedIncomeReceived({
+      plannedIncomeId: String(formData.get('plannedIncomeId') ?? ''),
+      month,
+      amount: String(formData.get('amount') ?? ''),
+      localDate: String(formData.get('localDate') ?? '')
+    })
+
+    if (!result.ok) {
+      redirect(buildDashboardUrl({ month, error: result.error }))
+    }
+
+    redirect(buildDashboardUrl({ month, success: 'Planned income marked received.' }))
+  }
+
+  async function skipIncomeAction (formData: FormData) {
+    'use server'
+
+    const month = String(formData.get('month') ?? '')
+    const result = await skipPlannedIncomeForMonth({
+      plannedIncomeId: String(formData.get('plannedIncomeId') ?? ''),
+      month
+    })
+
+    if (!result.ok) {
+      redirect(buildDashboardUrl({ month, error: result.error }))
+    }
+
+    redirect(buildDashboardUrl({ month, success: 'Planned income skipped for this month.' }))
+  }
+
+  async function undoIncomeOccurrenceAction (formData: FormData) {
+    'use server'
+
+    const month = String(formData.get('month') ?? '')
+    const result = await undoPlannedIncomeOccurrence({
+      plannedIncomeId: String(formData.get('plannedIncomeId') ?? ''),
+      month
+    })
+
+    if (!result.ok) {
+      redirect(buildDashboardUrl({ month, error: result.error }))
+    }
+
+    redirect(buildDashboardUrl({ month, success: 'Planned income status undone.' }))
+  }
+
+  async function linkExistingIncomeTransactionAction (formData: FormData) {
+    'use server'
+
+    const month = String(formData.get('month') ?? '')
+    const result = await linkExistingTransactionToPlannedIncome({
+      plannedIncomeId: String(formData.get('plannedIncomeId') ?? ''),
+      transactionId: String(formData.get('transactionId') ?? ''),
+      month
+    })
+
+    if (!result.ok) {
+      redirect(buildDashboardUrl({ month, error: result.error }))
+    }
+
+    redirect(buildDashboardUrl({ month, success: 'Transaction linked to planned income.' }))
+  }
+
   const data = await getDashboardMonthData(selectedMonth)
 
   const formatter = new Intl.NumberFormat(undefined, {
@@ -562,6 +691,8 @@ export default async function DashboardPage ({
   const netTone = getNetTone(data.netLeft)
   const displayedPlannedBills = data.plannedBills
   const displayedPlannedBillsTotal = data.forecast.unpaidPlannedBills
+  const displayedPlannedIncomes = data.plannedIncomes
+  const displayedPlannedIncomesTotal = data.forecast.pendingPlannedIncome
 
   return (
     <div className='space-y-6'>
@@ -791,6 +922,257 @@ export default async function DashboardPage ({
                   )
                 })}
               </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className='overflow-hidden'>
+          <CardHeader className='border-b border-border/70 pb-5'>
+            <div className='flex flex-wrap items-start justify-between gap-3'>
+              <div className='space-y-3'>
+                <CardTitle>Planned income</CardTitle>
+                <p className='max-w-md text-sm leading-6 text-muted-foreground'>
+                  Active planned income improves projected month-end net, but
+                  it does not increase conservative safe-to-spend until received.
+                </p>
+                <div className='flex flex-wrap gap-2'>
+                  <Badge variant='outline'>{displayedPlannedIncomes.length}</Badge>
+                  <Badge variant='outline'>
+                    Pending {formatMoney(formatter, displayedPlannedIncomesTotal)}
+                  </Badge>
+                </div>
+              </div>
+              <Link
+                href='/planned-income'
+                className={cn(
+                  buttonVariants({ variant: 'ghost', size: 'sm' }),
+                  'rounded-xl px-0 text-primary hover:bg-transparent'
+                )}
+              >
+                View all
+                <ArrowRight />
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent className='grid gap-4 p-6'>
+            {displayedPlannedIncomes.length === 0 ? (
+              <EmptyState
+                icon={TrendingUp}
+                title='No active planned income'
+                description='Add expected monthly income so projected month-end net can account for money that has not arrived yet.'
+                action={
+                  <Link
+                    href='/planned-income'
+                    className={cn(
+                      buttonVariants({ variant: 'outline', size: 'sm' }),
+                      'rounded-xl'
+                    )}
+                  >
+                    <Plus />
+                    Add planned income
+                  </Link>
+                }
+              />
+            ) : (
+              displayedPlannedIncomes.map(plannedIncome => {
+                const statusMeta = getPlannedIncomeStatusMeta(plannedIncome.status)
+                const isHandled =
+                  plannedIncome.status === 'received' ||
+                  plannedIncome.status === 'skipped'
+
+                return (
+                  <div
+                    key={plannedIncome.id}
+                    className='grid gap-4 rounded-[24px] border border-border/80 bg-background/60 p-4'
+                  >
+                    <div className='flex flex-col gap-4 md:flex-row md:items-start md:justify-between'>
+                      <div className='flex min-w-0 items-start gap-3'>
+                        <div className='mt-1 flex size-10 items-center justify-center rounded-2xl bg-success/10 text-success'>
+                          <TrendingUp className='size-[18px]' />
+                        </div>
+                        <div className='min-w-0 space-y-1'>
+                          <div className='flex flex-wrap items-center gap-2'>
+                            <h3 className='text-sm font-semibold text-foreground'>
+                              {plannedIncome.category.name}
+                            </h3>
+                            {plannedIncome.tag ? (
+                              <Badge variant='outline'>{plannedIncome.tag.name}</Badge>
+                            ) : null}
+                            <Badge variant={statusMeta.variant}>
+                              {statusMeta.label}
+                            </Badge>
+                            {plannedIncome.category.isArchived ? (
+                              <Badge variant='outline'>Archived category</Badge>
+                            ) : null}
+                          </div>
+                          <p className='text-sm leading-6 text-muted-foreground'>
+                            {plannedIncome.name}
+                          </p>
+                          {plannedIncome.occurrence?.receivedAtLocalDate ? (
+                            <div className='flex flex-wrap items-center gap-2'>
+                              <p className='text-xs font-medium text-muted-foreground'>
+                                Received {formatLocalDate(plannedIncome.occurrence.receivedAtLocalDate)}
+                              </p>
+                              {plannedIncome.occurrence.paymentSource ? (
+                                <Badge variant='outline'>
+                                  {plannedIncome.occurrence.paymentSource === 'LINKED'
+                                    ? 'Linked existing transaction'
+                                    : 'Created transaction'}
+                                </Badge>
+                              ) : null}
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className='flex items-center justify-between gap-3 md:flex-col md:items-end'>
+                        <p className='text-sm font-medium text-muted-foreground'>
+                          Expected day {plannedIncome.expectedDayOfMonth}
+                        </p>
+                        <p className='font-mono text-base font-semibold tracking-tight text-success'>
+                          {formatMoney(formatter, plannedIncome.amount)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {isHandled ? (
+                      <form action={undoIncomeOccurrenceAction} className='flex justify-end'>
+                        <input
+                          type='hidden'
+                          name='plannedIncomeId'
+                          value={plannedIncome.id}
+                        />
+                        <input type='hidden' name='month' value={selectedMonth} />
+                        <button
+                          className={buttonVariants({ variant: 'outline', size: 'sm' })}
+                          type='submit'
+                        >
+                          <RotateCcw />
+                          Undo
+                        </button>
+                      </form>
+                    ) : (
+                      <div className='grid gap-3 border-t border-border/70 pt-4'>
+                        <form
+                          action={markIncomeReceivedAction}
+                          className='grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]'
+                        >
+                          <input
+                            type='hidden'
+                            name='plannedIncomeId'
+                            value={plannedIncome.id}
+                          />
+                          <input type='hidden' name='month' value={selectedMonth} />
+                          <div className='space-y-1.5'>
+                            <label
+                              className='text-xs font-medium text-muted-foreground'
+                              htmlFor={`received-date-${plannedIncome.id}`}
+                            >
+                              Received date
+                            </label>
+                            <Input
+                              id={`received-date-${plannedIncome.id}`}
+                              name='localDate'
+                              type='date'
+                              defaultValue={plannedIncome.defaultReceivedLocalDate}
+                              required
+                            />
+                          </div>
+                          <div className='space-y-1.5'>
+                            <label
+                              className='text-xs font-medium text-muted-foreground'
+                              htmlFor={`received-amount-${plannedIncome.id}`}
+                            >
+                              Amount
+                            </label>
+                            <Input
+                              id={`received-amount-${plannedIncome.id}`}
+                              name='amount'
+                              type='text'
+                              inputMode='decimal'
+                              defaultValue={plannedIncome.amount.toString()}
+                              required
+                            />
+                          </div>
+                          <button
+                            className={cn(
+                              buttonVariants({ size: 'default' }),
+                              'self-end'
+                            )}
+                            type='submit'
+                          >
+                            Mark received
+                          </button>
+                        </form>
+                        <form action={skipIncomeAction} className='flex justify-end'>
+                          <input
+                            type='hidden'
+                            name='plannedIncomeId'
+                            value={plannedIncome.id}
+                          />
+                          <input type='hidden' name='month' value={selectedMonth} />
+                          <button
+                            className={buttonVariants({
+                              variant: 'outline',
+                              size: 'sm'
+                            })}
+                            type='submit'
+                          >
+                            <SkipForward />
+                            Skip this month
+                          </button>
+                        </form>
+                        {plannedIncome.linkCandidates.length > 0 ? (
+                          <form
+                            action={linkExistingIncomeTransactionAction}
+                            className='grid gap-3 border-t border-border/70 pt-4 sm:grid-cols-[minmax(0,1fr)_auto]'
+                          >
+                            <input
+                              type='hidden'
+                              name='plannedIncomeId'
+                              value={plannedIncome.id}
+                            />
+                            <input type='hidden' name='month' value={selectedMonth} />
+                            <div className='space-y-1.5'>
+                              <label
+                                className='text-xs font-medium text-muted-foreground'
+                                htmlFor={`link-income-transaction-${plannedIncome.id}`}
+                              >
+                                Link existing transaction
+                              </label>
+                              <Select
+                                id={`link-income-transaction-${plannedIncome.id}`}
+                                name='transactionId'
+                                defaultValue={plannedIncome.linkCandidates[0]?.id ?? ''}
+                                required
+                              >
+                                {plannedIncome.linkCandidates.map(candidate => (
+                                  <option key={candidate.id} value={candidate.id}>
+                                    {getLinkCandidateLabel(formatter, candidate)}
+                                  </option>
+                                ))}
+                              </Select>
+                            </div>
+                            <button
+                              className={cn(
+                                buttonVariants({ variant: 'outline', size: 'sm' }),
+                                'self-end'
+                              )}
+                              type='submit'
+                            >
+                              Link transaction
+                            </button>
+                          </form>
+                        ) : (
+                          <p className='border-t border-border/70 pt-4 text-sm leading-6 text-muted-foreground'>
+                            No unlinked income transactions found for this month.
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })
             )}
           </CardContent>
         </Card>

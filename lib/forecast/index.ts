@@ -23,6 +23,10 @@ export {
   getPlannedExpenseCategoryIds,
 } from "@/lib/forecast/planned-bills";
 export {
+  calculatePendingPlannedIncome,
+  type ForecastPlannedIncomeLike,
+} from "@/lib/forecast/planned-income";
+export {
   calculateVariableCategoryForecast,
   type VariableCategoryForecastResult,
   type VariableForecastSource,
@@ -33,6 +37,7 @@ export {
   calculateSafeToSpend,
   computeForecastSummary,
   type ForecastInputPlannedBill,
+  type ForecastInputPlannedIncome,
   type ForecastInputTransaction,
   type ForecastSummary,
 } from "@/lib/forecast/compute-forecast";

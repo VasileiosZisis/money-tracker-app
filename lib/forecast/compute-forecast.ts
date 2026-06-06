@@ -18,12 +18,17 @@ import {
   type ForecastPlannedBillLike,
 } from "@/lib/forecast/planned-bills";
 import {
+  calculatePendingPlannedIncome,
+  type ForecastPlannedIncomeLike,
+} from "@/lib/forecast/planned-income";
+import {
   calculateVariableCategoryForecast,
   type VariableForecastSource,
 } from "@/lib/forecast/variable-forecast";
 
 export type ForecastInputTransaction = ForecastTransactionLike;
 export type ForecastInputPlannedBill = ForecastPlannedBillLike;
+export type ForecastInputPlannedIncome = ForecastPlannedIncomeLike;
 
 export type ForecastSummary = {
   monthContext: ForecastMonthContext;
@@ -31,6 +36,7 @@ export type ForecastSummary = {
   expenseSoFar: Prisma.Decimal;
   netLeftNow: Prisma.Decimal;
   unpaidPlannedBills: Prisma.Decimal;
+  pendingPlannedIncome: Prisma.Decimal;
   variableCategoryForecast: Prisma.Decimal;
   forecastRemainingSpend: Prisma.Decimal;
   projectedEndOfMonthNet: Prisma.Decimal;
@@ -51,11 +57,11 @@ export function calculateForecastRemainingSpend(
 }
 
 export function calculateProjectedEndOfMonthNet(
-  incomeSoFar: Prisma.Decimal,
-  expenseSoFar: Prisma.Decimal,
+  netLeftNow: Prisma.Decimal,
+  pendingPlannedIncome: Prisma.Decimal,
   forecastRemainingSpend: Prisma.Decimal,
 ) {
-  return roundMoney(incomeSoFar.minus(expenseSoFar.plus(forecastRemainingSpend)));
+  return roundMoney(netLeftNow.plus(pendingPlannedIncome).minus(forecastRemainingSpend));
 }
 
 export function calculateSafeToSpend(
@@ -90,6 +96,7 @@ export function computeForecastSummary(params: {
   referenceDate?: string;
   transactions: readonly ForecastInputTransaction[];
   plannedBills: readonly ForecastInputPlannedBill[];
+  plannedIncomes?: readonly ForecastInputPlannedIncome[];
 }) {
   const monthContext = buildForecastMonthContext({
     selectedMonth: params.selectedMonth,
@@ -99,6 +106,10 @@ export function computeForecastSummary(params: {
   const expenseSoFar = calculateExpenseSoFar(params.transactions, monthContext);
   const netLeftNow = calculateNetLeftNow(incomeSoFar, expenseSoFar);
   const unpaidPlannedBills = calculateUnpaidPlannedBills(params.plannedBills, monthContext);
+  const pendingPlannedIncome = calculatePendingPlannedIncome(
+    params.plannedIncomes ?? [],
+    monthContext,
+  );
   const variableForecast = calculateVariableCategoryForecast(
     params.transactions,
     params.plannedBills,
@@ -109,8 +120,8 @@ export function computeForecastSummary(params: {
     variableForecast.amount,
   );
   const projectedEndOfMonthNet = calculateProjectedEndOfMonthNet(
-    incomeSoFar,
-    expenseSoFar,
+    netLeftNow,
+    pendingPlannedIncome,
     forecastRemainingSpend,
   );
   const safeToSpend = calculateSafeToSpend(netLeftNow, forecastRemainingSpend);
@@ -123,6 +134,7 @@ export function computeForecastSummary(params: {
     expenseSoFar,
     netLeftNow,
     unpaidPlannedBills,
+    pendingPlannedIncome,
     variableCategoryForecast: variableForecast.amount,
     forecastRemainingSpend,
     projectedEndOfMonthNet,

@@ -19,6 +19,14 @@ export type DashboardPlannedBillStatus =
   | "overdue"
   | "passed";
 
+export type DashboardPlannedIncomeStatus =
+  | "received"
+  | "skipped"
+  | "upcoming"
+  | "due-today"
+  | "overdue"
+  | "passed";
+
 export type DashboardAttentionItemType =
   | "OVERDUE_PLANNED_BILL"
   | "DUE_TODAY_PLANNED_BILL"
@@ -78,6 +86,49 @@ type DashboardPlannedBillLinkCandidate = {
   } | null;
 };
 
+type DashboardPlannedIncome = {
+  id: string;
+  name: string;
+  amount: Prisma.Decimal;
+  categoryId: string;
+  tagId: string | null;
+  expectedDayOfMonth: number;
+  status: DashboardPlannedIncomeStatus;
+  defaultReceivedLocalDate: string;
+  occurrence: {
+    id: string;
+    status: "RECEIVED" | "SKIPPED";
+    receivedAtLocalDate: string | null;
+    transactionId: string | null;
+    paymentSource: "GENERATED" | "LINKED" | null;
+  } | null;
+  category: {
+    name: string;
+    isArchived: boolean;
+  };
+  tag: {
+    id: string;
+    name: string;
+  } | null;
+  linkCandidates: DashboardPlannedIncomeLinkCandidate[];
+};
+
+type DashboardPlannedIncomeLinkCandidate = {
+  id: string;
+  localDate: string;
+  amount: Prisma.Decimal;
+  source: string | null;
+  note: string | null;
+  categoryId: string;
+  tagId: string | null;
+  category: {
+    name: string;
+  };
+  tag: {
+    name: string;
+  } | null;
+};
+
 export type DashboardMonthData = {
   month: string;
   currency: string;
@@ -97,6 +148,7 @@ export type DashboardMonthData = {
     createdAt: Date;
   } | null;
   plannedBills: DashboardPlannedBill[];
+  plannedIncomes: DashboardPlannedIncome[];
   recentTransactions: Array<{
     id: string;
     localDate: string;
@@ -148,6 +200,39 @@ function getPlannedBillStatus(
   return "upcoming";
 }
 
+function getPlannedIncomeStatus(
+  monthRelation: ForecastMonthRelation,
+  currentDayOfMonth: number | null,
+  expectedDayOfMonth: number,
+  occurrenceStatus?: "RECEIVED" | "SKIPPED" | null,
+): DashboardPlannedIncomeStatus {
+  if (occurrenceStatus === "RECEIVED") {
+    return "received";
+  }
+
+  if (occurrenceStatus === "SKIPPED") {
+    return "skipped";
+  }
+
+  if (monthRelation === "past") {
+    return "passed";
+  }
+
+  if (monthRelation === "future") {
+    return "upcoming";
+  }
+
+  if (expectedDayOfMonth < (currentDayOfMonth ?? 1)) {
+    return "overdue";
+  }
+
+  if (expectedDayOfMonth === currentDayOfMonth) {
+    return "due-today";
+  }
+
+  return "upcoming";
+}
+
 function getDefaultPaymentLocalDate(params: {
   selectedMonth: string;
   monthRelation: ForecastMonthRelation;
@@ -159,6 +244,21 @@ function getDefaultPaymentLocalDate(params: {
   }
 
   return `${params.selectedMonth}-${params.dueDayOfMonth
+    .toString()
+    .padStart(2, "0")}`;
+}
+
+function getDefaultReceivedLocalDate(params: {
+  selectedMonth: string;
+  monthRelation: ForecastMonthRelation;
+  referenceDate: string;
+  expectedDayOfMonth: number;
+}) {
+  if (params.monthRelation === "current") {
+    return params.referenceDate;
+  }
+
+  return `${params.selectedMonth}-${params.expectedDayOfMonth
     .toString()
     .padStart(2, "0")}`;
 }
@@ -368,7 +468,9 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
     monthlyChartTransactions,
     forecastTransactions,
     plannedBills,
+    plannedIncomes,
     linkCandidateTransactions,
+    plannedIncomeLinkCandidateTransactions,
     latestTransactionEntry,
     user,
   ] = await Promise.all([
@@ -487,6 +589,47 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
         },
       },
     }),
+    db.plannedIncome.findMany({
+      where: {
+        userId,
+        isActive: true,
+      },
+      orderBy: [{ expectedDayOfMonth: "asc" }, { name: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        amount: true,
+        expectedDayOfMonth: true,
+        categoryId: true,
+        tagId: true,
+        isActive: true,
+        occurrences: {
+          where: {
+            month,
+          },
+          select: {
+            id: true,
+            status: true,
+            receivedAtLocalDate: true,
+            transactionId: true,
+            paymentSource: true,
+          },
+          take: 1,
+        },
+        category: {
+          select: {
+            name: true,
+            isArchived: true,
+          },
+        },
+        tag: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    }),
     db.transaction.findMany({
       where: {
         userId,
@@ -496,6 +639,36 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
           lt: endExclusive,
         },
         plannedBillOccurrence: null,
+      },
+      select: {
+        id: true,
+        localDate: true,
+        amount: true,
+        source: true,
+        note: true,
+        categoryId: true,
+        tagId: true,
+        category: {
+          select: {
+            name: true,
+          },
+        },
+        tag: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    }),
+    db.transaction.findMany({
+      where: {
+        userId,
+        type: "INCOME",
+        localDate: {
+          gte: start,
+          lt: endExclusive,
+        },
+        plannedIncomeOccurrence: null,
       },
       select: {
         id: true,
@@ -543,11 +716,19 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
     isActive: plannedBill.isActive,
     occurrenceStatus: plannedBill.occurrences[0]?.status ?? null,
   }));
+  const forecastPlannedIncomes = plannedIncomes.map((plannedIncome) => ({
+    amount: plannedIncome.amount,
+    expectedDayOfMonth: plannedIncome.expectedDayOfMonth,
+    categoryId: plannedIncome.categoryId,
+    isActive: plannedIncome.isActive,
+    occurrenceStatus: plannedIncome.occurrences[0]?.status ?? null,
+  }));
   const forecast = computeForecastSummary({
     selectedMonth: month,
     referenceDate,
     transactions: forecastTransactions,
     plannedBills: forecastPlannedBills,
+    plannedIncomes: forecastPlannedIncomes,
   });
   const { chartSeries, chartYAxisMax } = buildChartSeries({
     monthContext: forecast.monthContext,
@@ -579,6 +760,37 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
 
       const leftSameAmount = left.amount.eq(plannedBill.amount) ? 1 : 0;
       const rightSameAmount = right.amount.eq(plannedBill.amount) ? 1 : 0;
+
+      if (leftSameAmount !== rightSameAmount) {
+        return rightSameAmount - leftSameAmount;
+      }
+
+      return right.localDate.localeCompare(left.localDate);
+    });
+  const getLinkCandidatesForPlannedIncome = (plannedIncome: {
+    amount: Prisma.Decimal;
+    categoryId: string;
+    tagId: string | null;
+  }) =>
+    [...plannedIncomeLinkCandidateTransactions].sort((left, right) => {
+      const leftSameCategory = left.categoryId === plannedIncome.categoryId ? 1 : 0;
+      const rightSameCategory = right.categoryId === plannedIncome.categoryId ? 1 : 0;
+
+      if (leftSameCategory !== rightSameCategory) {
+        return rightSameCategory - leftSameCategory;
+      }
+
+      const leftSameTag =
+        plannedIncome.tagId && left.tagId === plannedIncome.tagId ? 1 : 0;
+      const rightSameTag =
+        plannedIncome.tagId && right.tagId === plannedIncome.tagId ? 1 : 0;
+
+      if (leftSameTag !== rightSameTag) {
+        return rightSameTag - leftSameTag;
+      }
+
+      const leftSameAmount = left.amount.eq(plannedIncome.amount) ? 1 : 0;
+      const rightSameAmount = right.amount.eq(plannedIncome.amount) ? 1 : 0;
 
       if (leftSameAmount !== rightSameAmount) {
         return rightSameAmount - leftSameAmount;
@@ -621,6 +833,41 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
     tag: plannedBill.tag,
     linkCandidates: getLinkCandidatesForPlannedBill(plannedBill),
   }));
+  const dashboardPlannedIncomes = plannedIncomes.map((plannedIncome) => ({
+    id: plannedIncome.id,
+    name: plannedIncome.name,
+    amount: plannedIncome.amount,
+    categoryId: plannedIncome.categoryId,
+    tagId: plannedIncome.tagId,
+    expectedDayOfMonth: plannedIncome.expectedDayOfMonth,
+    status: getPlannedIncomeStatus(
+      forecast.monthContext.monthRelation,
+      forecast.monthContext.currentDayOfMonth,
+      plannedIncome.expectedDayOfMonth,
+      plannedIncome.occurrences[0]?.status ?? null,
+    ),
+    defaultReceivedLocalDate: getDefaultReceivedLocalDate({
+      selectedMonth: month,
+      monthRelation: forecast.monthContext.monthRelation,
+      referenceDate,
+      expectedDayOfMonth: plannedIncome.expectedDayOfMonth,
+    }),
+    occurrence: plannedIncome.occurrences[0]
+      ? {
+          id: plannedIncome.occurrences[0].id,
+          status: plannedIncome.occurrences[0].status,
+          receivedAtLocalDate: plannedIncome.occurrences[0].receivedAtLocalDate,
+          transactionId: plannedIncome.occurrences[0].transactionId,
+          paymentSource: plannedIncome.occurrences[0].paymentSource,
+        }
+      : null,
+    category: {
+      name: plannedIncome.category.name,
+      isArchived: plannedIncome.category.isArchived,
+    },
+    tag: plannedIncome.tag,
+    linkCandidates: getLinkCandidatesForPlannedIncome(plannedIncome),
+  }));
 
   return {
     month,
@@ -639,6 +886,7 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
     }),
     latestTransactionEntry,
     plannedBills: dashboardPlannedBills,
+    plannedIncomes: dashboardPlannedIncomes,
     recentTransactions: recentTransactions.map((transaction) => ({
       id: transaction.id,
       localDate: transaction.localDate,

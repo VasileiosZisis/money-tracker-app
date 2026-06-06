@@ -156,18 +156,26 @@ Example:
 
 This quickly tells the user if they are ahead or behind pace.
 
-### 8. Manual expected income
+### 8. Planned income templates
 
-Recurring income is currently out of scope, but a simple manual expected-income feature could be useful.
+Decision: add planned income as the income-side equivalent of planned bills.
 
-Possible behavior:
+Planned income should use reusable monthly templates plus selected-month
+occurrence state:
 
-- user enters expected income for the selected month
-- user can mark it received
-- expected income affects planning only when explicitly entered
-- received income should become or link to a normal income transaction
+- user creates expected income once, such as salary
+- active planned income appears each month as pending until received or skipped
+- user can mark planned income received, which creates a normal income transaction
+- user can link an existing income transaction instead of creating a duplicate
+- pending planned income affects projection only, not actual totals
+- pending planned income does not increase conservative safe-to-spend
 
-This would also make `Projected end-of-month net` meaningfully different from `Safe to spend`.
+This makes `Projected end-of-month net` meaningfully different from `Safe to spend`:
+
+```text
+projectedEndOfMonthNet = netLeftNow + pendingPlannedIncome - forecastRemainingSpend
+safeToSpend = netLeftNow - forecastRemainingSpend
+```
 
 ### 9. Month-end review
 
@@ -201,7 +209,7 @@ This helps prevent the user from over-trusting stale data.
 3. Add needs-attention panel.
 4. Add link-existing-transaction for planned bills.
 5. Add category run-rate warnings.
-6. Add manual expected income.
+6. Add planned income templates.
 
 ## Product Direction
 
