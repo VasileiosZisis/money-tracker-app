@@ -29,8 +29,11 @@ export type DashboardPlannedIncomeStatus =
 
 export type DashboardAttentionItemType =
   | "OVERDUE_PLANNED_BILL"
+  | "OVERDUE_PLANNED_INCOME"
   | "DUE_TODAY_PLANNED_BILL"
+  | "DUE_TODAY_PLANNED_INCOME"
   | "NEGATIVE_SAFE_TO_SPEND"
+  | "NEGATIVE_SAFE_TO_SPEND_WITH_PENDING_INCOME"
   | "STALE_TRANSACTIONS"
   | "LOW_FORECAST_CONFIDENCE";
 
@@ -149,6 +152,18 @@ export type DashboardMonthData = {
   } | null;
   plannedBills: DashboardPlannedBill[];
   plannedIncomes: DashboardPlannedIncome[];
+  plannedIncomeSummary: {
+    pendingTotal: Prisma.Decimal;
+    receivedTotal: Prisma.Decimal;
+    skippedCount: number;
+    pendingCount: number;
+    nextPendingIncome: {
+      name: string;
+      amount: Prisma.Decimal;
+      expectedDayOfMonth: number;
+      status: "upcoming" | "due-today" | "overdue";
+    } | null;
+  };
   recentTransactions: Array<{
     id: string;
     localDate: string;
@@ -278,6 +293,7 @@ function buildAttentionItems(params: {
   currency: string;
   forecast: ForecastSummary;
   plannedBills: DashboardPlannedBill[];
+  plannedIncomes: DashboardPlannedIncome[];
   latestTransactionEntry: { createdAt: Date } | null;
 }): DashboardAttentionItem[] {
   const attentionItems: DashboardAttentionItem[] = [];
@@ -299,6 +315,24 @@ function buildAttentionItems(params: {
     });
   }
 
+  if (isCurrentMonth) {
+    for (const plannedIncome of params.plannedIncomes) {
+      if (plannedIncome.status !== "overdue") {
+        continue;
+      }
+
+      attentionItems.push({
+        type: "OVERDUE_PLANNED_INCOME",
+        title: `${plannedIncome.name} is overdue`,
+        description: `Expected day ${plannedIncome.expectedDayOfMonth} · ${formatDashboardMoney(
+          params.currency,
+          plannedIncome.amount,
+        )} still pending`,
+        tone: "danger",
+      });
+    }
+  }
+
   for (const plannedBill of params.plannedBills) {
     if (plannedBill.status !== "due-today") {
       continue;
@@ -312,6 +346,21 @@ function buildAttentionItems(params: {
     });
   }
 
+  if (isCurrentMonth) {
+    for (const plannedIncome of params.plannedIncomes) {
+      if (plannedIncome.status !== "due-today") {
+        continue;
+      }
+
+      attentionItems.push({
+        type: "DUE_TODAY_PLANNED_INCOME",
+        title: `${plannedIncome.name} is expected today`,
+        description: `${formatDashboardMoney(params.currency, plannedIncome.amount)} pending`,
+        tone: "warning",
+      });
+    }
+  }
+
   if (isCurrentMonth && params.forecast.safeToSpend.lt(0)) {
     attentionItems.push({
       type: "NEGATIVE_SAFE_TO_SPEND",
@@ -321,6 +370,22 @@ function buildAttentionItems(params: {
         params.forecast.safeToSpend.abs(),
       )} above current recorded income.`,
       tone: "danger",
+    });
+  }
+
+  if (
+    isCurrentMonth &&
+    params.forecast.safeToSpend.lt(0) &&
+    params.forecast.pendingPlannedIncome.gt(0)
+  ) {
+    attentionItems.push({
+      type: "NEGATIVE_SAFE_TO_SPEND_WITH_PENDING_INCOME",
+      title: "Safe to spend is negative before pending income",
+      description: `${formatDashboardMoney(
+        params.currency,
+        params.forecast.pendingPlannedIncome,
+      )} is still expected, but not counted as safe to spend until received.`,
+      tone: "warning",
     });
   }
 
@@ -362,6 +427,49 @@ function buildAttentionItems(params: {
   }
 
   return attentionItems.slice(0, ATTENTION_ITEM_LIMIT);
+}
+
+function sumDashboardAmounts<T extends { amount: Prisma.Decimal }>(items: readonly T[]) {
+  return items.reduce(
+    (total, item) => total.plus(item.amount),
+    new Prisma.Decimal(0),
+  );
+}
+
+function buildPlannedIncomeSummary(plannedIncomes: DashboardPlannedIncome[]) {
+  const pendingIncomes = plannedIncomes.filter(
+    (
+      plannedIncome,
+    ): plannedIncome is DashboardPlannedIncome & {
+      status: "upcoming" | "due-today" | "overdue";
+    } =>
+      plannedIncome.status === "upcoming" ||
+      plannedIncome.status === "due-today" ||
+      plannedIncome.status === "overdue",
+  );
+  const receivedIncomes = plannedIncomes.filter(
+    (plannedIncome) => plannedIncome.status === "received",
+  );
+  const skippedIncomes = plannedIncomes.filter(
+    (plannedIncome) => plannedIncome.status === "skipped",
+  );
+
+  const nextPendingIncome = pendingIncomes[0]
+    ? {
+        name: pendingIncomes[0].name,
+        amount: pendingIncomes[0].amount,
+        expectedDayOfMonth: pendingIncomes[0].expectedDayOfMonth,
+        status: pendingIncomes[0].status,
+      }
+    : null;
+
+  return {
+    pendingTotal: sumDashboardAmounts(pendingIncomes),
+    receivedTotal: sumDashboardAmounts(receivedIncomes),
+    skippedCount: skippedIncomes.length,
+    pendingCount: pendingIncomes.length,
+    nextPendingIncome,
+  };
 }
 
 function buildChartSeries(params: {
@@ -868,6 +976,7 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
     tag: plannedIncome.tag,
     linkCandidates: getLinkCandidatesForPlannedIncome(plannedIncome),
   }));
+  const plannedIncomeSummary = buildPlannedIncomeSummary(dashboardPlannedIncomes);
 
   return {
     month,
@@ -882,11 +991,13 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
       currency,
       forecast,
       plannedBills: dashboardPlannedBills,
+      plannedIncomes: dashboardPlannedIncomes,
       latestTransactionEntry,
     }),
     latestTransactionEntry,
     plannedBills: dashboardPlannedBills,
     plannedIncomes: dashboardPlannedIncomes,
+    plannedIncomeSummary,
     recentTransactions: recentTransactions.map((transaction) => ({
       id: transaction.id,
       localDate: transaction.localDate,

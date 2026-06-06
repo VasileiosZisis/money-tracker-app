@@ -161,14 +161,31 @@ function getLinkCandidateLabel (
     amount: Prisma.Decimal
     source: string | null
     note: string | null
+    categoryId: string
+    tagId: string | null
     category: { name: string }
     tag: { name: string } | null
+  },
+  matchAgainst?: {
+    amount: Prisma.Decimal
+    categoryId: string
+    tagId: string | null
   }
 ) {
   const tagLabel = candidate.tag ? ` / ${candidate.tag.name}` : ''
   const detail = getSourceOrNote(candidate.source, candidate.note)
+  const hints = matchAgainst
+    ? [
+        candidate.amount.eq(matchAgainst.amount) ? 'Exact amount' : null,
+        candidate.categoryId === matchAgainst.categoryId ? 'Same category' : null,
+        matchAgainst.tagId && candidate.tagId === matchAgainst.tagId
+          ? 'Same tag'
+          : null
+      ].filter(Boolean)
+    : []
+  const hintLabel = hints.length > 0 ? ` - ${hints.join(', ')}` : ''
 
-  return `${formatLocalDate(candidate.localDate)} - ${candidate.category.name}${tagLabel} - ${detail} - ${formatMoney(formatter, candidate.amount)}`
+  return `${formatLocalDate(candidate.localDate)} - ${candidate.category.name}${tagLabel} - ${detail} - ${formatMoney(formatter, candidate.amount)}${hintLabel}`
 }
 
 function formatLocalDate (localDate: string) {
@@ -426,11 +443,10 @@ function ForecastBreakdown ({
   forecast: ForecastData
 }) {
   return (
-    <div className='space-y-2'>
+    <div className='space-y-3'>
       <p>
-        Unpaid planned bills plus the variable-spending estimate for the rest
-        of the selected month. Pending planned income affects projected net,
-        not conservative safe-to-spend.
+        Safe to spend excludes pending income. Projected month-end net includes
+        pending income.
       </p>
       <dl className='grid gap-1.5'>
         <div className='flex items-center justify-between gap-3'>
@@ -458,6 +474,20 @@ function ForecastBreakdown ({
           </dd>
         </div>
       </dl>
+      <div className='rounded-2xl border border-border/70 bg-card/70 p-3'>
+        <p className='text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground'>
+          Projected net
+        </p>
+        <p className='mt-2 text-sm leading-6 text-muted-foreground'>
+          Net left now + Pending planned income - Forecast remaining spend
+        </p>
+        <p className='mt-1 font-mono text-sm font-semibold text-foreground'>
+          {formatMoney(formatter, forecast.netLeftNow)} +{' '}
+          {formatMoney(formatter, forecast.pendingPlannedIncome)} -{' '}
+          {formatMoney(formatter, forecast.forecastRemainingSpend)} ={' '}
+          {formatMoney(formatter, forecast.projectedEndOfMonthNet)}
+        </p>
+      </div>
     </div>
   )
 }
@@ -692,7 +722,9 @@ export default async function DashboardPage ({
   const displayedPlannedBills = data.plannedBills
   const displayedPlannedBillsTotal = data.forecast.unpaidPlannedBills
   const displayedPlannedIncomes = data.plannedIncomes
-  const displayedPlannedIncomesTotal = data.forecast.pendingPlannedIncome
+  const plannedIncomeSummary = data.plannedIncomeSummary
+  const plannedIncomeIsSettled =
+    displayedPlannedIncomes.length > 0 && plannedIncomeSummary.pendingCount === 0
 
   return (
     <div className='space-y-6'>
@@ -938,9 +970,22 @@ export default async function DashboardPage ({
                 <div className='flex flex-wrap gap-2'>
                   <Badge variant='outline'>{displayedPlannedIncomes.length}</Badge>
                   <Badge variant='outline'>
-                    Pending {formatMoney(formatter, displayedPlannedIncomesTotal)}
+                    Pending {formatMoney(formatter, plannedIncomeSummary.pendingTotal)}
+                  </Badge>
+                  <Badge variant='outline'>
+                    Received {formatMoney(formatter, plannedIncomeSummary.receivedTotal)}
+                  </Badge>
+                  <Badge variant='outline'>
+                    Skipped {plannedIncomeSummary.skippedCount}
                   </Badge>
                 </div>
+                {plannedIncomeSummary.nextPendingIncome ? (
+                  <p className='max-w-md text-sm leading-6 text-muted-foreground'>
+                    Next: {plannedIncomeSummary.nextPendingIncome.name} · day{' '}
+                    {plannedIncomeSummary.nextPendingIncome.expectedDayOfMonth} ·{' '}
+                    {formatMoney(formatter, plannedIncomeSummary.nextPendingIncome.amount)}
+                  </p>
+                ) : null}
               </div>
               <Link
                 href='/planned-income'
@@ -959,7 +1004,7 @@ export default async function DashboardPage ({
               <EmptyState
                 icon={TrendingUp}
                 title='No active planned income'
-                description='Add expected monthly income so projected month-end net can account for money that has not arrived yet.'
+                description='Add salary or other expected repeat income so projected month-end net can account for money that has not arrived yet.'
                 action={
                   <Link
                     href='/planned-income'
@@ -974,7 +1019,15 @@ export default async function DashboardPage ({
                 }
               />
             ) : (
-              displayedPlannedIncomes.map(plannedIncome => {
+              <>
+                {plannedIncomeIsSettled ? (
+                  <EmptyState
+                    icon={CircleCheckBig}
+                    title='Planned income is settled'
+                    description='All active planned income for this month has been received or skipped.'
+                  />
+                ) : null}
+                {displayedPlannedIncomes.map(plannedIncome => {
                 const statusMeta = getPlannedIncomeStatusMeta(plannedIncome.status)
                 const isHandled =
                   plannedIncome.status === 'received' ||
@@ -1148,7 +1201,7 @@ export default async function DashboardPage ({
                               >
                                 {plannedIncome.linkCandidates.map(candidate => (
                                   <option key={candidate.id} value={candidate.id}>
-                                    {getLinkCandidateLabel(formatter, candidate)}
+                                    {getLinkCandidateLabel(formatter, candidate, plannedIncome)}
                                   </option>
                                 ))}
                               </Select>
@@ -1172,7 +1225,8 @@ export default async function DashboardPage ({
                     )}
                   </div>
                 )
-              })
+              })}
+              </>
             )}
           </CardContent>
         </Card>
@@ -1399,7 +1453,7 @@ export default async function DashboardPage ({
                               >
                                 {plannedBill.linkCandidates.map(candidate => (
                                   <option key={candidate.id} value={candidate.id}>
-                                    {getLinkCandidateLabel(formatter, candidate)}
+                                    {getLinkCandidateLabel(formatter, candidate, plannedBill)}
                                   </option>
                                 ))}
                               </Select>
