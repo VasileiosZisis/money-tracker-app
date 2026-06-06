@@ -23,6 +23,7 @@ import {
   type DashboardPlannedBillStatus
 } from '@/actions/dashboard'
 import {
+  linkExistingTransactionToPlannedBill,
   markPlannedBillPaid,
   skipPlannedBillForMonth,
   undoPlannedBillOccurrence
@@ -41,6 +42,7 @@ import {
 import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { PageNotice } from '@/components/ui/page-notice'
+import { Select } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 
 type DashboardPageProps = {
@@ -143,6 +145,16 @@ function getSourceOrNote (source: string | null, note: string | null) {
   }
 
   return 'No extra note'
+}
+
+function getLinkCandidateLabel (
+  formatter: Intl.NumberFormat,
+  candidate: DashboardData['plannedBills'][number]['linkCandidates'][number]
+) {
+  const tagLabel = candidate.tag ? ` / ${candidate.tag.name}` : ''
+  const detail = getSourceOrNote(candidate.source, candidate.note)
+
+  return `${formatLocalDate(candidate.localDate)} - ${candidate.category.name}${tagLabel} - ${detail} - ${formatMoney(formatter, candidate.amount)}`
 }
 
 function formatLocalDate (localDate: string) {
@@ -522,6 +534,23 @@ export default async function DashboardPage ({
     redirect(buildDashboardUrl({ month, success: 'Planned bill status undone.' }))
   }
 
+  async function linkExistingTransactionAction (formData: FormData) {
+    'use server'
+
+    const month = String(formData.get('month') ?? '')
+    const result = await linkExistingTransactionToPlannedBill({
+      plannedBillId: String(formData.get('plannedBillId') ?? ''),
+      transactionId: String(formData.get('transactionId') ?? ''),
+      month
+    })
+
+    if (!result.ok) {
+      redirect(buildDashboardUrl({ month, error: result.error }))
+    }
+
+    redirect(buildDashboardUrl({ month, success: 'Transaction linked to planned bill.' }))
+  }
+
   const data = await getDashboardMonthData(selectedMonth)
 
   const formatter = new Intl.NumberFormat(undefined, {
@@ -849,9 +878,18 @@ export default async function DashboardPage ({
                             {plannedBill.name}
                           </p>
                           {plannedBill.occurrence?.paidAtLocalDate ? (
-                            <p className='text-xs font-medium text-muted-foreground'>
-                              Paid {formatLocalDate(plannedBill.occurrence.paidAtLocalDate)}
-                            </p>
+                            <div className='flex flex-wrap items-center gap-2'>
+                              <p className='text-xs font-medium text-muted-foreground'>
+                                Paid {formatLocalDate(plannedBill.occurrence.paidAtLocalDate)}
+                              </p>
+                              {plannedBill.occurrence.paymentSource ? (
+                                <Badge variant='outline'>
+                                  {plannedBill.occurrence.paymentSource === 'LINKED'
+                                    ? 'Linked existing transaction'
+                                    : 'Created transaction'}
+                                </Badge>
+                              ) : null}
+                            </div>
                           ) : null}
                         </div>
                       </div>
@@ -953,6 +991,52 @@ export default async function DashboardPage ({
                             Skip this month
                           </button>
                         </form>
+                        {plannedBill.linkCandidates.length > 0 ? (
+                          <form
+                            action={linkExistingTransactionAction}
+                            className='grid gap-3 border-t border-border/70 pt-4 sm:grid-cols-[minmax(0,1fr)_auto]'
+                          >
+                            <input
+                              type='hidden'
+                              name='plannedBillId'
+                              value={plannedBill.id}
+                            />
+                            <input type='hidden' name='month' value={selectedMonth} />
+                            <div className='space-y-1.5'>
+                              <label
+                                className='text-xs font-medium text-muted-foreground'
+                                htmlFor={`link-transaction-${plannedBill.id}`}
+                              >
+                                Link existing transaction
+                              </label>
+                              <Select
+                                id={`link-transaction-${plannedBill.id}`}
+                                name='transactionId'
+                                defaultValue={plannedBill.linkCandidates[0]?.id ?? ''}
+                                required
+                              >
+                                {plannedBill.linkCandidates.map(candidate => (
+                                  <option key={candidate.id} value={candidate.id}>
+                                    {getLinkCandidateLabel(formatter, candidate)}
+                                  </option>
+                                ))}
+                              </Select>
+                            </div>
+                            <button
+                              className={cn(
+                                buttonVariants({ variant: 'outline', size: 'sm' }),
+                                'self-end'
+                              )}
+                              type='submit'
+                            >
+                              Link transaction
+                            </button>
+                          </form>
+                        ) : (
+                          <p className='border-t border-border/70 pt-4 text-sm leading-6 text-muted-foreground'>
+                            No unlinked expense transactions found for this month.
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>

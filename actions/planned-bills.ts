@@ -1,6 +1,10 @@
 "use server";
 
-import { PlannedBillOccurrenceStatus, TransactionType } from "@/generated/prisma/enums";
+import {
+  PlannedBillOccurrencePaymentSource,
+  PlannedBillOccurrenceStatus,
+  TransactionType,
+} from "@/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
 import {
   actionError,
@@ -11,6 +15,7 @@ import {
 import { getUserIdOrThrow } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import {
+  linkExistingTransactionToPlannedBillSchema,
   markPlannedBillPaidSchema,
   plannedBillIdSchema,
   plannedBillInputSchema,
@@ -18,6 +23,7 @@ import {
   togglePlannedBillActiveSchema,
   undoPlannedBillOccurrenceSchema,
   updatePlannedBillSchema,
+  type LinkExistingTransactionToPlannedBillInput,
   type MarkPlannedBillPaidInput,
   type PlannedBillInput,
   type SkipPlannedBillForMonthInput,
@@ -352,6 +358,7 @@ export async function markPlannedBillPaid(
           id: true,
           status: true,
           transactionId: true,
+          paymentSource: true,
         },
         take: 1,
       },
@@ -401,6 +408,7 @@ export async function markPlannedBillPaid(
             status: PlannedBillOccurrenceStatus.PAID,
             transactionId: createdTransaction.id,
             paidAtLocalDate: parsed.data.localDate,
+            paymentSource: PlannedBillOccurrencePaymentSource.GENERATED,
           },
         });
         return;
@@ -414,6 +422,7 @@ export async function markPlannedBillPaid(
           status: PlannedBillOccurrenceStatus.PAID,
           transactionId: createdTransaction.id,
           paidAtLocalDate: parsed.data.localDate,
+          paymentSource: PlannedBillOccurrencePaymentSource.GENERATED,
         },
       });
     });
@@ -453,6 +462,7 @@ export async function skipPlannedBillForMonth(
           id: true,
           status: true,
           transactionId: true,
+          paymentSource: true,
         },
         take: 1,
       },
@@ -485,11 +495,13 @@ export async function skipPlannedBillForMonth(
         plannedBillId: plannedBill.id,
         month: parsed.data.month,
         status: PlannedBillOccurrenceStatus.SKIPPED,
+        paymentSource: null,
       },
       update: {
         status: PlannedBillOccurrenceStatus.SKIPPED,
         transactionId: null,
         paidAtLocalDate: null,
+        paymentSource: null,
       },
     });
   } catch {
@@ -522,6 +534,7 @@ export async function undoPlannedBillOccurrence(
     select: {
       id: true,
       transactionId: true,
+      paymentSource: true,
     },
   });
 
@@ -532,6 +545,16 @@ export async function undoPlannedBillOccurrence(
   try {
     await db.$transaction(async (tx) => {
       if (occurrence.transactionId) {
+        if (occurrence.paymentSource === PlannedBillOccurrencePaymentSource.LINKED) {
+          await tx.plannedBillOccurrence.deleteMany({
+            where: {
+              id: occurrence.id,
+              userId,
+            },
+          });
+          return;
+        }
+
         await tx.transaction.deleteMany({
           where: {
             id: occurrence.transactionId,
@@ -550,6 +573,119 @@ export async function undoPlannedBillOccurrence(
     });
   } catch {
     return getMutationError("Could not undo planned bill status. Please try again.");
+  }
+
+  revalidatePlannedBillOccurrencePaths();
+  return actionSuccess();
+}
+
+export async function linkExistingTransactionToPlannedBill(
+  input: LinkExistingTransactionToPlannedBillInput,
+): Promise<PlannedBillActionResult> {
+  const userId = await getUserIdOrThrow();
+  const parsed = linkExistingTransactionToPlannedBillSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return getValidationError(
+      parsed.error.issues[0]?.message,
+      "Invalid planned bill link input.",
+    );
+  }
+
+  const plannedBill = await db.plannedBill.findFirst({
+    where: {
+      id: parsed.data.plannedBillId,
+      userId,
+    },
+    select: {
+      id: true,
+      occurrences: {
+        where: {
+          month: parsed.data.month,
+        },
+        select: {
+          id: true,
+          status: true,
+          transactionId: true,
+          paymentSource: true,
+        },
+        take: 1,
+      },
+    },
+  });
+
+  if (!plannedBill) {
+    return actionError("Planned bill not found.");
+  }
+
+  const transaction = await db.transaction.findFirst({
+    where: {
+      id: parsed.data.transactionId,
+      userId,
+    },
+    select: {
+      id: true,
+      type: true,
+      localDate: true,
+      plannedBillOccurrence: {
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
+
+  if (!transaction) {
+    return actionError("Transaction not found.");
+  }
+
+  if (transaction.type !== TransactionType.EXPENSE) {
+    return actionError("Only expense transactions can be linked to planned bills.");
+  }
+
+  if (!transaction.localDate.startsWith(`${parsed.data.month}-`)) {
+    return actionError("Transaction must be inside the selected month.");
+  }
+
+  if (transaction.plannedBillOccurrence) {
+    return actionError("This transaction is already linked to a planned bill.");
+  }
+
+  const existingOccurrence = plannedBill.occurrences[0];
+
+  if (
+    existingOccurrence?.status === PlannedBillOccurrenceStatus.PAID &&
+    existingOccurrence.transactionId
+  ) {
+    return actionError("Undo the paid occurrence before linking another transaction.");
+  }
+
+  try {
+    await db.plannedBillOccurrence.upsert({
+      where: {
+        plannedBillId_month: {
+          plannedBillId: plannedBill.id,
+          month: parsed.data.month,
+        },
+      },
+      create: {
+        userId,
+        plannedBillId: plannedBill.id,
+        month: parsed.data.month,
+        status: PlannedBillOccurrenceStatus.PAID,
+        transactionId: transaction.id,
+        paidAtLocalDate: transaction.localDate,
+        paymentSource: PlannedBillOccurrencePaymentSource.LINKED,
+      },
+      update: {
+        status: PlannedBillOccurrenceStatus.PAID,
+        transactionId: transaction.id,
+        paidAtLocalDate: transaction.localDate,
+        paymentSource: PlannedBillOccurrencePaymentSource.LINKED,
+      },
+    });
+  } catch {
+    return getMutationError("Could not link transaction to planned bill. Please try again.");
   }
 
   revalidatePlannedBillOccurrencePaths();

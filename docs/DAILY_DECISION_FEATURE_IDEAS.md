@@ -119,6 +119,12 @@ A next improvement should support users who already created a manual transaction
 - show generated planned-bill transactions clearly
 - help prevent accidental duplicate rent/payment entries
 
+Decision: V2b adds explicit manual linking from a monthly planned-bill
+occurrence to an existing expense transaction. The user chooses the transaction;
+the app does not auto-match. Paid planned bills distinguish app-created
+transactions from linked existing transactions so undo behavior can keep totals
+consistent.
+
 ## Useful New Features
 
 ### 6. Category run-rate warnings

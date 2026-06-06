@@ -5,6 +5,10 @@ import { defineConfig, env } from "prisma/config";
 loadEnv({ path: path.resolve(".env") });
 loadEnv({ path: path.resolve(".env.local"), override: true });
 
+if (process.env.APP_ENV === "test") {
+  loadEnv({ path: path.resolve(".env.test.local"), override: true });
+}
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {

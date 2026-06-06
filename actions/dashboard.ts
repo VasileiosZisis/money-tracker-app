@@ -39,6 +39,8 @@ type DashboardPlannedBill = {
   id: string;
   name: string;
   amount: Prisma.Decimal;
+  categoryId: string;
+  tagId: string | null;
   dueDayOfMonth: number;
   status: DashboardPlannedBillStatus;
   defaultPaymentLocalDate: string;
@@ -47,6 +49,7 @@ type DashboardPlannedBill = {
     status: "PAID" | "SKIPPED";
     paidAtLocalDate: string | null;
     transactionId: string | null;
+    paymentSource: "GENERATED" | "LINKED" | null;
   } | null;
   category: {
     name: string;
@@ -54,6 +57,23 @@ type DashboardPlannedBill = {
   };
   tag: {
     id: string;
+    name: string;
+  } | null;
+  linkCandidates: DashboardPlannedBillLinkCandidate[];
+};
+
+type DashboardPlannedBillLinkCandidate = {
+  id: string;
+  localDate: string;
+  amount: Prisma.Decimal;
+  source: string | null;
+  note: string | null;
+  categoryId: string;
+  tagId: string | null;
+  category: {
+    name: string;
+  };
+  tag: {
     name: string;
   } | null;
 };
@@ -348,6 +368,7 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
     monthlyChartTransactions,
     forecastTransactions,
     plannedBills,
+    linkCandidateTransactions,
     latestTransactionEntry,
     user,
   ] = await Promise.all([
@@ -437,6 +458,7 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
         amount: true,
         dueDayOfMonth: true,
         categoryId: true,
+        tagId: true,
         isActive: true,
         occurrences: {
           where: {
@@ -447,6 +469,7 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
             status: true,
             paidAtLocalDate: true,
             transactionId: true,
+            paymentSource: true,
           },
           take: 1,
         },
@@ -459,6 +482,36 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
         tag: {
           select: {
             id: true,
+            name: true,
+          },
+        },
+      },
+    }),
+    db.transaction.findMany({
+      where: {
+        userId,
+        type: "EXPENSE",
+        localDate: {
+          gte: start,
+          lt: endExclusive,
+        },
+        plannedBillOccurrence: null,
+      },
+      select: {
+        id: true,
+        localDate: true,
+        amount: true,
+        source: true,
+        note: true,
+        categoryId: true,
+        tagId: true,
+        category: {
+          select: {
+            name: true,
+          },
+        },
+        tag: {
+          select: {
             name: true,
           },
         },
@@ -502,10 +555,43 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
     transactions: monthlyChartTransactions,
   });
   const currency = user?.currency ?? "USD";
+  const getLinkCandidatesForPlannedBill = (plannedBill: {
+    amount: Prisma.Decimal;
+    categoryId: string;
+    tagId: string | null;
+  }) =>
+    [...linkCandidateTransactions].sort((left, right) => {
+      const leftSameCategory = left.categoryId === plannedBill.categoryId ? 1 : 0;
+      const rightSameCategory = right.categoryId === plannedBill.categoryId ? 1 : 0;
+
+      if (leftSameCategory !== rightSameCategory) {
+        return rightSameCategory - leftSameCategory;
+      }
+
+      const leftSameTag =
+        plannedBill.tagId && left.tagId === plannedBill.tagId ? 1 : 0;
+      const rightSameTag =
+        plannedBill.tagId && right.tagId === plannedBill.tagId ? 1 : 0;
+
+      if (leftSameTag !== rightSameTag) {
+        return rightSameTag - leftSameTag;
+      }
+
+      const leftSameAmount = left.amount.eq(plannedBill.amount) ? 1 : 0;
+      const rightSameAmount = right.amount.eq(plannedBill.amount) ? 1 : 0;
+
+      if (leftSameAmount !== rightSameAmount) {
+        return rightSameAmount - leftSameAmount;
+      }
+
+      return right.localDate.localeCompare(left.localDate);
+    });
   const dashboardPlannedBills = plannedBills.map((plannedBill) => ({
     id: plannedBill.id,
     name: plannedBill.name,
     amount: plannedBill.amount,
+    categoryId: plannedBill.categoryId,
+    tagId: plannedBill.tagId,
     dueDayOfMonth: plannedBill.dueDayOfMonth,
     status: getPlannedBillStatus(
       forecast.monthContext.monthRelation,
@@ -525,6 +611,7 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
           status: plannedBill.occurrences[0].status,
           paidAtLocalDate: plannedBill.occurrences[0].paidAtLocalDate,
           transactionId: plannedBill.occurrences[0].transactionId,
+          paymentSource: plannedBill.occurrences[0].paymentSource,
         }
       : null,
     category: {
@@ -532,6 +619,7 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
       isArchived: plannedBill.category.isArchived,
     },
     tag: plannedBill.tag,
+    linkCandidates: getLinkCandidatesForPlannedBill(plannedBill),
   }));
 
   return {

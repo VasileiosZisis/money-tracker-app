@@ -9,6 +9,9 @@ export const plannedBillIdSchema = z.string().cuid("Invalid planned bill id.");
 export const plannedBillOccurrenceMonthSchema = z
   .string()
   .regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Month must be in YYYY-MM format.");
+export const plannedBillTransactionIdSchema = z
+  .string()
+  .cuid("Invalid transaction id.");
 
 export const plannedBillAmountSchema = z
   .union([z.string(), z.number()])
@@ -85,6 +88,12 @@ export const undoPlannedBillOccurrenceSchema = z.object({
   month: plannedBillOccurrenceMonthSchema,
 });
 
+export const linkExistingTransactionToPlannedBillSchema = z.object({
+  plannedBillId: plannedBillIdSchema,
+  transactionId: plannedBillTransactionIdSchema,
+  month: plannedBillOccurrenceMonthSchema,
+});
+
 export type PlannedBillInput = {
   name: string;
   amount: string | number;
@@ -118,5 +127,11 @@ export type SkipPlannedBillForMonthInput = {
 
 export type UndoPlannedBillOccurrenceInput = {
   plannedBillId: string;
+  month: string;
+};
+
+export type LinkExistingTransactionToPlannedBillInput = {
+  plannedBillId: string;
+  transactionId: string;
   month: string;
 };

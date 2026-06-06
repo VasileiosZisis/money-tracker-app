@@ -17,6 +17,11 @@ enum PlannedBillOccurrenceStatus {
   SKIPPED
 }
 
+enum PlannedBillOccurrencePaymentSource {
+  GENERATED
+  LINKED
+}
+
 model User {
   id                     String                  @id @default(cuid())
   name                   String?
@@ -156,6 +161,7 @@ model PlannedBillOccurrence {
   status          PlannedBillOccurrenceStatus
   transactionId   String?                     @unique
   paidAtLocalDate String?
+  paymentSource   PlannedBillOccurrencePaymentSource?
   createdAt       DateTime                    @default(now())
   updatedAt       DateTime                    @updatedAt
   user            User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
