@@ -15,19 +15,23 @@ Before making changes, read:
 1. `AGENTS.md`
 2. `docs/DESIGN_SYSTEM.md`
 3. `docs/TECH_DECISIONS.md`
-4. `docs/MVP_SPEC.md`
-5. `docs/TASKS.md`
-6. `docs/NEXT_PHASE_SPEC.md`
-7. `docs/TASKS_NEXT.md`
+4. `docs/PRODUCT_SPEC.md`
+5. `docs/ROADMAP.md` when selecting or discussing future product work
+6. the relevant active plan under `docs/` when implementing a planned feature
 
 Interpretation rules:
 
-- `MVP_SPEC.md` and `TASKS.md` define the **original shipped Free MVP baseline**
-- `NEXT_PHASE_SPEC.md` and `TASKS_NEXT.md` define the **current implementation target after MVP**
+- `PRODUCT_SPEC.md` defines the current product behavior and scope.
+- `ROADMAP.md` contains candidate future work and is not implementation scope
+  until the user explicitly selects an item.
+- Active implementation plans define the selected feature work.
+- `MVP_SPEC.md`, `NEXT_PHASE_SPEC.md`, and documents under `docs/archive/`
+  are historical references only.
 - If there is a conflict:
   - `AGENTS.md` wins
   - then `TECH_DECISIONS.md`
-  - then the currently relevant spec/task file for the active phase
+  - then `PRODUCT_SPEC.md`
+  - then the explicitly selected active implementation plan
 
 Agents should not invent product scope beyond these files.
 

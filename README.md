@@ -146,15 +146,16 @@ Read these in order for product and implementation rules:
 1. `AGENTS.md`
 2. `docs/DESIGN_SYSTEM.md`
 3. `docs/TECH_DECISIONS.md`
-4. `docs/MVP_SPEC.md`
-5. `docs/TASKS.md`
-6. `docs/NEXT_PHASE_SPEC.md`
-7. `docs/TASKS_NEXT.md`
+4. `docs/PRODUCT_SPEC.md`
+5. `docs/ROADMAP.md` for candidate future work
 
-Additional planning notes:
+Active implementation plan:
 
-- `docs/PLANNED_BILL_OCCURRENCES_PLAN.md`
-- `docs/DAILY_DECISION_FEATURE_IDEAS.md`
+- `docs/TOTAL_BALANCE_IMPLEMENTATION_PLAN.md`
+
+Historical phase specifications remain in `docs/MVP_SPEC.md` and
+`docs/NEXT_PHASE_SPEC.md`. Completed task and feature plans are stored under
+`docs/archive/`.
 
 ## Local Setup
 
