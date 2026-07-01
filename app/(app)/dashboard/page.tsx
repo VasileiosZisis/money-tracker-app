@@ -19,10 +19,17 @@ import { redirect } from 'next/navigation'
 import type * as React from 'react'
 
 import {
-  getDashboardMonthData,
+  getDashboardData,
+  type DashboardBalanceQueryParams,
+  type DashboardMonthData,
   type DashboardPlannedIncomeStatus,
   type DashboardPlannedBillStatus
 } from '@/actions/dashboard'
+import {
+  createBalanceAdjustment,
+  deleteBalanceAdjustment,
+  updateBalanceAdjustment
+} from '@/actions/balance-adjustments'
 import {
   linkExistingTransactionToPlannedIncome,
   markPlannedIncomeReceived,
@@ -37,6 +44,7 @@ import {
 } from '@/actions/planned-bills'
 import { PageHeader } from '@/components/app-shell/page-header'
 import { MonthCashflowChart } from '@/components/dashboard/month-cashflow-chart'
+import { TotalBalanceSection } from '@/components/dashboard/total-balance-section'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import {
@@ -50,17 +58,23 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { PageNotice } from '@/components/ui/page-notice'
 import { Select } from '@/components/ui/select'
+import { formatMonthLabel } from '@/lib/dates/month'
 import { cn } from '@/lib/utils'
 
 type DashboardPageProps = {
   searchParams?: Promise<{
     month?: string | string[]
+    balanceRange?: string | string[]
+    balanceMode?: string | string[]
+    balanceStart?: string | string[]
+    balanceEnd?: string | string[]
+    balanceAdjustment?: string | string[]
     error?: string | string[]
     success?: string | string[]
   }>
 }
 
-type DashboardData = Awaited<ReturnType<typeof getDashboardMonthData>>
+type DashboardData = DashboardMonthData
 type ForecastData = DashboardData['forecast']
 type MetricTone = 'default' | 'success' | 'warning' | 'danger'
 type AttentionTone = DashboardData['attentionItems'][number]['tone']
@@ -94,10 +108,22 @@ function firstSearchParamValue (value: string | string[] | undefined) {
 
 function buildDashboardUrl (params: {
   month: string
+  balanceQuery: DashboardBalanceQueryParams
+  balanceAdjustment?: string
   error?: string
   success?: string
 }) {
   const searchParams = new URLSearchParams({ month: params.month })
+
+  for (const [key, value] of Object.entries(params.balanceQuery)) {
+    if (value) {
+      searchParams.set(key, value)
+    }
+  }
+
+  if (params.balanceAdjustment) {
+    searchParams.set('balanceAdjustment', params.balanceAdjustment)
+  }
 
   if (params.error) {
     searchParams.set('error', params.error)
@@ -575,6 +601,120 @@ export default async function DashboardPage ({
   const selectedMonth = normalizeMonthParam(resolvedSearchParams?.month)
   const errorMessage = firstSearchParamValue(resolvedSearchParams?.error)
   const successMessage = firstSearchParamValue(resolvedSearchParams?.success)
+  const dashboardData = await getDashboardData(
+    selectedMonth,
+    resolvedSearchParams
+  )
+  const data = dashboardData.monthData
+  const balanceQuery = dashboardData.totalBalance.queryParams
+  const requestedBalanceAdjustment = firstSearchParamValue(
+    resolvedSearchParams.balanceAdjustment
+  )
+  const selectedBalanceAdjustment = dashboardData.totalBalance.adjustments.find(
+    adjustment => adjustment.id === requestedBalanceAdjustment
+  )
+  const balanceAdjustmentState =
+    requestedBalanceAdjustment === 'add' ||
+    requestedBalanceAdjustment === 'manage' ||
+    selectedBalanceAdjustment
+      ? requestedBalanceAdjustment
+      : requestedBalanceAdjustment
+        ? 'manage'
+        : undefined
+  const balanceAdjustmentNotFound =
+    Boolean(requestedBalanceAdjustment) &&
+    requestedBalanceAdjustment !== 'add' &&
+    requestedBalanceAdjustment !== 'manage' &&
+    !selectedBalanceAdjustment
+
+  async function createBalanceAdjustmentAction (formData: FormData) {
+    'use server'
+
+    const month = String(formData.get('month') ?? '')
+    const result = await createBalanceAdjustment({
+      amount: String(formData.get('amount') ?? ''),
+      effectiveMonth: String(formData.get('effectiveMonth') ?? ''),
+      note: String(formData.get('note') ?? '')
+    })
+
+    if (!result.ok) {
+      redirect(
+        buildDashboardUrl({
+          month,
+          balanceQuery,
+          balanceAdjustment: 'add',
+          error: result.error
+        })
+      )
+    }
+
+    redirect(
+      buildDashboardUrl({
+        month,
+        balanceQuery,
+        success: 'Balance adjustment added.'
+      })
+    )
+  }
+
+  async function updateBalanceAdjustmentAction (formData: FormData) {
+    'use server'
+
+    const month = String(formData.get('month') ?? '')
+    const id = String(formData.get('id') ?? '')
+    const result = await updateBalanceAdjustment({
+      id,
+      amount: String(formData.get('amount') ?? ''),
+      effectiveMonth: String(formData.get('effectiveMonth') ?? ''),
+      note: String(formData.get('note') ?? '')
+    })
+
+    if (!result.ok) {
+      redirect(
+        buildDashboardUrl({
+          month,
+          balanceQuery,
+          balanceAdjustment: id,
+          error: result.error
+        })
+      )
+    }
+
+    redirect(
+      buildDashboardUrl({
+        month,
+        balanceQuery,
+        success: 'Balance adjustment updated.'
+      })
+    )
+  }
+
+  async function deleteBalanceAdjustmentAction (formData: FormData) {
+    'use server'
+
+    const month = String(formData.get('month') ?? '')
+    const id = String(formData.get('id') ?? '')
+    const result = await deleteBalanceAdjustment({ id })
+
+    if (!result.ok) {
+      redirect(
+        buildDashboardUrl({
+          month,
+          balanceQuery,
+          balanceAdjustment: id,
+          error: result.error
+        })
+      )
+    }
+
+    redirect(
+      buildDashboardUrl({
+        month,
+        balanceQuery,
+        success: 'Balance adjustment deleted.'
+      })
+    )
+  }
 
   async function markPaidAction (formData: FormData) {
     'use server'
@@ -588,10 +728,10 @@ export default async function DashboardPage ({
     })
 
     if (!result.ok) {
-      redirect(buildDashboardUrl({ month, error: result.error }))
+      redirect(buildDashboardUrl({ month, balanceQuery, error: result.error }))
     }
 
-    redirect(buildDashboardUrl({ month, success: 'Planned bill marked paid.' }))
+    redirect(buildDashboardUrl({ month, balanceQuery, success: 'Planned bill marked paid.' }))
   }
 
   async function skipBillAction (formData: FormData) {
@@ -604,10 +744,10 @@ export default async function DashboardPage ({
     })
 
     if (!result.ok) {
-      redirect(buildDashboardUrl({ month, error: result.error }))
+      redirect(buildDashboardUrl({ month, balanceQuery, error: result.error }))
     }
 
-    redirect(buildDashboardUrl({ month, success: 'Planned bill skipped for this month.' }))
+    redirect(buildDashboardUrl({ month, balanceQuery, success: 'Planned bill skipped for this month.' }))
   }
 
   async function undoOccurrenceAction (formData: FormData) {
@@ -620,10 +760,10 @@ export default async function DashboardPage ({
     })
 
     if (!result.ok) {
-      redirect(buildDashboardUrl({ month, error: result.error }))
+      redirect(buildDashboardUrl({ month, balanceQuery, error: result.error }))
     }
 
-    redirect(buildDashboardUrl({ month, success: 'Planned bill status undone.' }))
+    redirect(buildDashboardUrl({ month, balanceQuery, success: 'Planned bill status undone.' }))
   }
 
   async function linkExistingTransactionAction (formData: FormData) {
@@ -637,10 +777,10 @@ export default async function DashboardPage ({
     })
 
     if (!result.ok) {
-      redirect(buildDashboardUrl({ month, error: result.error }))
+      redirect(buildDashboardUrl({ month, balanceQuery, error: result.error }))
     }
 
-    redirect(buildDashboardUrl({ month, success: 'Transaction linked to planned bill.' }))
+    redirect(buildDashboardUrl({ month, balanceQuery, success: 'Transaction linked to planned bill.' }))
   }
 
   async function markIncomeReceivedAction (formData: FormData) {
@@ -655,10 +795,10 @@ export default async function DashboardPage ({
     })
 
     if (!result.ok) {
-      redirect(buildDashboardUrl({ month, error: result.error }))
+      redirect(buildDashboardUrl({ month, balanceQuery, error: result.error }))
     }
 
-    redirect(buildDashboardUrl({ month, success: 'Planned income marked received.' }))
+    redirect(buildDashboardUrl({ month, balanceQuery, success: 'Planned income marked received.' }))
   }
 
   async function skipIncomeAction (formData: FormData) {
@@ -671,10 +811,10 @@ export default async function DashboardPage ({
     })
 
     if (!result.ok) {
-      redirect(buildDashboardUrl({ month, error: result.error }))
+      redirect(buildDashboardUrl({ month, balanceQuery, error: result.error }))
     }
 
-    redirect(buildDashboardUrl({ month, success: 'Planned income skipped for this month.' }))
+    redirect(buildDashboardUrl({ month, balanceQuery, success: 'Planned income skipped for this month.' }))
   }
 
   async function undoIncomeOccurrenceAction (formData: FormData) {
@@ -687,10 +827,10 @@ export default async function DashboardPage ({
     })
 
     if (!result.ok) {
-      redirect(buildDashboardUrl({ month, error: result.error }))
+      redirect(buildDashboardUrl({ month, balanceQuery, error: result.error }))
     }
 
-    redirect(buildDashboardUrl({ month, success: 'Planned income status undone.' }))
+    redirect(buildDashboardUrl({ month, balanceQuery, success: 'Planned income status undone.' }))
   }
 
   async function linkExistingIncomeTransactionAction (formData: FormData) {
@@ -704,13 +844,11 @@ export default async function DashboardPage ({
     })
 
     if (!result.ok) {
-      redirect(buildDashboardUrl({ month, error: result.error }))
+      redirect(buildDashboardUrl({ month, balanceQuery, error: result.error }))
     }
 
-    redirect(buildDashboardUrl({ month, success: 'Transaction linked to planned income.' }))
+    redirect(buildDashboardUrl({ month, balanceQuery, success: 'Transaction linked to planned income.' }))
   }
-
-  const data = await getDashboardMonthData(selectedMonth)
 
   const formatter = new Intl.NumberFormat(undefined, {
     style: 'currency',
@@ -728,7 +866,10 @@ export default async function DashboardPage ({
 
   return (
     <div className='space-y-6'>
-      <PageHeader title='Monthly snapshot' />
+      <PageHeader
+        title='Dashboard'
+        description='Review completed balance history and manage the current monthly cash-flow picture.'
+      />
 
       {errorMessage ? (
         <PageNotice variant='error' title='Something needs attention'>
@@ -742,7 +883,60 @@ export default async function DashboardPage ({
         </PageNotice>
       ) : null}
 
+      <TotalBalanceSection
+        currency={data.currency}
+        month={selectedMonth}
+        data={dashboardData.totalBalance}
+        adjustmentState={balanceAdjustmentState}
+        adjustmentNotFound={balanceAdjustmentNotFound}
+        createAdjustmentAction={createBalanceAdjustmentAction}
+        updateAdjustmentAction={updateBalanceAdjustmentAction}
+        deleteAdjustmentAction={deleteBalanceAdjustmentAction}
+      />
+
+      <section
+        aria-labelledby='monthly-snapshot-heading'
+        className='flex flex-col gap-6'
+      >
+        <div className='flex flex-col gap-1.5'>
+          <h2
+            id='monthly-snapshot-heading'
+            className='text-3xl font-semibold tracking-tight text-foreground md:text-4xl'
+          >
+            Monthly Snapshot
+          </h2>
+          <p className='text-sm leading-6 text-muted-foreground'>
+            {formatMonthLabel(selectedMonth)} actuals, planning, and forecast.
+          </p>
+        </div>
+
       <form className='flex flex-wrap items-end gap-3' method='get'>
+        <input
+          type='hidden'
+          name='balanceRange'
+          value={balanceQuery.balanceRange}
+        />
+        {balanceQuery.balanceMode ? (
+          <input
+            type='hidden'
+            name='balanceMode'
+            value={balanceQuery.balanceMode}
+          />
+        ) : null}
+        {balanceQuery.balanceStart ? (
+          <input
+            type='hidden'
+            name='balanceStart'
+            value={balanceQuery.balanceStart}
+          />
+        ) : null}
+        {balanceQuery.balanceEnd ? (
+          <input
+            type='hidden'
+            name='balanceEnd'
+            value={balanceQuery.balanceEnd}
+          />
+        ) : null}
         <div className='space-y-1.5'>
           <Input
             id='month'
@@ -1482,6 +1676,7 @@ export default async function DashboardPage ({
 
           </CardContent>
         </Card>
+      </section>
       </section>
     </div>
   )

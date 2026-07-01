@@ -1,6 +1,14 @@
 import { Prisma } from "@/generated/prisma/client";
 
 import { getUserIdOrThrow } from "@/lib/auth/session";
+import {
+  computeTotalBalanceSummary,
+  findEarliestCompletedActivityMonth,
+  getLatestCompletedMonth,
+  resolveBalancePeriod,
+  type BalancePeriod,
+  type TotalBalanceSummary,
+} from "@/lib/balance";
 import { getMonthRange } from "@/lib/dates/month";
 import { db } from "@/lib/db";
 import {
@@ -10,6 +18,13 @@ import {
   type ForecastMonthRelation,
   type ForecastSummary,
 } from "@/lib/forecast";
+import type { SearchParamsShape } from "@/lib/routes/search-params";
+import {
+  createBalanceRangeQuerySchema,
+  type BalancePeriodMode,
+  type BalanceRangePreset,
+  type BalanceRangeQuery,
+} from "@/lib/validators/balance-adjustment";
 
 export type DashboardPlannedBillStatus =
   | "paid"
@@ -176,6 +191,43 @@ export type DashboardMonthData = {
       type: "INCOME" | "EXPENSE";
     };
   }>;
+};
+
+export type DashboardBalanceQueryParams = {
+  balanceRange: BalanceRangePreset;
+  balanceMode?: BalancePeriodMode;
+  balanceStart?: string;
+  balanceEnd?: string;
+};
+
+export type DashboardTotalBalanceEmptyReason =
+  | "NO_COMPLETED_HISTORY"
+  | "NO_COMPLETED_PERIOD";
+
+export type DashboardBalanceAdjustment = {
+  id: string;
+  amount: string;
+  effectiveMonth: string;
+  note: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type DashboardTotalBalanceData = {
+  selection: BalanceRangeQuery;
+  queryParams: DashboardBalanceQueryParams;
+  adjustments: DashboardBalanceAdjustment[];
+  period: BalancePeriod | null;
+  summary: TotalBalanceSummary | null;
+  earliestActivityMonth: string | null;
+  latestCompletedMonth: string;
+  validationError: string | null;
+  emptyReason: DashboardTotalBalanceEmptyReason | null;
+};
+
+export type DashboardData = {
+  monthData: DashboardMonthData;
+  totalBalance: DashboardTotalBalanceData;
 };
 
 const ATTENTION_ITEM_LIMIT = 5;
@@ -557,9 +609,168 @@ function buildChartSeries(params: {
   };
 }
 
-export async function getDashboardMonthData(month: string): Promise<DashboardMonthData> {
-  const userId = await getUserIdOrThrow();
-  const referenceDate = getTodayLocalDate();
+function getBalanceQueryParams(
+  selection: BalanceRangeQuery,
+): DashboardBalanceQueryParams {
+  if (selection.balanceRange !== "custom") {
+    return { balanceRange: selection.balanceRange };
+  }
+
+  return {
+    balanceRange: selection.balanceRange,
+    balanceMode: selection.balanceMode,
+    balanceStart: selection.balanceStart,
+    balanceEnd: selection.balanceEnd,
+  };
+}
+
+async function loadDashboardTotalBalanceData(params: {
+  userId: string;
+  referenceDate: string;
+  searchParams: SearchParamsShape;
+}): Promise<DashboardTotalBalanceData> {
+  const rangeSchema = createBalanceRangeQuerySchema(params.referenceDate);
+  const parsedRange = rangeSchema.safeParse(params.searchParams);
+  const selection = parsedRange.success ? parsedRange.data : rangeSchema.parse({});
+  const validationError = parsedRange.success
+    ? null
+    : (parsedRange.error.issues[0]?.message ?? "Invalid Total Balance period.");
+  const latestCompletedMonth = getLatestCompletedMonth(params.referenceDate);
+  const currentMonthStart = `${params.referenceDate.slice(0, 7)}-01`;
+
+  const [earliestTransaction, earliestAdjustment, adjustmentList] =
+    await Promise.all([
+      db.transaction.findFirst({
+        where: {
+          userId: params.userId,
+          localDate: {
+            lt: currentMonthStart,
+          },
+        },
+        select: {
+          type: true,
+          amount: true,
+          localDate: true,
+        },
+        orderBy: {
+          localDate: "asc",
+        },
+      }),
+      db.balanceAdjustment.findFirst({
+        where: {
+          userId: params.userId,
+          effectiveMonth: {
+            lte: latestCompletedMonth,
+          },
+        },
+        select: {
+          amount: true,
+          effectiveMonth: true,
+        },
+        orderBy: {
+          effectiveMonth: "asc",
+        },
+      }),
+      db.balanceAdjustment.findMany({
+        where: {
+          userId: params.userId,
+        },
+        select: {
+          id: true,
+          amount: true,
+          effectiveMonth: true,
+          note: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        orderBy: [{ effectiveMonth: "desc" }, { createdAt: "desc" }],
+      }),
+    ]);
+
+  const earliestActivityMonth = findEarliestCompletedActivityMonth({
+    referenceDate: params.referenceDate,
+    transactions: earliestTransaction ? [earliestTransaction] : [],
+    adjustments: earliestAdjustment ? [earliestAdjustment] : [],
+  });
+  const period = resolveBalancePeriod({
+    selection,
+    referenceDate: params.referenceDate,
+    earliestActivityMonth,
+  });
+  const baseResult = {
+    selection,
+    queryParams: getBalanceQueryParams(selection),
+    adjustments: adjustmentList.map((adjustment) => ({
+      ...adjustment,
+      amount: adjustment.amount.toString(),
+    })),
+    period,
+    earliestActivityMonth,
+    latestCompletedMonth,
+    validationError,
+  };
+
+  if (!earliestActivityMonth) {
+    return {
+      ...baseResult,
+      summary: null,
+      emptyReason: "NO_COMPLETED_HISTORY",
+    };
+  }
+
+  if (!period) {
+    return {
+      ...baseResult,
+      summary: null,
+      emptyReason: "NO_COMPLETED_PERIOD",
+    };
+  }
+
+  const periodEndExclusive = getMonthRange(period.endMonth).endExclusive;
+  const [transactions, adjustments] = await Promise.all([
+    db.transaction.findMany({
+      where: {
+        userId: params.userId,
+        localDate: {
+          lt: periodEndExclusive,
+        },
+      },
+      select: {
+        type: true,
+        amount: true,
+        localDate: true,
+      },
+    }),
+    db.balanceAdjustment.findMany({
+      where: {
+        userId: params.userId,
+        effectiveMonth: {
+          lte: period.endMonth,
+        },
+      },
+      select: {
+        amount: true,
+        effectiveMonth: true,
+      },
+    }),
+  ]);
+
+  return {
+    ...baseResult,
+    summary: computeTotalBalanceSummary({
+      period,
+      transactions,
+      adjustments,
+    }),
+    emptyReason: null,
+  };
+}
+
+async function loadDashboardMonthData(
+  month: string,
+  userId: string,
+  referenceDate: string,
+): Promise<DashboardMonthData> {
   const forecastMonthContext = buildForecastMonthContext({
     selectedMonth: month,
     referenceDate,
@@ -1011,4 +1222,31 @@ export async function getDashboardMonthData(month: string): Promise<DashboardMon
       },
     })),
   };
+}
+
+export async function getDashboardMonthData(
+  month: string,
+): Promise<DashboardMonthData> {
+  const userId = await getUserIdOrThrow();
+  const referenceDate = getTodayLocalDate();
+
+  return loadDashboardMonthData(month, userId, referenceDate);
+}
+
+export async function getDashboardData(
+  month: string,
+  searchParams: SearchParamsShape,
+): Promise<DashboardData> {
+  const userId = await getUserIdOrThrow();
+  const referenceDate = getTodayLocalDate();
+  const [monthData, totalBalance] = await Promise.all([
+    loadDashboardMonthData(month, userId, referenceDate),
+    loadDashboardTotalBalanceData({
+      userId,
+      referenceDate,
+      searchParams,
+    }),
+  ]);
+
+  return { monthData, totalBalance };
 }
