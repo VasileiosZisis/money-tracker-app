@@ -44,12 +44,26 @@ model User {
   sessions               Session[]
   categories             Category[]
   transactions           Transaction[]
+  balanceAdjustments     BalanceAdjustment[]
   plannedBills           PlannedBill[]
   plannedBillOccurrences PlannedBillOccurrence[]
   plannedIncomes         PlannedIncome[]
   plannedIncomeOccurrences PlannedIncomeOccurrence[]
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
+}
+
+model BalanceAdjustment {
+  id             String   @id @default(cuid())
+  userId         String
+  amount         Decimal  @db.Decimal(14, 2)
+  effectiveMonth String
+  note           String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, effectiveMonth])
 }
 
 model Account {

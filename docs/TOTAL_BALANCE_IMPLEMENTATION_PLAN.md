@@ -12,6 +12,22 @@ This feature is separate from the daily-decision feature plan. It introduces a
 historical balance view, not a bank-synced account balance or reconciliation
 system.
 
+## Locked Implementation Decisions
+
+- The dashboard page heading becomes `Dashboard`.
+- `Total Balance` is the first dashboard section.
+- The existing month-specific dashboard content is grouped under a separate
+  `Monthly Snapshot` section after Total Balance.
+- Total Balance period controls remain independent from the Monthly Snapshot
+  month control, including across redirects after dashboard mutations.
+- Balance-adjustment create, edit, and delete workflows follow the project's
+  existing inline, query-parameter-driven CRUD pattern.
+- V1 does not add a new dialog primitive solely for balance adjustments.
+- Unit tests use Node's built-in test runner through the existing `tsx`
+  dependency.
+- Add an `npm test` script for the focused balance-helper tests; do not add a
+  separate test framework dependency for V1.
+
 ## Product Definition
 
 ### Balance Formula
@@ -294,6 +310,7 @@ Place the new `Total Balance` section immediately before `Monthly Snapshot`.
 
 Recommended composition:
 
+- Page heading: `Dashboard`
 - Section heading: `Total Balance`
 - Primary value: selected-period ending balance
 - Supporting values:
@@ -304,6 +321,10 @@ Recommended composition:
 - Ending-balance line chart
 - `Add money` command
 - adjustment management access for edit/delete
+
+After the Total Balance section, render a distinct `Monthly Snapshot` heading
+with its existing month selector and dashboard content. Changing either
+section's period must preserve the other section's query parameters.
 
 Empty states:
 
@@ -323,6 +344,15 @@ Add Money form:
 - optional note
 - default effective month: latest completed month
 - show that the amount affects Total Balance but is not counted as income
+
+Interaction pattern:
+
+- use inline create, edit, and delete forms consistent with the existing
+  planned-item pages
+- use query parameters to open or close adjustment editing state
+- preserve the selected Total Balance period and Monthly Snapshot month while
+  opening, submitting, or closing adjustment forms
+- do not introduce a dialog component solely for this feature
 
 Use existing dashboard cards, inputs, selects, dialogs, buttons, chart patterns,
 currency formatting, and design tokens. Do not create a second visual system.
@@ -359,15 +389,19 @@ currency formatting, and design tokens. Do not create a second visual system.
 
 ### Milestone 5: Dashboard UI
 
+- Rename the page heading to `Dashboard`.
 - Add Total Balance before Monthly Snapshot.
+- Add a distinct `Monthly Snapshot` section heading around the existing
+  month-specific dashboard content.
 - Render summary values and the monthly ending-balance chart.
 - Add preset and custom month/year controls.
 - Add empty, invalid-period, loading, and negative-balance states.
 
 ### Milestone 6: Add Money And Adjustment Management
 
-- Add the Add Money form/dialog.
-- Add edit and delete controls for existing adjustments.
+- Add the inline Add Money form.
+- Add inline, query-parameter-driven edit and delete controls for existing
+  adjustments.
 - Explain that adjustments affect balance without becoming income.
 
 ### Milestone 7: Documentation And Verification
@@ -390,6 +424,10 @@ currency formatting, and design tokens. Do not create a second visual system.
 ## Test Plan
 
 ### Unit Tests
+
+Use Node's built-in test runner through `tsx`. Add a project `npm test` script
+that runs the focused balance-helper tests without introducing another test
+framework dependency.
 
 - ending balance equals cumulative adjustments plus income minus expenses
 - starting balance includes all activity before the selected period
@@ -439,6 +477,7 @@ currency formatting, and design tokens. Do not create a second visual system.
 ```powershell
 cmd /c npx prisma migrate dev --name add_balance_adjustments
 cmd /c npx prisma generate
+cmd /c npm test
 cmd /c npx tsc --noEmit --pretty false
 cmd /c npm run lint
 ```
