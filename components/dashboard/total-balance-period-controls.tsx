@@ -4,6 +4,7 @@ import * as React from "react";
 
 import type { DashboardBalanceQueryParams } from "@/actions/dashboard";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Field,
   FieldGroup,
@@ -79,93 +80,103 @@ export function TotalBalancePeriodControls({
   return (
     <form method="get">
       <input type="hidden" name="month" value={month} />
-      <FieldGroup className="gap-4 lg:grid lg:grid-cols-[minmax(220px,0.8fr)_minmax(0,1.6fr)_auto] lg:items-end">
-        <Field>
-          <FieldLabel htmlFor="balanceRange">Period</FieldLabel>
-          <Select
-            id="balanceRange"
-            name="balanceRange"
-            value={range}
-            onChange={(event) =>
-              setRange(event.target.value as BalanceRangePreset)
-            }
-          >
-            {RANGE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </Select>
-        </Field>
+      <FieldGroup className="gap-4">
+        <FieldGroup className="w-fit flex-row items-end gap-3">
+          <Field className="w-fit *:w-fit">
+            <Select
+              id="balanceRange"
+              name="balanceRange"
+              aria-label="Total Balance period"
+              className="w-fit"
+              wrapperClassName="w-fit"
+              value={range}
+              onChange={(event) =>
+                setRange(event.target.value as BalanceRangePreset)
+              }
+            >
+              {RANGE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+
+          <Button type="submit">
+            Apply
+          </Button>
+        </FieldGroup>
 
         {range === "custom" ? (
-          <FieldGroup className="gap-4 md:grid md:grid-cols-[auto_1fr] md:items-end">
-            <Field>
-              <FieldTitle id="balanceModeLabel">Custom period</FieldTitle>
-              <input type="hidden" name="balanceMode" value={mode} />
-              <ToggleGroup
-                aria-labelledby="balanceModeLabel"
-                value={[mode]}
-                variant="outline"
-                size="lg"
-                spacing={2}
-                onValueChange={(values) => {
-                  const nextMode = values[0] as BalancePeriodMode | undefined;
-
-                  if (nextMode) {
-                    setMode(nextMode);
-                  }
-                }}
-              >
-                <ToggleGroupItem value="months">Months</ToggleGroupItem>
-                <ToggleGroupItem value="years">Years</ToggleGroupItem>
-              </ToggleGroup>
-            </Field>
-
-            <FieldGroup className="gap-4 sm:grid sm:grid-cols-2">
+          <Card className="w-1/2">
+            <CardContent className="p-5">
+              <FieldGroup className="gap-6 md:grid md:grid-cols-[auto_1fr] md:items-end">
               <Field>
-                <FieldLabel htmlFor="balanceStart">Start</FieldLabel>
-                <Input
-                  key={`start-${mode}`}
-                  id="balanceStart"
-                  name="balanceStart"
-                  type={mode === "months" ? "month" : "number"}
-                  min={mode === "years" ? "1000" : undefined}
-                  max={
-                    mode === "months"
-                      ? latestCompletedMonth
-                      : defaultCompletedYear
-                  }
-                  defaultValue={mode === "months" ? monthStart : yearStart}
-                  required
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="balanceEnd">End</FieldLabel>
-                <Input
-                  key={`end-${mode}`}
-                  id="balanceEnd"
-                  name="balanceEnd"
-                  type={mode === "months" ? "month" : "number"}
-                  min={mode === "years" ? "1000" : undefined}
-                  max={
-                    mode === "months"
-                      ? latestCompletedMonth
-                      : defaultCompletedYear
-                  }
-                  defaultValue={mode === "months" ? monthEnd : yearEnd}
-                  required
-                />
-              </Field>
-            </FieldGroup>
-          </FieldGroup>
-        ) : (
-          <div className="hidden lg:block" />
-        )}
+                <FieldTitle id="balanceModeLabel">Custom period</FieldTitle>
+                <input type="hidden" name="balanceMode" value={mode} />
+                <ToggleGroup
+                  aria-labelledby="balanceModeLabel"
+                  value={[mode]}
+                  variant="outline"
+                  size="lg"
+                  spacing={2}
+                  onValueChange={(values) => {
+                    const nextMode = values[0] as
+                      | BalancePeriodMode
+                      | undefined;
 
-        <Button type="submit" size="lg">
-          Apply period
-        </Button>
+                    if (nextMode) {
+                      setMode(nextMode);
+                    }
+                  }}
+                >
+                  <ToggleGroupItem value="months">Months</ToggleGroupItem>
+                  <ToggleGroupItem value="years">Years</ToggleGroupItem>
+                </ToggleGroup>
+              </Field>
+
+                <FieldGroup className="grid grid-cols-2 gap-2">
+                  <Field className="w-fit *:w-fit">
+                    <FieldLabel htmlFor="balanceStart">Start</FieldLabel>
+                    <Input
+                      key={`start-${mode}`}
+                      id="balanceStart"
+                      name="balanceStart"
+                      className="w-fit"
+                      type={mode === "months" ? "month" : "number"}
+                      min={mode === "years" ? "1000" : undefined}
+                      max={
+                        mode === "months"
+                          ? latestCompletedMonth
+                          : defaultCompletedYear
+                      }
+                      defaultValue={mode === "months" ? monthStart : yearStart}
+                      required
+                    />
+                  </Field>
+                  <Field className="w-fit *:w-fit">
+                    <FieldLabel htmlFor="balanceEnd">End</FieldLabel>
+                    <Input
+                      key={`end-${mode}`}
+                      id="balanceEnd"
+                      name="balanceEnd"
+                      className="w-fit"
+                      type={mode === "months" ? "month" : "number"}
+                      min={mode === "years" ? "1000" : undefined}
+                      max={
+                        mode === "months"
+                          ? latestCompletedMonth
+                          : defaultCompletedYear
+                      }
+                      defaultValue={mode === "months" ? monthEnd : yearEnd}
+                      required
+                    />
+                  </Field>
+                </FieldGroup>
+              </FieldGroup>
+            </CardContent>
+          </Card>
+        ) : null}
       </FieldGroup>
     </form>
   );

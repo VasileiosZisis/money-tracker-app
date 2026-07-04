@@ -42,7 +42,6 @@ import {
   skipPlannedBillForMonth,
   undoPlannedBillOccurrence
 } from '@/actions/planned-bills'
-import { PageHeader } from '@/components/app-shell/page-header'
 import { MonthCashflowChart } from '@/components/dashboard/month-cashflow-chart'
 import { TotalBalanceSection } from '@/components/dashboard/total-balance-section'
 import { Badge } from '@/components/ui/badge'
@@ -866,11 +865,6 @@ export default async function DashboardPage ({
 
   return (
     <div className='space-y-6'>
-      <PageHeader
-        title='Dashboard'
-        description='Review completed balance history and manage the current monthly cash-flow picture.'
-      />
-
       {errorMessage ? (
         <PageNotice variant='error' title='Something needs attention'>
           {errorMessage}
@@ -975,7 +969,7 @@ export default async function DashboardPage ({
                 </p>
                 <p
                   className={cn(
-                    'font-mono text-4xl font-semibold tracking-tight sm:text-5xl',
+                    'font-mono text-4xl font-semibold tracking-tight',
                     netTone.textClassName
                   )}
                 >

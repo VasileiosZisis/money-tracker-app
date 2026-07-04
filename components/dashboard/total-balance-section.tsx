@@ -20,9 +20,6 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageNotice } from "@/components/ui/page-notice";
@@ -61,20 +58,6 @@ function buildDashboardHref(params: {
   return `/dashboard?${searchParams.toString()}`;
 }
 
-function getPeriodLabel(data: DashboardTotalBalanceData) {
-  if (!data.period) {
-    return "Completed months";
-  }
-
-  if (data.period.startMonth === data.period.endMonth) {
-    return formatMonthLabel(data.period.startMonth);
-  }
-
-  return `${formatMonthLabel(data.period.startMonth)} – ${formatMonthLabel(
-    data.period.endMonth,
-  )}`;
-}
-
 export function TotalBalanceSection({
   currency,
   month,
@@ -90,7 +73,6 @@ export function TotalBalanceSection({
     currency,
   });
   const summary = data.summary;
-  const periodLabel = getPeriodLabel(data);
   const chartData =
     summary?.monthlyBalances.map((point) => ({
       month: point.month,
@@ -127,7 +109,7 @@ export function TotalBalanceSection({
       aria-labelledby="total-balance-heading"
       className="flex flex-col gap-4"
     >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <h2
             id="total-balance-heading"
@@ -135,28 +117,14 @@ export function TotalBalanceSection({
           >
             Total Balance
           </h2>
-          <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-            Completed-month history from recorded transactions and balance
-            adjustments. This is a calculated ledger view, not a bank balance.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href={addAdjustmentHref}
-            className={buttonVariants({ size: "sm" })}
-          >
-            <Plus data-icon="inline-start" />
-            Add money
-          </Link>
-          <Link
-            href={manageAdjustmentsHref}
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-          >
-            <ListRestart data-icon="inline-start" />
-            Manage adjustments
-          </Link>
         </div>
       </div>
+
+      <TotalBalancePeriodControls
+        month={month}
+        query={data.queryParams}
+        latestCompletedMonth={data.latestCompletedMonth}
+      />
 
       {data.validationError ? (
         <PageNotice variant="error" title="Invalid Total Balance period">
@@ -165,26 +133,9 @@ export function TotalBalanceSection({
       ) : null}
 
       <Card className="overflow-hidden">
-        <CardHeader className="border-b border-border/70 pb-5">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex flex-col gap-1.5">
-              <CardTitle>Completed balance history</CardTitle>
-              <CardDescription>{periodLabel}</CardDescription>
-            </div>
-            <Badge variant="outline">Completed months</Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-6 p-6">
-          <TotalBalancePeriodControls
-            month={month}
-            query={data.queryParams}
-            latestCompletedMonth={data.latestCompletedMonth}
-          />
-
-          <Separator />
-
+        <CardContent className="flex flex-col gap-6 p-6 md:p-7">
           {summary ? (
-            <div className="grid gap-7 xl:grid-cols-[minmax(260px,0.72fr)_minmax(0,1.28fr)] xl:items-end">
+            <div className="flex flex-col gap-6">
               <div className="flex flex-col gap-6">
                 <div className="flex flex-col gap-3">
                   <p className="text-sm font-medium text-muted-foreground">
@@ -192,7 +143,7 @@ export function TotalBalanceSection({
                   </p>
                   <p
                     className={cn(
-                      "font-mono text-4xl font-semibold tracking-tight sm:text-5xl",
+                      "font-mono text-4xl font-semibold tracking-tight",
                       endingBalanceClassName,
                     )}
                   >
@@ -200,24 +151,25 @@ export function TotalBalanceSection({
                   </p>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
-                  <div className="flex flex-col gap-1.5">
-                    <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                <div className="flex flex-row items-start gap-6">
+                  <div className="flex flex-col">
+                    <p className="text-sm font-medium text-muted-foreground">
                       Starting balance
                     </p>
-                    <p className="font-mono text-xl font-semibold text-foreground">
+                    <p className="font-mono text-2xl font-semibold tracking-tight text-foreground">
                       {formatter.format(
                         Number(summary.startingBalance.toString()),
                       )}
                     </p>
                   </div>
-                  <div className="flex flex-col gap-1.5">
-                    <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+
+                  <div className="flex flex-col">
+                    <p className="text-sm font-medium text-muted-foreground">
                       Net change
                     </p>
                     <p
                       className={cn(
-                        "font-mono text-xl font-semibold",
+                        "font-mono text-2xl font-semibold tracking-tight",
                         netChangeClassName,
                       )}
                     >
@@ -243,6 +195,23 @@ export function TotalBalanceSection({
               description="The current-year view becomes available after the first month of the year closes."
             />
           )}
+
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={addAdjustmentHref}
+              className={buttonVariants({ size: "sm" })}
+            >
+              <Plus data-icon="inline-start" />
+              Add money
+            </Link>
+            <Link
+              href={manageAdjustmentsHref}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              <ListRestart data-icon="inline-start" />
+              Manage adjustments
+            </Link>
+          </div>
 
           {adjustmentState ? (
             <>
