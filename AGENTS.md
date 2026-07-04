@@ -153,8 +153,8 @@ Keep working/supporting:
    - create, rename, archive/unarchive
    - archived categories hidden from “new transaction” dropdown by default
 4. Transactions CRUD:
-   - fields: `type`, `amount`, `localDate`, `categoryId`, optional `tagId`, `source`, `note`
-   - tags are scoped to a category
+   - fields: `type`, `amount`, `localDate`, `categoryId`, optional `subcategoryId`, `source`, `note`
+   - subcategories are scoped to a category
 5. Dashboard:
    - month selector
    - totals for selected month: income, expense, net left
@@ -183,7 +183,7 @@ Implement/support:
      - `name`
      - `amount`
      - `categoryId`
-     - optional `tagId`
+     - optional `subcategoryId`
      - `dueDayOfMonth`
      - `isActive`
    - planned bills are expense-only
@@ -217,7 +217,7 @@ Implement/support:
      - `name`
      - `amount`
      - `categoryId`
-     - optional `tagId`
+     - optional `subcategoryId`
      - `expectedDayOfMonth`
      - `isActive`
    - planned income is income-only
@@ -272,13 +272,13 @@ Do NOT implement unless explicitly requested later:
 - Existing transactions keep their category relationship
 - Archived categories are hidden in new-transaction flows by default
 - During import, unknown categories may be mapped to an existing category or created as a new one
-- Tags belong to a single category and can be used by transactions, planned bills, and planned income
+- Subcategories belong to a single category and can be used by transactions, planned bills, and planned income
 
 ### Planned bills
 
 - Planned bills belong to a single user
 - Planned bills must use an EXPENSE category
-- Optional planned-bill tags must belong to the selected expense category
+- Optional planned-bill subcategories must belong to the selected expense category
 - `dueDayOfMonth` must be an integer from `1` to `28`
 - Planned bills do not affect actual totals directly
 - Planned bills are used for planning/forecast logic only in this phase
@@ -289,7 +289,7 @@ Do NOT implement unless explicitly requested later:
 
 - Planned income belongs to a single user
 - Planned income must use an INCOME category
-- Optional planned-income tags must belong to the selected income category
+- Optional planned-income subcategories must belong to the selected income category
 - `expectedDayOfMonth` must be an integer from `1` to `28`
 - Planned income does not affect actual totals directly
 - Pending planned income affects projected month-end net
@@ -446,8 +446,11 @@ Required minimum import fields:
 
 Optional fields:
 
+- `subcategory`
 - `source`
 - `note`
+
+Legacy CSV headers `tag` and `tags` remain accepted as aliases for `subcategory`.
 
 ---
 

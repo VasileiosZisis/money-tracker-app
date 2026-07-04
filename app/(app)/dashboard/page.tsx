@@ -187,30 +187,30 @@ function getLinkCandidateLabel (
     source: string | null
     note: string | null
     categoryId: string
-    tagId: string | null
+    subcategoryId: string | null
     category: { name: string }
-    tag: { name: string } | null
+    subcategory: { name: string } | null
   },
   matchAgainst?: {
     amount: Prisma.Decimal
     categoryId: string
-    tagId: string | null
+    subcategoryId: string | null
   }
 ) {
-  const tagLabel = candidate.tag ? ` / ${candidate.tag.name}` : ''
+  const subcategoryLabel = candidate.subcategory ? ` / ${candidate.subcategory.name}` : ''
   const detail = getSourceOrNote(candidate.source, candidate.note)
   const hints = matchAgainst
     ? [
         candidate.amount.eq(matchAgainst.amount) ? 'Exact amount' : null,
         candidate.categoryId === matchAgainst.categoryId ? 'Same category' : null,
-        matchAgainst.tagId && candidate.tagId === matchAgainst.tagId
-          ? 'Same tag'
+        matchAgainst.subcategoryId && candidate.subcategoryId === matchAgainst.subcategoryId
+          ? 'Same subcategory'
           : null
       ].filter(Boolean)
     : []
   const hintLabel = hints.length > 0 ? ` - ${hints.join(', ')}` : ''
 
-  return `${formatLocalDate(candidate.localDate)} - ${candidate.category.name}${tagLabel} - ${detail} - ${formatMoney(formatter, candidate.amount)}${hintLabel}`
+  return `${formatLocalDate(candidate.localDate)} - ${candidate.category.name}${subcategoryLabel} - ${detail} - ${formatMoney(formatter, candidate.amount)}${hintLabel}`
 }
 
 function formatLocalDate (localDate: string) {
@@ -1236,8 +1236,8 @@ export default async function DashboardPage ({
                             <h3 className='text-sm font-semibold text-foreground'>
                               {plannedIncome.category.name}
                             </h3>
-                            {plannedIncome.tag ? (
-                              <Badge variant='outline'>{plannedIncome.tag.name}</Badge>
+                            {plannedIncome.subcategory ? (
+                              <Badge variant='outline'>{plannedIncome.subcategory.name}</Badge>
                             ) : null}
                             <Badge variant={statusMeta.variant}>
                               {statusMeta.label}
@@ -1488,8 +1488,8 @@ export default async function DashboardPage ({
                             <h3 className='text-sm font-semibold text-foreground'>
                               {plannedBill.category.name}
                             </h3>
-                            {plannedBill.tag ? (
-                              <Badge variant='outline'>{plannedBill.tag.name}</Badge>
+                            {plannedBill.subcategory ? (
+                              <Badge variant='outline'>{plannedBill.subcategory.name}</Badge>
                             ) : null}
                             <Badge variant={statusMeta.variant}>
                               {statusMeta.label}

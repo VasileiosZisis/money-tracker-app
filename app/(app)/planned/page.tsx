@@ -79,7 +79,7 @@ export default async function PlannedBillsPage({
       name: String(formData.get("name") ?? ""),
       amount: String(formData.get("amount") ?? ""),
       categoryId: String(formData.get("categoryId") ?? ""),
-      tagId: String(formData.get("tagId") ?? ""),
+      subcategoryId: String(formData.get("subcategoryId") ?? ""),
       dueDayOfMonth: String(formData.get("dueDayOfMonth") ?? ""),
       isActive: parseBooleanField(formData.get("isActive")),
     });
@@ -100,7 +100,7 @@ export default async function PlannedBillsPage({
       name: String(formData.get("name") ?? ""),
       amount: String(formData.get("amount") ?? ""),
       categoryId: String(formData.get("categoryId") ?? ""),
-      tagId: String(formData.get("tagId") ?? ""),
+      subcategoryId: String(formData.get("subcategoryId") ?? ""),
       dueDayOfMonth: String(formData.get("dueDayOfMonth") ?? ""),
       isActive: parseBooleanField(formData.get("isActive")),
     });
@@ -285,7 +285,7 @@ export default async function PlannedBillsPage({
                 name: "",
                 amount: "",
                 categoryId: creatableExpenseCategories[0]?.id ?? "",
-                tagId: "",
+                subcategoryId: "",
                 dueDayOfMonth: 1,
                 isActive: true,
               }}
@@ -367,8 +367,8 @@ export default async function PlannedBillsPage({
                                 <Badge variant="outline">
                                   Due day {plannedBill.dueDayOfMonth}
                                 </Badge>
-                                {plannedBill.tag ? (
-                                  <Badge variant="outline">{plannedBill.tag.name}</Badge>
+                                {plannedBill.subcategory ? (
+                                  <Badge variant="outline">{plannedBill.subcategory.name}</Badge>
                                 ) : null}
                                 {plannedBill.category.isArchived ? (
                                   <Badge variant="outline">Archived category</Badge>
@@ -383,9 +383,9 @@ export default async function PlannedBillsPage({
                                   <p className="mt-2 text-sm font-semibold text-foreground">
                                     {plannedBill.category.name}
                                   </p>
-                                  {plannedBill.tag ? (
+                                  {plannedBill.subcategory ? (
                                     <p className="mt-1 text-xs font-medium text-muted-foreground">
-                                      {plannedBill.tag.name}
+                                      {plannedBill.subcategory.name}
                                     </p>
                                   ) : null}
                                 </div>
@@ -452,7 +452,7 @@ export default async function PlannedBillsPage({
                                   name: plannedBill.name,
                                   amount: plannedBill.amount,
                                   categoryId: plannedBill.categoryId,
-                                  tagId: plannedBill.tagId ?? "",
+                                  subcategoryId: plannedBill.subcategoryId ?? "",
                                   dueDayOfMonth: plannedBill.dueDayOfMonth,
                                   isActive: plannedBill.isActive,
                                 }}

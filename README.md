@@ -13,16 +13,16 @@ Implemented through the current planning polish work:
 - Free MVP baseline:
   - Google sign-in with NextAuth
   - mandatory setup flow
-  - categories and category tags
-  - transactions CRUD with month/type/category/tag filters
+  - categories and category subcategories
+  - transactions CRUD with month/type/category/subcategory filters
   - monthly dashboard totals
   - CSV export
 - Next phase:
-  - CSV import with preview, row validation, category/tag handling, and confirm flow
-  - planned bills with optional tags
+  - CSV import with preview, row validation, category/subcategory handling, and confirm flow
+  - planned bills with optional subcategories
   - planned-bill monthly paid/skipped state
   - mark planned bill paid, skip, undo, or link an existing expense transaction
-  - planned income templates with optional tags
+  - planned income templates with optional subcategories
   - planned-income monthly received/skipped state
   - mark planned income received, skip, undo, or link an existing income transaction
   - dashboard forecast, safe-to-spend, daily safe spend, and needs-attention signals
@@ -36,8 +36,8 @@ Implemented through the current planning polish work:
   - to `/setup` if `hasCompletedSetup` is `false`
   - to `/dashboard` if `hasCompletedSetup` is `true`
 - App routes under the authenticated shell require completed setup.
-- `/transactions` supports month/type/category/tag filters plus create, edit, and delete.
-- `/categories` manages income and expense categories, category archiving, and category-scoped tags.
+- `/transactions` supports month/type/category/subcategory filters plus create, edit, and delete.
+- `/categories` manages income and expense categories, category archiving, and category-scoped subcategories.
 - `/dashboard` supports month selection (`?month=YYYY-MM`) and shows:
   - cumulative Total Balance for completed months
   - independent preset, custom-month, and custom-year balance periods
@@ -55,7 +55,7 @@ Implemented through the current planning polish work:
   - recent monthly transactions
 - `/planned` manages reusable monthly planned-bill templates.
 - `/planned-income` manages reusable monthly planned-income templates.
-- `/import` supports CSV upload, preview, validation, category/tag resolution, and explicit confirm.
+- `/import` supports CSV upload, preview, validation, category/subcategory resolution, and explicit confirm.
 - `/export` downloads a CSV for the selected month via `/export/download`.
 
 ## Product Scope
@@ -67,7 +67,7 @@ Implemented through the current planning polish work:
 - Per-user base currency
 - Manual transaction entry
 - Month-based tracking using `localDate = "YYYY-MM-DD"`
-- Category-scoped tags for transaction classification
+- Category-scoped subcategories for transaction classification
 - Planned monthly expense templates
 - Planned monthly income templates
 - Explicit monthly occurrence state for planned bills and planned income
@@ -176,7 +176,7 @@ Read these in order for product and implementation rules:
 
 Completed implementation plan retained as the feature reference:
 
-- `docs/TOTAL_BALANCE_IMPLEMENTATION_PLAN.md`
+- `docs/archive/TOTAL_BALANCE_IMPLEMENTATION_PLAN.md`
 
 Historical phase specifications remain in `docs/MVP_SPEC.md` and
 `docs/NEXT_PHASE_SPEC.md`. Completed task and feature plans are stored under

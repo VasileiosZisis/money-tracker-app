@@ -97,7 +97,7 @@ function buildTransactionsPageUrl(params: {
   month: string;
   type?: TypeFilter;
   categoryId?: string;
-  tagId?: string;
+  subcategoryId?: string;
   edit?: string;
   error?: string;
   success?: string;
@@ -106,7 +106,7 @@ function buildTransactionsPageUrl(params: {
     month: params.month,
     type: params.type && params.type !== "ALL" ? params.type : undefined,
     categoryId: params.categoryId,
-    tagId: params.tagId,
+    subcategoryId: params.subcategoryId,
     edit: params.edit,
     error: params.error,
     success: params.success,
@@ -122,10 +122,26 @@ export default async function TransactionsPage({
   const selectedMonth = normalizeMonthParam(firstSearchParamValue(resolvedSearchParams.month));
   const selectedType = normalizeTypeFilter(firstSearchParamValue(resolvedSearchParams.type));
   const requestedCategoryId = firstSearchParamValue(resolvedSearchParams.categoryId);
-  const requestedTagId = firstSearchParamValue(resolvedSearchParams.tagId);
+  const canonicalSubcategoryId = firstSearchParamValue(resolvedSearchParams.subcategoryId);
+  const legacyTagId = firstSearchParamValue(resolvedSearchParams.tagId);
+  const requestedSubcategoryId = canonicalSubcategoryId ?? legacyTagId;
   const editId = firstSearchParamValue(resolvedSearchParams.edit);
   const errorMessage = firstSearchParamValue(resolvedSearchParams.error);
   const successMessage = firstSearchParamValue(resolvedSearchParams.success);
+
+  if (!canonicalSubcategoryId && legacyTagId) {
+    redirect(
+      buildTransactionsPageUrl({
+        month: selectedMonth,
+        type: selectedType,
+        categoryId: requestedCategoryId,
+        subcategoryId: legacyTagId,
+        edit: editId,
+        error: errorMessage,
+        success: successMessage,
+      }),
+    );
+  }
 
   const meta = await getTransactionFormMeta();
   const activeCategories = meta.categories.filter((category) => !category.isArchived);
@@ -141,30 +157,30 @@ export default async function TransactionsPage({
     categoryFilterOptions.some((category) => category.id === validCategoryFilter)
       ? validCategoryFilter
       : undefined;
-  const tagFilterOptions = effectiveCategoryFilter
-    ? (meta.categories.find((category) => category.id === effectiveCategoryFilter)?.tags ?? []).map(
-        (tag) => ({
-          id: tag.id,
-          name: tag.name,
+  const subcategoryFilterOptions = effectiveCategoryFilter
+    ? (meta.categories.find((category) => category.id === effectiveCategoryFilter)?.subcategories ?? []).map(
+        (subcategory) => ({
+          id: subcategory.id,
+          name: subcategory.name,
           categoryName: null as string | null,
         }),
       )
     : categoryFilterOptions.flatMap((category) =>
-        category.tags.map((tag) => ({
-          id: tag.id,
-          name: tag.name,
+        category.subcategories.map((subcategory) => ({
+          id: subcategory.id,
+          name: subcategory.name,
           categoryName: category.name,
         })),
       );
-  const effectiveTagFilter = requestedTagId
-    ? tagFilterOptions.find((tag) => tag.id === requestedTagId)?.id
+  const effectiveSubcategoryFilter = requestedSubcategoryId
+    ? subcategoryFilterOptions.find((subcategory) => subcategory.id === requestedSubcategoryId)?.id
     : undefined;
 
   const transactions = await listTransactions({
     month: selectedMonth,
     type: selectedType === "ALL" ? undefined : selectedType,
     categoryId: effectiveCategoryFilter,
-    tagId: effectiveTagFilter,
+    subcategoryId: effectiveSubcategoryFilter,
   });
 
   const formatter = new Intl.NumberFormat(undefined, {
@@ -190,7 +206,7 @@ export default async function TransactionsPage({
       amount: String(formData.get("amount") ?? ""),
       localDate: String(formData.get("localDate") ?? ""),
       categoryId: String(formData.get("categoryId") ?? ""),
-      tagId: String(formData.get("tagId") ?? ""),
+      subcategoryId: String(formData.get("subcategoryId") ?? ""),
       source: String(formData.get("source") ?? ""),
       note: String(formData.get("note") ?? ""),
     });
@@ -201,7 +217,7 @@ export default async function TransactionsPage({
           month: selectedMonth,
           type: selectedType,
           categoryId: effectiveCategoryFilter,
-          tagId: effectiveTagFilter,
+          subcategoryId: effectiveSubcategoryFilter,
           error: result.error,
         }),
       );
@@ -212,7 +228,7 @@ export default async function TransactionsPage({
         month: selectedMonth,
         type: selectedType,
         categoryId: effectiveCategoryFilter,
-        tagId: effectiveTagFilter,
+        subcategoryId: effectiveSubcategoryFilter,
         success: "Transaction created.",
       }),
     );
@@ -227,7 +243,7 @@ export default async function TransactionsPage({
       amount: String(formData.get("amount") ?? ""),
       localDate: String(formData.get("localDate") ?? ""),
       categoryId: String(formData.get("categoryId") ?? ""),
-      tagId: String(formData.get("tagId") ?? ""),
+      subcategoryId: String(formData.get("subcategoryId") ?? ""),
       source: String(formData.get("source") ?? ""),
       note: String(formData.get("note") ?? ""),
     });
@@ -238,7 +254,7 @@ export default async function TransactionsPage({
           month: selectedMonth,
           type: selectedType,
           categoryId: effectiveCategoryFilter,
-          tagId: effectiveTagFilter,
+          subcategoryId: effectiveSubcategoryFilter,
           edit: id,
           error: result.error,
         }),
@@ -250,7 +266,7 @@ export default async function TransactionsPage({
         month: selectedMonth,
         type: selectedType,
         categoryId: effectiveCategoryFilter,
-        tagId: effectiveTagFilter,
+        subcategoryId: effectiveSubcategoryFilter,
         success: "Transaction updated.",
       }),
     );
@@ -267,7 +283,7 @@ export default async function TransactionsPage({
           month: selectedMonth,
           type: selectedType,
           categoryId: effectiveCategoryFilter,
-          tagId: effectiveTagFilter,
+          subcategoryId: effectiveSubcategoryFilter,
           error: result.error,
         }),
       );
@@ -278,7 +294,7 @@ export default async function TransactionsPage({
         month: selectedMonth,
         type: selectedType,
         categoryId: effectiveCategoryFilter,
-        tagId: effectiveTagFilter,
+        subcategoryId: effectiveSubcategoryFilter,
         success: "Transaction deleted.",
       }),
     );
@@ -344,7 +360,7 @@ export default async function TransactionsPage({
                 Filters
               </CardTitle>
               <CardDescription>
-                Narrow the visible list by month, type, category, and tag.
+                Narrow the visible list by month, type, category, and subcategory.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -385,18 +401,18 @@ export default async function TransactionsPage({
                   </Select>
                 </FormField>
 
-                <FormField htmlFor="filter-tag" label="Tag">
+                <FormField htmlFor="filter-subcategory" label="Subcategory">
                   <Select
-                    id="filter-tag"
-                    name="tagId"
-                    defaultValue={effectiveTagFilter ?? ""}
+                    id="filter-subcategory"
+                    name="subcategoryId"
+                    defaultValue={effectiveSubcategoryFilter ?? ""}
                   >
                     <option value="">
-                      {effectiveCategoryFilter ? "All tags in category" : "All tags"}
+                      {effectiveCategoryFilter ? "All subcategories in category" : "All subcategories"}
                     </option>
-                    {tagFilterOptions.map((tag) => (
-                      <option key={tag.id} value={tag.id}>
-                        {tag.categoryName ? `${tag.categoryName} / ${tag.name}` : tag.name}
+                    {subcategoryFilterOptions.map((subcategory) => (
+                      <option key={subcategory.id} value={subcategory.id}>
+                        {subcategory.categoryName ? `${subcategory.categoryName} / ${subcategory.name}` : subcategory.name}
                       </option>
                     ))}
                   </Select>
@@ -419,7 +435,7 @@ export default async function TransactionsPage({
                 <p className="text-sm font-medium text-muted-foreground">Context</p>
                 <p className="mt-2 text-sm leading-6 text-foreground">
                   New entries only show active categories by default. Archived categories remain
-                  editable on existing transactions. Tag filters narrow to the chosen category
+                  editable on existing transactions. Subcategory filters narrow to the chosen category
                   when one is selected.
                 </p>
               </div>
@@ -444,7 +460,7 @@ export default async function TransactionsPage({
                     amount: "",
                     localDate: getTodayLocalDate(),
                     categoryId: "",
-                    tagId: "",
+                    subcategoryId: "",
                     source: "",
                     note: "",
                   }}
@@ -503,8 +519,8 @@ export default async function TransactionsPage({
                             {transaction.category.isArchived ? (
                               <Badge variant="outline">Archived category</Badge>
                             ) : null}
-                            {transaction.tag ? (
-                              <Badge variant="outline">{transaction.tag.name}</Badge>
+                            {transaction.subcategory ? (
+                              <Badge variant="outline">{transaction.subcategory.name}</Badge>
                             ) : null}
                           </div>
                           <p className="text-sm leading-6 text-muted-foreground">
@@ -527,7 +543,7 @@ export default async function TransactionsPage({
                               month: selectedMonth,
                               type: selectedType,
                               categoryId: effectiveCategoryFilter,
-                              tagId: effectiveTagFilter,
+                              subcategoryId: effectiveSubcategoryFilter,
                               edit: transaction.id,
                             })}
                             className={cn(
@@ -560,7 +576,7 @@ export default async function TransactionsPage({
                               amount: transaction.amount,
                               localDate: transaction.localDate,
                               categoryId: transaction.categoryId,
-                              tagId: transaction.tagId ?? "",
+                              subcategoryId: transaction.subcategoryId ?? "",
                               source: transaction.source ?? "",
                               note: transaction.note ?? "",
                             }}
@@ -573,7 +589,7 @@ export default async function TransactionsPage({
                                 month: selectedMonth,
                                 type: selectedType,
                                 categoryId: effectiveCategoryFilter,
-                                tagId: effectiveTagFilter,
+                                subcategoryId: effectiveSubcategoryFilter,
                               })}
                               className={cn(buttonVariants({ variant: "outline" }), "rounded-xl")}
                             >

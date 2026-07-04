@@ -2,7 +2,7 @@ export const importPreviewFieldNames = [
   "localDate",
   "type",
   "category",
-  "tag",
+  "subcategory",
   "amount",
   "source",
   "note",

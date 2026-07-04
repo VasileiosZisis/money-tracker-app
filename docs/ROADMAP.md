@@ -183,7 +183,7 @@ V1b dashboard polish:
 - planned income expected today appears in Needs attention
 - if safe-to-spend is negative while income is still pending, the dashboard explains that pending income is not counted as safe-to-spend until received
 - planned income summary shows pending total, received total, skipped count, and next pending income
-- link transaction options show deterministic hints such as exact amount, same category, and same tag
+- link transaction options show deterministic hints such as exact amount, same category, and same subcategory
 - link hints are labels only; they do not auto-match or auto-link transactions
 
 ### 9. Month-end review

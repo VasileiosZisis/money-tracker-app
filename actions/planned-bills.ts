@@ -42,10 +42,10 @@ function getMutationError(fallback: string) {
   return actionError(fallback);
 }
 
-async function getValidatedPlannedBillCategoryAndTag(
+async function getValidatedPlannedBillCategoryAndSubcategory(
   userId: string,
   categoryId: string,
-  tagId: string | undefined,
+  subcategoryId: string | undefined,
 ) {
   const category = await db.category.findFirst({
     where: {
@@ -69,13 +69,13 @@ async function getValidatedPlannedBillCategoryAndTag(
     };
   }
 
-  if (!tagId) {
-    return { ok: true as const, tagId: null as string | null };
+  if (!subcategoryId) {
+    return { ok: true as const, subcategoryId: null as string | null };
   }
 
-  const tag = await db.tag.findFirst({
+  const subcategory = await db.subcategory.findFirst({
     where: {
-      id: tagId,
+      id: subcategoryId,
       categoryId: category.id,
       category: {
         userId,
@@ -84,14 +84,14 @@ async function getValidatedPlannedBillCategoryAndTag(
     select: { id: true },
   });
 
-  if (!tag) {
+  if (!subcategory) {
     return {
       ok: false as const,
-      error: "Tag does not belong to the selected category.",
+      error: "Subcategory does not belong to the selected category.",
     };
   }
 
-  return { ok: true as const, tagId: tag.id };
+  return { ok: true as const, subcategoryId: subcategory.id };
 }
 
 function revalidatePlannedBillPaths() {
@@ -120,7 +120,7 @@ export async function listPlannedBills() {
           isArchived: true,
         },
       },
-      tag: {
+      subcategory: {
         select: {
           id: true,
           name: true,
@@ -141,7 +141,7 @@ export async function listPlannedBills() {
     amount: plannedBill.amount.toString(),
     dueDayOfMonth: plannedBill.dueDayOfMonth,
     categoryId: plannedBill.categoryId,
-    tagId: plannedBill.tagId,
+    subcategoryId: plannedBill.subcategoryId,
     isActive: plannedBill.isActive,
     createdAt: plannedBill.createdAt,
     updatedAt: plannedBill.updatedAt,
@@ -151,7 +151,7 @@ export async function listPlannedBills() {
       type: plannedBill.category.type,
       isArchived: plannedBill.category.isArchived,
     },
-    tag: plannedBill.tag,
+    subcategory: plannedBill.subcategory,
   }));
 }
 
@@ -168,10 +168,10 @@ export async function createPlannedBill(
     );
   }
 
-  const categoryResult = await getValidatedPlannedBillCategoryAndTag(
+  const categoryResult = await getValidatedPlannedBillCategoryAndSubcategory(
     userId,
     parsed.data.categoryId,
-    parsed.data.tagId,
+    parsed.data.subcategoryId,
   );
 
   if (!categoryResult.ok) {
@@ -186,7 +186,7 @@ export async function createPlannedBill(
         amount: parsed.data.amount,
         dueDayOfMonth: parsed.data.dueDayOfMonth,
         categoryId: parsed.data.categoryId,
-        tagId: categoryResult.tagId,
+        subcategoryId: categoryResult.subcategoryId,
         isActive: parsed.data.isActive,
       },
     });
@@ -223,10 +223,10 @@ export async function updatePlannedBill(
     return actionError("Planned bill not found.");
   }
 
-  const categoryResult = await getValidatedPlannedBillCategoryAndTag(
+  const categoryResult = await getValidatedPlannedBillCategoryAndSubcategory(
     userId,
     parsed.data.categoryId,
-    parsed.data.tagId,
+    parsed.data.subcategoryId,
   );
 
   if (!categoryResult.ok) {
@@ -241,7 +241,7 @@ export async function updatePlannedBill(
         amount: parsed.data.amount,
         dueDayOfMonth: parsed.data.dueDayOfMonth,
         categoryId: parsed.data.categoryId,
-        tagId: categoryResult.tagId,
+        subcategoryId: categoryResult.subcategoryId,
         isActive: parsed.data.isActive,
       },
     });
@@ -345,7 +345,7 @@ export async function markPlannedBillPaid(
           type: true,
         },
       },
-      tag: {
+      subcategory: {
         select: {
           id: true,
         },
@@ -394,7 +394,7 @@ export async function markPlannedBillPaid(
           amount: parsed.data.amount,
           localDate: parsed.data.localDate,
           categoryId: plannedBill.categoryId,
-          tagId: plannedBill.tagId,
+          subcategoryId: plannedBill.subcategoryId,
           source: plannedBill.name,
           note: parsed.data.note ?? null,
         },

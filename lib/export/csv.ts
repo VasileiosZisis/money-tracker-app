@@ -40,7 +40,7 @@ export async function buildCsvForMonth(month: string): Promise<string> {
           name: true,
         },
       },
-      tag: {
+      subcategory: {
         select: {
           name: true,
         },
@@ -48,14 +48,14 @@ export async function buildCsvForMonth(month: string): Promise<string> {
     },
   });
 
-  const header = "localDate,type,category,tag,amount,source,note";
+  const header = "localDate,type,category,subcategory,amount,source,note";
 
   const rows = transactions.map((transaction) => {
     const fields = [
       transaction.localDate,
       transaction.type,
       transaction.category.name,
-      transaction.tag?.name ?? "",
+      transaction.subcategory?.name ?? "",
       formatAmount(transaction.amount),
       transaction.source ?? "",
       transaction.note ?? "",

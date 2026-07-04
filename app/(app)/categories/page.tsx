@@ -1,14 +1,14 @@
-import { FolderKanban, FolderOpen, Plus, Tag, Trash2 } from "lucide-react";
+import { FolderKanban, FolderOpen, ListTree, Plus, Trash2 } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import {
   archiveCategory,
   createCategory,
-  createTag,
-  deleteTag,
+  createSubcategory,
+  deleteSubcategory,
   listCategories,
   renameCategory,
-  renameTag,
+  renameSubcategory,
   unarchiveCategory,
 } from "@/actions/categories";
 import { PageHeader } from "@/components/app-shell/page-header";
@@ -34,47 +34,47 @@ import {
 
 type CategoryRow = Awaited<ReturnType<typeof listCategories>>[number];
 
-function CategoryTagsSection({
+function CategorySubcategoriesSection({
   category,
-  createTagAction,
-  renameTagAction,
-  deleteTagAction,
+  createSubcategoryAction,
+  renameSubcategoryAction,
+  deleteSubcategoryAction,
 }: {
   category: CategoryRow;
-  createTagAction: (formData: FormData) => Promise<void>;
-  renameTagAction: (formData: FormData) => Promise<void>;
-  deleteTagAction: (formData: FormData) => Promise<void>;
+  createSubcategoryAction: (formData: FormData) => Promise<void>;
+  renameSubcategoryAction: (formData: FormData) => Promise<void>;
+  deleteSubcategoryAction: (formData: FormData) => Promise<void>;
 }) {
   return (
     <div className="rounded-[22px] border border-border/80 bg-card/70 p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Tag className="size-[16px] text-muted-foreground" />
-          <h4 className="text-sm font-semibold text-foreground">Tags</h4>
+          <ListTree className="size-[16px] text-muted-foreground" />
+          <h4 className="text-sm font-semibold text-foreground">Subcategories</h4>
         </div>
         <Badge variant="outline" className="rounded-full">
-          {category.tags.length} {category.tags.length === 1 ? "tag" : "tags"}
+          {category.subcategories.length} {category.subcategories.length === 1 ? "subcategory" : "subcategories"}
         </Badge>
       </div>
 
       <div className="mt-4 space-y-3">
-        {category.tags.length === 0 ? (
+        {category.subcategories.length === 0 ? (
           <p className="text-sm leading-6 text-muted-foreground">
-            No tags yet. Add optional tags for more precise transaction labels in this category.
+            No subcategories yet. Add optional subcategories for more precise transaction labels in this category.
           </p>
         ) : (
-          category.tags.map((tag) => (
+          category.subcategories.map((subcategory) => (
             <div
-              key={tag.id}
+              key={subcategory.id}
               className="rounded-[20px] border border-border/70 bg-background/70 p-3"
             >
               <div className="flex flex-col gap-3">
-                <form action={renameTagAction} className="flex flex-col gap-3 sm:flex-row">
-                  <input type="hidden" name="id" value={tag.id} />
+                <form action={renameSubcategoryAction} className="flex flex-col gap-3 sm:flex-row">
+                  <input type="hidden" name="id" value={subcategory.id} />
                   <Input
                     type="text"
                     name="name"
-                    defaultValue={tag.name}
+                    defaultValue={subcategory.name}
                     required
                     maxLength={50}
                     className="flex-1"
@@ -84,11 +84,11 @@ function CategoryTagsSection({
                   </Button>
                 </form>
 
-                <form action={deleteTagAction}>
-                  <input type="hidden" name="id" value={tag.id} />
+                <form action={deleteSubcategoryAction}>
+                  <input type="hidden" name="id" value={subcategory.id} />
                   <Button type="submit" variant="outline" className="w-full sm:w-auto">
                     <Trash2 />
-                    Delete tag
+                    Delete subcategory
                   </Button>
                 </form>
               </div>
@@ -97,20 +97,20 @@ function CategoryTagsSection({
         )}
 
         <form
-          action={createTagAction}
+          action={createSubcategoryAction}
           className="grid gap-3 rounded-[20px] border border-dashed border-border/80 bg-background/50 p-3 sm:grid-cols-[minmax(0,1fr)_auto]"
         >
           <input type="hidden" name="categoryId" value={category.id} />
           <Input
             type="text"
             name="name"
-            placeholder="Add tag"
+            placeholder="Add subcategory"
             required
             maxLength={50}
           />
           <Button type="submit" variant="outline">
             <Plus />
-            Add tag
+            Add subcategory
           </Button>
         </form>
       </div>
@@ -182,10 +182,10 @@ export default async function CategoriesPage({
     redirect(buildPathWithSearchParams("/categories", { success: "Category restored." }));
   }
 
-  async function createTagAction(formData: FormData) {
+  async function createSubcategoryAction(formData: FormData) {
     "use server";
 
-    const result = await createTag({
+    const result = await createSubcategory({
       categoryId: String(formData.get("categoryId") ?? ""),
       name: String(formData.get("name") ?? ""),
     });
@@ -194,13 +194,13 @@ export default async function CategoriesPage({
       redirect(buildPathWithSearchParams("/categories", { error: result.error }));
     }
 
-    redirect(buildPathWithSearchParams("/categories", { success: "Tag created." }));
+    redirect(buildPathWithSearchParams("/categories", { success: "Subcategory created." }));
   }
 
-  async function renameTagAction(formData: FormData) {
+  async function renameSubcategoryAction(formData: FormData) {
     "use server";
 
-    const result = await renameTag({
+    const result = await renameSubcategory({
       id: String(formData.get("id") ?? ""),
       name: String(formData.get("name") ?? ""),
     });
@@ -209,19 +209,19 @@ export default async function CategoriesPage({
       redirect(buildPathWithSearchParams("/categories", { error: result.error }));
     }
 
-    redirect(buildPathWithSearchParams("/categories", { success: "Tag renamed." }));
+    redirect(buildPathWithSearchParams("/categories", { success: "Subcategory renamed." }));
   }
 
-  async function deleteTagAction(formData: FormData) {
+  async function deleteSubcategoryAction(formData: FormData) {
     "use server";
 
-    const result = await deleteTag(String(formData.get("id") ?? ""));
+    const result = await deleteSubcategory(String(formData.get("id") ?? ""));
 
     if (!result.ok) {
       redirect(buildPathWithSearchParams("/categories", { error: result.error }));
     }
 
-    redirect(buildPathWithSearchParams("/categories", { success: "Tag deleted." }));
+    redirect(buildPathWithSearchParams("/categories", { success: "Subcategory deleted." }));
   }
 
   const categories = await listCategories();
@@ -271,9 +271,9 @@ export default async function CategoriesPage({
         </Card>
         <Card>
           <CardContent className="space-y-1 p-5">
-            <p className="text-sm font-medium text-muted-foreground">Total tags</p>
+            <p className="text-sm font-medium text-muted-foreground">Total subcategories</p>
             <p className="text-xl font-semibold tracking-tight text-foreground">
-              {categories.reduce((sum, category) => sum + category.tags.length, 0)}
+              {categories.reduce((sum, category) => sum + category.subcategories.length, 0)}
             </p>
           </CardContent>
         </Card>
@@ -381,11 +381,11 @@ export default async function CategoriesPage({
                               Archive
                             </Button>
                           </form>
-                          <CategoryTagsSection
+                          <CategorySubcategoriesSection
                             category={category}
-                            createTagAction={createTagAction}
-                            renameTagAction={renameTagAction}
-                            deleteTagAction={deleteTagAction}
+                            createSubcategoryAction={createSubcategoryAction}
+                            renameSubcategoryAction={renameSubcategoryAction}
+                            deleteSubcategoryAction={deleteSubcategoryAction}
                           />
                         </div>
                       </div>
@@ -437,11 +437,11 @@ export default async function CategoriesPage({
                               Restore
                             </Button>
                           </form>
-                          <CategoryTagsSection
+                          <CategorySubcategoriesSection
                             category={category}
-                            createTagAction={createTagAction}
-                            renameTagAction={renameTagAction}
-                            deleteTagAction={deleteTagAction}
+                            createSubcategoryAction={createSubcategoryAction}
+                            renameSubcategoryAction={renameSubcategoryAction}
+                            deleteSubcategoryAction={deleteSubcategoryAction}
                           />
                         </div>
                       </div>

@@ -64,15 +64,15 @@ simpler than a full accounting or budgeting suite.
 - Transaction dates use a local date string in `YYYY-MM-DD` format.
 - Month filtering uses local-date string boundaries.
 
-### Categories And Tags
+### Categories And Subcategories
 
 - Categories are either `INCOME` or `EXPENSE`.
 - Users can create and rename categories.
 - Categories can be archived or restored.
 - Archived categories remain attached to existing records but are hidden from
   new-entry forms by default.
-- Tags belong to one category and provide optional finer classification.
-- A transaction or planned item can only use a tag from its selected category.
+- Subcategories belong to one category and provide optional finer classification.
+- A transaction or planned item can only use a subcategory from its selected category.
 
 ### Transactions
 
@@ -84,7 +84,7 @@ Transaction fields:
 - positive decimal amount
 - local date in `YYYY-MM-DD`
 - category
-- optional category-scoped tag
+- optional category-scoped subcategory
 - optional source
 - optional note
 
@@ -93,7 +93,7 @@ Users can:
 - create transactions
 - edit transactions
 - delete transactions
-- filter by month, type, category, and tag
+- filter by month, type, category, and subcategory
 
 All transaction operations are scoped to the authenticated user.
 
@@ -104,7 +104,7 @@ The import flow is manual and explicit:
 1. Upload CSV.
 2. Parse rows.
 3. Preview results.
-4. Validate rows and resolve categories/tags.
+4. Validate rows and resolve categories/subcategories.
 5. Confirm import.
 
 Required CSV fields:
@@ -116,9 +116,12 @@ Required CSV fields:
 
 Optional fields:
 
-- `tag`
+- `subcategory`
 - `source`
 - `note`
+
+Legacy CSV files using a `tag` or `tags` header remain import-compatible; new
+exports and user-facing terminology use `subcategory`.
 
 Rules:
 
@@ -145,7 +148,7 @@ Template fields:
 - name
 - positive decimal amount
 - expense category
-- optional tag from that category
+- optional subcategory from that category
 - due day from 1 through 28
 - active state
 
@@ -170,7 +173,7 @@ Rules:
 - Undo linked payment keeps the existing transaction and removes only the
   occurrence.
 - Deleting a linked transaction makes the planned bill unhandled again.
-- Generated transactions inherit the planned bill category and optional tag.
+- Generated transactions inherit the planned bill category and optional subcategory.
 - No automatic transaction matching is performed.
 
 ### Planned Income
@@ -182,7 +185,7 @@ Template fields:
 - name
 - positive decimal amount
 - income category
-- optional tag from that category
+- optional subcategory from that category
 - expected day from 1 through 28
 - active state
 
@@ -207,7 +210,7 @@ Rules:
 - Undo linked receipt keeps the existing transaction and removes only the
   occurrence.
 - Deleting a linked transaction makes the planned income unhandled again.
-- Generated transactions inherit the planned income category and optional tag.
+- Generated transactions inherit the planned income category and optional subcategory.
 - No automatic transaction matching is performed.
 
 ### Forecast
@@ -382,7 +385,7 @@ Do not implement without an explicit product decision:
 
 - Authentication and setup enforcement work for every protected route.
 - Users cannot access another user's data.
-- Category and tag relationships remain valid.
+- Category and subcategory relationships remain valid.
 - Transaction totals are correct for any selected month.
 - Imported rows behave like manually created transactions.
 - Planned bills do not double-count paid or skipped monthly occurrences.

@@ -15,7 +15,7 @@ type TransactionFormCategory = {
   name: string;
   type: TransactionType;
   isArchived: boolean;
-  tags: {
+  subcategories: {
     id: string;
     name: string;
   }[];
@@ -26,7 +26,7 @@ type TransactionFormDefaultValues = {
   amount: string;
   localDate: string;
   categoryId: string;
-  tagId: string;
+  subcategoryId: string;
   source: string;
   note: string;
 };
@@ -49,16 +49,16 @@ export function TransactionFormFields({
   showTypeField: boolean;
 }) {
   const [selectedCategoryId, setSelectedCategoryId] = useState(defaultValues.categoryId);
-  const [selectedTagId, setSelectedTagId] = useState(defaultValues.tagId);
+  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState(defaultValues.subcategoryId);
 
   const selectedCategory = useMemo(
     () => categories.find((category) => category.id === selectedCategoryId) ?? null,
     [categories, selectedCategoryId],
   );
-  const availableTags = useMemo(() => selectedCategory?.tags ?? [], [selectedCategory]);
-  const hasTags = availableTags.length > 0;
-  const resolvedSelectedTagId = availableTags.some((tag) => tag.id === selectedTagId)
-    ? selectedTagId
+  const availableSubcategories = useMemo(() => selectedCategory?.subcategories ?? [], [selectedCategory]);
+  const hasSubcategories = availableSubcategories.length > 0;
+  const resolvedSelectedSubcategoryId = availableSubcategories.some((subcategory) => subcategory.id === selectedSubcategoryId)
+    ? selectedSubcategoryId
     : "";
 
   return (
@@ -106,11 +106,11 @@ export function TransactionFormFields({
             onChange={(event) => {
               const nextCategoryId = event.target.value;
               const nextCategory = categories.find((category) => category.id === nextCategoryId) ?? null;
-              const nextAvailableTags = nextCategory?.tags ?? [];
+              const nextAvailableSubcategories = nextCategory?.subcategories ?? [];
 
               setSelectedCategoryId(nextCategoryId);
-              setSelectedTagId((currentTagId) =>
-                nextAvailableTags.some((tag) => tag.id === currentTagId) ? currentTagId : "",
+              setSelectedSubcategoryId((currentSubcategoryId) =>
+                nextAvailableSubcategories.some((subcategory) => subcategory.id === currentSubcategoryId) ? currentSubcategoryId : "",
               );
             }}
             required
@@ -125,26 +125,26 @@ export function TransactionFormFields({
         </FormField>
       </div>
 
-      <FormField htmlFor={`${idPrefix}-tag`} label="Tag">
+      <FormField htmlFor={`${idPrefix}-subcategory`} label="Subcategory">
         <Select
-          id={`${idPrefix}-tag`}
-          name="tagId"
-          value={resolvedSelectedTagId}
+          id={`${idPrefix}-subcategory`}
+          name="subcategoryId"
+          value={resolvedSelectedSubcategoryId}
           onChange={(event) => {
-            setSelectedTagId(event.target.value);
+            setSelectedSubcategoryId(event.target.value);
           }}
-          disabled={!selectedCategoryId || !hasTags}
+          disabled={!selectedCategoryId || !hasSubcategories}
         >
           <option value="">
             {!selectedCategoryId
               ? "Select category first"
-              : hasTags
-                ? "No tag"
-                : "No tags for this category"}
+              : hasSubcategories
+                ? "No subcategory"
+                : "No subcategories for this category"}
           </option>
-          {availableTags.map((tag) => (
-            <option key={tag.id} value={tag.id}>
-              {tag.name}
+          {availableSubcategories.map((subcategory) => (
+            <option key={subcategory.id} value={subcategory.id}>
+              {subcategory.name}
             </option>
           ))}
         </Select>

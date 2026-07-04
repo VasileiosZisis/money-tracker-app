@@ -19,7 +19,7 @@ function serializePreviewTokenInput(input: PreviewTokenInput) {
       localDate: row.localDate,
       type: row.type,
       categoryName: row.categoryName,
-      tagName: row.tagName ?? null,
+      subcategoryName: row.subcategoryName ?? null,
       amount: row.amount,
       source: row.source ?? null,
       note: row.note ?? null,

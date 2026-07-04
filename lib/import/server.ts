@@ -23,7 +23,7 @@ export type ConfirmImportResult = ActionResultWithData<{
   importedCount: number;
   skippedDuplicateCount: number;
   createdCategoryCount: number;
-  createdTagCount: number;
+  createdSubcategoryCount: number;
 }>;
 
 function normalizeCategoryName(value: string) {
@@ -34,12 +34,12 @@ function buildCategoryLookupKey(type: TransactionType, categoryName: string) {
   return `${type}:${normalizeCategoryName(categoryName).toLowerCase()}`;
 }
 
-function normalizeTagName(value: string) {
+function normalizeSubcategoryName(value: string) {
   return value.trim().replace(/\s+/g, " ");
 }
 
-function buildTagLookupKey(categoryId: string, tagName: string) {
-  return `${categoryId}:${normalizeTagName(tagName).toLowerCase()}`;
+function buildSubcategoryLookupKey(categoryId: string, subcategoryName: string) {
+  return `${categoryId}:${normalizeSubcategoryName(subcategoryName).toLowerCase()}`;
 }
 
 function buildDuplicateRowKey(row: {
@@ -47,7 +47,7 @@ function buildDuplicateRowKey(row: {
   localDate: string;
   amount: { toFixed: (digits: number) => string };
   categoryId: string;
-  tagId?: string | null;
+  subcategoryId?: string | null;
   source?: string | null;
   note?: string | null;
 }) {
@@ -56,7 +56,7 @@ function buildDuplicateRowKey(row: {
     row.localDate,
     row.amount.toFixed(2),
     row.categoryId,
-    row.tagId ?? "",
+    row.subcategoryId ?? "",
     row.source ?? "",
     row.note ?? "",
   ].join("|");
@@ -257,7 +257,7 @@ export async function confirmImportForUser(
       const categoriesByLookupKey = new Map(
         categories.map((category) => [buildCategoryLookupKey(category.type, category.name), category]),
       );
-      const tags = await transaction.tag.findMany({
+      const subcategories = await transaction.subcategory.findMany({
         where: {
           category: {
             userId,
@@ -269,13 +269,13 @@ export async function confirmImportForUser(
           categoryId: true,
         },
       });
-      const tagsByLookupKey = new Map(
-        tags.map((tag) => [buildTagLookupKey(tag.categoryId, tag.name), tag]),
+      const subcategoriesByLookupKey = new Map(
+        subcategories.map((subcategory) => [buildSubcategoryLookupKey(subcategory.categoryId, subcategory.name), subcategory]),
       );
 
       const resolvedCategoryIds = new Map<string, string>();
       let createdCategoryCount = 0;
-      let createdTagCount = 0;
+      let createdSubcategoryCount = 0;
 
       for (const requiredResolution of requiredResolutions.values()) {
         const resolution = providedResolutionMap.get(requiredResolution.key);
@@ -359,7 +359,7 @@ export async function confirmImportForUser(
           amount: row.amount,
           localDate: row.localDate,
           categoryId,
-          tagId: undefined,
+          subcategoryId: undefined,
           source: row.source,
           note: row.note,
         });
@@ -370,20 +370,20 @@ export async function confirmImportForUser(
           );
         }
 
-        let tagId: string | null = null;
+        let subcategoryId: string | null = null;
 
-        if (row.tagName) {
-          const normalizedTagName = normalizeTagName(row.tagName);
-          const tagLookupKey = buildTagLookupKey(categoryId, normalizedTagName);
-          const existingTag = tagsByLookupKey.get(tagLookupKey);
+        if (row.subcategoryName) {
+          const normalizedSubcategoryName = normalizeSubcategoryName(row.subcategoryName);
+          const subcategoryLookupKey = buildSubcategoryLookupKey(categoryId, normalizedSubcategoryName);
+          const existingSubcategory = subcategoriesByLookupKey.get(subcategoryLookupKey);
 
-          if (existingTag) {
-            tagId = existingTag.id;
+          if (existingSubcategory) {
+            subcategoryId = existingSubcategory.id;
           } else {
-            const createdTag = await transaction.tag.create({
+            const createdSubcategory = await transaction.subcategory.create({
               data: {
                 categoryId,
-                name: normalizedTagName,
+                name: normalizedSubcategoryName,
               },
               select: {
                 id: true,
@@ -392,9 +392,9 @@ export async function confirmImportForUser(
               },
             });
 
-            tagsByLookupKey.set(buildTagLookupKey(createdTag.categoryId, createdTag.name), createdTag);
-            createdTagCount += 1;
-            tagId = createdTag.id;
+            subcategoriesByLookupKey.set(buildSubcategoryLookupKey(createdSubcategory.categoryId, createdSubcategory.name), createdSubcategory);
+            createdSubcategoryCount += 1;
+            subcategoryId = createdSubcategory.id;
           }
         }
 
@@ -404,7 +404,7 @@ export async function confirmImportForUser(
           amount: transactionInput.data.amount,
           localDate: transactionInput.data.localDate,
           categoryId: transactionInput.data.categoryId,
-          tagId,
+          subcategoryId,
           source: transactionInput.data.source,
           note: transactionInput.data.note,
         });
@@ -429,7 +429,7 @@ export async function confirmImportForUser(
                 amount: true,
                 localDate: true,
                 categoryId: true,
-                tagId: true,
+                subcategoryId: true,
                 source: true,
                 note: true,
               },
@@ -466,7 +466,7 @@ export async function confirmImportForUser(
           amount: row.amount,
           localDate: row.localDate,
           categoryId: row.categoryId,
-          tagId: row.tagId,
+          subcategoryId: row.subcategoryId,
           source: row.source ?? null,
           note: row.note ?? null,
         });
@@ -482,7 +482,7 @@ export async function confirmImportForUser(
         importedCount: createData.length,
         skippedDuplicateCount,
         createdCategoryCount,
-        createdTagCount,
+        createdSubcategoryCount,
       };
     });
 

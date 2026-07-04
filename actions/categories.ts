@@ -18,18 +18,18 @@ import {
   type RenameCategoryInput,
 } from "@/lib/validators/category";
 import {
-  createTagSchema,
-  renameTagSchema,
-  tagIdSchema,
-  type CreateTagInput,
-  type RenameTagInput,
-} from "@/lib/validators/tag";
+  createSubcategorySchema,
+  renameSubcategorySchema,
+  subcategoryIdSchema,
+  type CreateSubcategoryInput,
+  type RenameSubcategoryInput,
+} from "@/lib/validators/subcategory";
 
 type CategoryActionResult = ActionResult;
 
 const duplicateCategoryError =
   "A category with this name and type already exists.";
-const duplicateTagError = "A tag with this name already exists in this category.";
+const duplicateSubcategoryError = "A subcategory with this name already exists in this category.";
 
 function getMutationError(error: unknown, duplicateError: string) {
   if (
@@ -57,7 +57,7 @@ export async function listCategories() {
   return db.category.findMany({
     where: { userId },
     include: {
-      tags: {
+      subcategories: {
         orderBy: { name: "asc" },
       },
     },
@@ -180,12 +180,12 @@ export async function unarchiveCategory(
   return actionSuccess();
 }
 
-export async function createTag(input: CreateTagInput): Promise<CategoryActionResult> {
+export async function createSubcategory(input: CreateSubcategoryInput): Promise<CategoryActionResult> {
   const userId = await getUserIdOrThrow();
-  const parsed = createTagSchema.safeParse(input);
+  const parsed = createSubcategorySchema.safeParse(input);
 
   if (!parsed.success) {
-    return actionError(parsed.error.issues[0]?.message ?? "Invalid tag input.");
+    return actionError(parsed.error.issues[0]?.message ?? "Invalid subcategory input.");
   }
 
   const category = await db.category.findFirst({
@@ -201,29 +201,29 @@ export async function createTag(input: CreateTagInput): Promise<CategoryActionRe
   }
 
   try {
-    await db.tag.create({
+    await db.subcategory.create({
       data: {
         categoryId: parsed.data.categoryId,
         name: parsed.data.name,
       },
     });
   } catch (error) {
-    return actionError(getMutationError(error, duplicateTagError));
+    return actionError(getMutationError(error, duplicateSubcategoryError));
   }
 
   revalidateCategoryPaths();
   return actionSuccess();
 }
 
-export async function renameTag(input: RenameTagInput): Promise<CategoryActionResult> {
+export async function renameSubcategory(input: RenameSubcategoryInput): Promise<CategoryActionResult> {
   const userId = await getUserIdOrThrow();
-  const parsed = renameTagSchema.safeParse(input);
+  const parsed = renameSubcategorySchema.safeParse(input);
 
   if (!parsed.success) {
-    return actionError(parsed.error.issues[0]?.message ?? "Invalid tag input.");
+    return actionError(parsed.error.issues[0]?.message ?? "Invalid subcategory input.");
   }
 
-  const existingTag = await db.tag.findFirst({
+  const existingSubcategory = await db.subcategory.findFirst({
     where: {
       id: parsed.data.id,
       category: {
@@ -233,32 +233,32 @@ export async function renameTag(input: RenameTagInput): Promise<CategoryActionRe
     select: { id: true },
   });
 
-  if (!existingTag) {
-    return actionError("Tag not found.");
+  if (!existingSubcategory) {
+    return actionError("Subcategory not found.");
   }
 
   try {
-    await db.tag.update({
-      where: { id: existingTag.id },
+    await db.subcategory.update({
+      where: { id: existingSubcategory.id },
       data: { name: parsed.data.name },
     });
   } catch (error) {
-    return actionError(getMutationError(error, duplicateTagError));
+    return actionError(getMutationError(error, duplicateSubcategoryError));
   }
 
   revalidateCategoryPaths();
   return actionSuccess();
 }
 
-export async function deleteTag(id: string): Promise<CategoryActionResult> {
+export async function deleteSubcategory(id: string): Promise<CategoryActionResult> {
   const userId = await getUserIdOrThrow();
-  const parsed = tagIdSchema.safeParse(id);
+  const parsed = subcategoryIdSchema.safeParse(id);
 
   if (!parsed.success) {
-    return actionError("Invalid tag id.");
+    return actionError("Invalid subcategory id.");
   }
 
-  const deleted = await db.tag.deleteMany({
+  const deleted = await db.subcategory.deleteMany({
     where: {
       id: parsed.data,
       category: {
@@ -268,7 +268,7 @@ export async function deleteTag(id: string): Promise<CategoryActionResult> {
   });
 
   if (deleted.count === 0) {
-    return actionError("Tag not found.");
+    return actionError("Subcategory not found.");
   }
 
   revalidateCategoryPaths();

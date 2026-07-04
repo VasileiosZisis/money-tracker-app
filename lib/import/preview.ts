@@ -34,7 +34,7 @@ export type ImportPreviewRowResult = {
     localDate: string | null;
     type: string | null;
     category: string | null;
-    tag: string | null;
+    subcategory: string | null;
     amount: string | null;
     source: string | null;
     note: string | null;
@@ -93,7 +93,7 @@ function normalizeCategoryName(value: string) {
   return value.trim().replace(/\s+/g, " ");
 }
 
-function normalizeTagName(value: string) {
+function normalizeSubcategoryName(value: string) {
   return value.trim().replace(/\s+/g, " ");
 }
 
@@ -107,8 +107,8 @@ function normalizeRawField(field: ImportPreviewFieldName, value: string) {
     return normalized.length > 0 ? normalized : null;
   }
 
-  if (field === "tag") {
-    const normalized = normalizeTagName(value);
+  if (field === "subcategory") {
+    const normalized = normalizeSubcategoryName(value);
     return normalized.length > 0 ? normalized : null;
   }
 
@@ -212,7 +212,7 @@ export function buildImportPreview(input: {
         localDate: "",
         type: "",
         category: "",
-        tag: "",
+        subcategory: "",
         amount: "",
         source: "",
         note: "",
@@ -229,7 +229,7 @@ export function buildImportPreview(input: {
           localDate: normalizeRawField("localDate", raw.localDate),
           type: normalizeRawField("type", raw.type),
           category: normalizeRawField("category", raw.category),
-          tag: normalizeRawField("tag", raw.tag),
+          subcategory: normalizeRawField("subcategory", raw.subcategory),
           amount: normalizeRawField("amount", raw.amount),
           source: normalizeRawField("source", raw.source),
           note: normalizeRawField("note", raw.note),
@@ -257,7 +257,7 @@ export function buildImportPreview(input: {
       localDate: parsedRow.data.localDate,
       type: parsedRow.data.type,
       categoryName: normalizedCategory,
-      tagName: parsedRow.data.tag ? normalizeTagName(parsedRow.data.tag) : undefined,
+      subcategoryName: parsedRow.data.subcategory ? normalizeSubcategoryName(parsedRow.data.subcategory) : undefined,
       amount: parsedRow.data.amount.toFixed(2),
       source: parsedRow.data.source,
       note: parsedRow.data.note,
@@ -290,7 +290,7 @@ export function buildImportPreview(input: {
         localDate: parsedRow.data.localDate,
         type: parsedRow.data.type,
         category: normalizedCategory,
-        tag: parsedRow.data.tag ? normalizeTagName(parsedRow.data.tag) : null,
+        subcategory: parsedRow.data.subcategory ? normalizeSubcategoryName(parsedRow.data.subcategory) : null,
         amount: parsedRow.data.amount.toFixed(2),
         source: parsedRow.data.source ?? null,
         note: parsedRow.data.note ?? null,

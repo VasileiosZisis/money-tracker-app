@@ -117,7 +117,7 @@ model Category {
   transactions Transaction[]
   plannedBills PlannedBill[]
   plannedIncomes PlannedIncome[]
-  tags         Tag[]
+  subcategories Subcategory[]
 
   @@unique([userId, name, type])
   @@index([userId])
@@ -130,23 +130,23 @@ model Transaction {
   amount     Decimal         @db.Decimal(14, 2)
   localDate  String
   categoryId String
-  tagId      String?
+  subcategoryId String?          @map("tagId")
   source     String?
   note       String?
   createdAt  DateTime        @default(now())
   updatedAt  DateTime        @updatedAt
   user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   category   Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  tag        Tag?            @relation(fields: [tagId], references: [id], onDelete: SetNull)
+  subcategory Subcategory?   @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
   plannedBillOccurrence PlannedBillOccurrence?
   plannedIncomeOccurrence PlannedIncomeOccurrence?
 
   @@index([userId, localDate])
   @@index([categoryId, localDate])
-  @@index([userId, tagId, localDate])
+  @@index([userId, subcategoryId, localDate], map: "Transaction_userId_tagId_localDate_idx")
 }
 
-model Tag {
+model Subcategory {
   id           String        @id @default(cuid())
   categoryId   String
   name         String
@@ -157,8 +157,9 @@ model Tag {
   plannedBills PlannedBill[]
   plannedIncomes PlannedIncome[]
 
-  @@unique([categoryId, name])
-  @@index([categoryId])
+  @@unique([categoryId, name], map: "Tag_categoryId_name_key")
+  @@index([categoryId], map: "Tag_categoryId_idx")
+  @@map("Tag")
 }
 
 model PlannedBill {
@@ -168,18 +169,18 @@ model PlannedBill {
   amount        Decimal                 @db.Decimal(14, 2)
   dueDayOfMonth Int
   categoryId    String
-  tagId         String?
+  subcategoryId String?                  @map("tagId")
   isActive      Boolean                 @default(true)
   createdAt     DateTime                @default(now())
   updatedAt     DateTime                @updatedAt
   user          User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   category      Category                @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  tag           Tag?                    @relation(fields: [tagId], references: [id], onDelete: SetNull)
+  subcategory   Subcategory?            @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
   occurrences   PlannedBillOccurrence[]
 
   @@index([userId, isActive])
   @@index([userId, dueDayOfMonth])
-  @@index([userId, tagId])
+  @@index([userId, subcategoryId], map: "PlannedBill_userId_tagId_idx")
 }
 
 model PlannedBillOccurrence {
@@ -209,18 +210,18 @@ model PlannedIncome {
   amount             Decimal                   @db.Decimal(14, 2)
   expectedDayOfMonth Int
   categoryId         String
-  tagId              String?
+  subcategoryId      String?                    @map("tagId")
   isActive           Boolean                   @default(true)
   createdAt          DateTime                  @default(now())
   updatedAt          DateTime                  @updatedAt
   user               User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
   category           Category                  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  tag                Tag?                      @relation(fields: [tagId], references: [id], onDelete: SetNull)
+  subcategory        Subcategory?              @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
   occurrences        PlannedIncomeOccurrence[]
 
   @@index([userId, isActive])
   @@index([userId, expectedDayOfMonth])
-  @@index([userId, tagId])
+  @@index([userId, subcategoryId], map: "PlannedIncome_userId_tagId_idx")
 }
 
 model PlannedIncomeOccurrence {

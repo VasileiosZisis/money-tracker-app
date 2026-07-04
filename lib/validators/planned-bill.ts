@@ -2,7 +2,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { z } from "zod";
 
 import { categoryIdSchema } from "@/lib/validators/category";
-import { optionalTagIdSchema } from "@/lib/validators/tag";
+import { optionalSubcategoryIdSchema } from "@/lib/validators/subcategory";
 import { localDateSchema } from "@/lib/validators/transaction";
 
 export const plannedBillIdSchema = z.string().cuid("Invalid planned bill id.");
@@ -41,7 +41,7 @@ export const plannedBillInputSchema = z.object({
   amount: plannedBillAmountSchema,
   dueDayOfMonth: z.coerce.number().pipe(plannedBillDueDaySchema),
   categoryId: categoryIdSchema,
-  tagId: optionalTagIdSchema,
+  subcategoryId: optionalSubcategoryIdSchema,
   isActive: z.boolean({
     required_error: "Active status is required.",
     invalid_type_error: "Active status must be a boolean.",
@@ -99,7 +99,7 @@ export type PlannedBillInput = {
   amount: string | number;
   dueDayOfMonth: string | number;
   categoryId: string;
-  tagId?: string;
+  subcategoryId?: string;
   isActive: boolean;
 };
 

@@ -42,10 +42,10 @@ function getMutationError(fallback: string) {
   return actionError(fallback);
 }
 
-async function getValidatedPlannedIncomeCategoryAndTag(
+async function getValidatedPlannedIncomeCategoryAndSubcategory(
   userId: string,
   categoryId: string,
-  tagId: string | undefined,
+  subcategoryId: string | undefined,
 ) {
   const category = await db.category.findFirst({
     where: {
@@ -69,13 +69,13 @@ async function getValidatedPlannedIncomeCategoryAndTag(
     };
   }
 
-  if (!tagId) {
-    return { ok: true as const, tagId: null as string | null };
+  if (!subcategoryId) {
+    return { ok: true as const, subcategoryId: null as string | null };
   }
 
-  const tag = await db.tag.findFirst({
+  const subcategory = await db.subcategory.findFirst({
     where: {
-      id: tagId,
+      id: subcategoryId,
       categoryId: category.id,
       category: {
         userId,
@@ -84,14 +84,14 @@ async function getValidatedPlannedIncomeCategoryAndTag(
     select: { id: true },
   });
 
-  if (!tag) {
+  if (!subcategory) {
     return {
       ok: false as const,
-      error: "Tag does not belong to the selected category.",
+      error: "Subcategory does not belong to the selected category.",
     };
   }
 
-  return { ok: true as const, tagId: tag.id };
+  return { ok: true as const, subcategoryId: subcategory.id };
 }
 
 function revalidatePlannedIncomePaths() {
@@ -120,7 +120,7 @@ export async function listPlannedIncomes() {
           isArchived: true,
         },
       },
-      tag: {
+      subcategory: {
         select: {
           id: true,
           name: true,
@@ -141,7 +141,7 @@ export async function listPlannedIncomes() {
     amount: plannedIncome.amount.toString(),
     expectedDayOfMonth: plannedIncome.expectedDayOfMonth,
     categoryId: plannedIncome.categoryId,
-    tagId: plannedIncome.tagId,
+    subcategoryId: plannedIncome.subcategoryId,
     isActive: plannedIncome.isActive,
     createdAt: plannedIncome.createdAt,
     updatedAt: plannedIncome.updatedAt,
@@ -151,7 +151,7 @@ export async function listPlannedIncomes() {
       type: plannedIncome.category.type,
       isArchived: plannedIncome.category.isArchived,
     },
-    tag: plannedIncome.tag,
+    subcategory: plannedIncome.subcategory,
   }));
 }
 
@@ -168,10 +168,10 @@ export async function createPlannedIncome(
     );
   }
 
-  const categoryResult = await getValidatedPlannedIncomeCategoryAndTag(
+  const categoryResult = await getValidatedPlannedIncomeCategoryAndSubcategory(
     userId,
     parsed.data.categoryId,
-    parsed.data.tagId,
+    parsed.data.subcategoryId,
   );
 
   if (!categoryResult.ok) {
@@ -186,7 +186,7 @@ export async function createPlannedIncome(
         amount: parsed.data.amount,
         expectedDayOfMonth: parsed.data.expectedDayOfMonth,
         categoryId: parsed.data.categoryId,
-        tagId: categoryResult.tagId,
+        subcategoryId: categoryResult.subcategoryId,
         isActive: parsed.data.isActive,
       },
     });
@@ -223,10 +223,10 @@ export async function updatePlannedIncome(
     return actionError("Planned income not found.");
   }
 
-  const categoryResult = await getValidatedPlannedIncomeCategoryAndTag(
+  const categoryResult = await getValidatedPlannedIncomeCategoryAndSubcategory(
     userId,
     parsed.data.categoryId,
-    parsed.data.tagId,
+    parsed.data.subcategoryId,
   );
 
   if (!categoryResult.ok) {
@@ -241,7 +241,7 @@ export async function updatePlannedIncome(
         amount: parsed.data.amount,
         expectedDayOfMonth: parsed.data.expectedDayOfMonth,
         categoryId: parsed.data.categoryId,
-        tagId: categoryResult.tagId,
+        subcategoryId: categoryResult.subcategoryId,
         isActive: parsed.data.isActive,
       },
     });
@@ -391,7 +391,7 @@ export async function markPlannedIncomeReceived(
           amount: parsed.data.amount,
           localDate: parsed.data.localDate,
           categoryId: plannedIncome.categoryId,
-          tagId: plannedIncome.tagId,
+          subcategoryId: plannedIncome.subcategoryId,
           source: plannedIncome.name,
           note: parsed.data.note ?? null,
         },

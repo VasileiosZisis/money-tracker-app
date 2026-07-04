@@ -70,7 +70,7 @@ export default function ExportPage() {
                 <div>
                   <p className="text-sm font-semibold text-foreground">Columns</p>
                   <p className="text-sm text-muted-foreground">
-                    `localDate`, `type`, `category`, `tag`, `amount`, `source`, `note`
+                    `localDate`, `type`, `category`, `subcategory`, `amount`, `source`, `note`
                   </p>
                 </div>
               </div>

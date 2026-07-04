@@ -79,7 +79,7 @@ export default async function PlannedIncomePage({
       name: String(formData.get("name") ?? ""),
       amount: String(formData.get("amount") ?? ""),
       categoryId: String(formData.get("categoryId") ?? ""),
-      tagId: String(formData.get("tagId") ?? ""),
+      subcategoryId: String(formData.get("subcategoryId") ?? ""),
       expectedDayOfMonth: String(formData.get("expectedDayOfMonth") ?? ""),
       isActive: parseBooleanField(formData.get("isActive")),
     });
@@ -100,7 +100,7 @@ export default async function PlannedIncomePage({
       name: String(formData.get("name") ?? ""),
       amount: String(formData.get("amount") ?? ""),
       categoryId: String(formData.get("categoryId") ?? ""),
-      tagId: String(formData.get("tagId") ?? ""),
+      subcategoryId: String(formData.get("subcategoryId") ?? ""),
       expectedDayOfMonth: String(formData.get("expectedDayOfMonth") ?? ""),
       isActive: parseBooleanField(formData.get("isActive")),
     });
@@ -287,7 +287,7 @@ export default async function PlannedIncomePage({
                 name: "",
                 amount: "",
                 categoryId: creatableIncomeCategories[0]?.id ?? "",
-                tagId: "",
+                subcategoryId: "",
                 expectedDayOfMonth: 1,
                 isActive: true,
               }}
@@ -369,8 +369,8 @@ export default async function PlannedIncomePage({
                                 <Badge variant="outline">
                                   Expected day {plannedIncome.expectedDayOfMonth}
                                 </Badge>
-                                {plannedIncome.tag ? (
-                                  <Badge variant="outline">{plannedIncome.tag.name}</Badge>
+                                {plannedIncome.subcategory ? (
+                                  <Badge variant="outline">{plannedIncome.subcategory.name}</Badge>
                                 ) : null}
                                 {plannedIncome.category.isArchived ? (
                                   <Badge variant="outline">Archived category</Badge>
@@ -385,9 +385,9 @@ export default async function PlannedIncomePage({
                                   <p className="mt-2 text-sm font-semibold text-foreground">
                                     {plannedIncome.category.name}
                                   </p>
-                                  {plannedIncome.tag ? (
+                                  {plannedIncome.subcategory ? (
                                     <p className="mt-1 text-xs font-medium text-muted-foreground">
-                                      {plannedIncome.tag.name}
+                                      {plannedIncome.subcategory.name}
                                     </p>
                                   ) : null}
                                 </div>
@@ -458,7 +458,7 @@ export default async function PlannedIncomePage({
                                   name: plannedIncome.name,
                                   amount: plannedIncome.amount,
                                   categoryId: plannedIncome.categoryId,
-                                  tagId: plannedIncome.tagId ?? "",
+                                  subcategoryId: plannedIncome.subcategoryId ?? "",
                                   expectedDayOfMonth: plannedIncome.expectedDayOfMonth,
                                   isActive: plannedIncome.isActive,
                                 }}

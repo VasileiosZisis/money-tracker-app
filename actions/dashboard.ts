@@ -66,7 +66,7 @@ type DashboardPlannedBill = {
   name: string;
   amount: Prisma.Decimal;
   categoryId: string;
-  tagId: string | null;
+  subcategoryId: string | null;
   dueDayOfMonth: number;
   status: DashboardPlannedBillStatus;
   defaultPaymentLocalDate: string;
@@ -81,7 +81,7 @@ type DashboardPlannedBill = {
     name: string;
     isArchived: boolean;
   };
-  tag: {
+  subcategory: {
     id: string;
     name: string;
   } | null;
@@ -95,11 +95,11 @@ type DashboardPlannedBillLinkCandidate = {
   source: string | null;
   note: string | null;
   categoryId: string;
-  tagId: string | null;
+  subcategoryId: string | null;
   category: {
     name: string;
   };
-  tag: {
+  subcategory: {
     name: string;
   } | null;
 };
@@ -109,7 +109,7 @@ type DashboardPlannedIncome = {
   name: string;
   amount: Prisma.Decimal;
   categoryId: string;
-  tagId: string | null;
+  subcategoryId: string | null;
   expectedDayOfMonth: number;
   status: DashboardPlannedIncomeStatus;
   defaultReceivedLocalDate: string;
@@ -124,7 +124,7 @@ type DashboardPlannedIncome = {
     name: string;
     isArchived: boolean;
   };
-  tag: {
+  subcategory: {
     id: string;
     name: string;
   } | null;
@@ -138,11 +138,11 @@ type DashboardPlannedIncomeLinkCandidate = {
   source: string | null;
   note: string | null;
   categoryId: string;
-  tagId: string | null;
+  subcategoryId: string | null;
   category: {
     name: string;
   };
-  tag: {
+  subcategory: {
     name: string;
   } | null;
 };
@@ -879,7 +879,7 @@ async function loadDashboardMonthData(
         amount: true,
         dueDayOfMonth: true,
         categoryId: true,
-        tagId: true,
+        subcategoryId: true,
         isActive: true,
         occurrences: {
           where: {
@@ -900,7 +900,7 @@ async function loadDashboardMonthData(
             isArchived: true,
           },
         },
-        tag: {
+        subcategory: {
           select: {
             id: true,
             name: true,
@@ -920,7 +920,7 @@ async function loadDashboardMonthData(
         amount: true,
         expectedDayOfMonth: true,
         categoryId: true,
-        tagId: true,
+        subcategoryId: true,
         isActive: true,
         occurrences: {
           where: {
@@ -941,7 +941,7 @@ async function loadDashboardMonthData(
             isArchived: true,
           },
         },
-        tag: {
+        subcategory: {
           select: {
             id: true,
             name: true,
@@ -966,13 +966,13 @@ async function loadDashboardMonthData(
         source: true,
         note: true,
         categoryId: true,
-        tagId: true,
+        subcategoryId: true,
         category: {
           select: {
             name: true,
           },
         },
-        tag: {
+        subcategory: {
           select: {
             name: true,
           },
@@ -996,13 +996,13 @@ async function loadDashboardMonthData(
         source: true,
         note: true,
         categoryId: true,
-        tagId: true,
+        subcategoryId: true,
         category: {
           select: {
             name: true,
           },
         },
-        tag: {
+        subcategory: {
           select: {
             name: true,
           },
@@ -1058,7 +1058,7 @@ async function loadDashboardMonthData(
   const getLinkCandidatesForPlannedBill = (plannedBill: {
     amount: Prisma.Decimal;
     categoryId: string;
-    tagId: string | null;
+    subcategoryId: string | null;
   }) =>
     [...linkCandidateTransactions].sort((left, right) => {
       const leftSameCategory = left.categoryId === plannedBill.categoryId ? 1 : 0;
@@ -1068,13 +1068,13 @@ async function loadDashboardMonthData(
         return rightSameCategory - leftSameCategory;
       }
 
-      const leftSameTag =
-        plannedBill.tagId && left.tagId === plannedBill.tagId ? 1 : 0;
-      const rightSameTag =
-        plannedBill.tagId && right.tagId === plannedBill.tagId ? 1 : 0;
+      const leftSameSubcategory =
+        plannedBill.subcategoryId && left.subcategoryId === plannedBill.subcategoryId ? 1 : 0;
+      const rightSameSubcategory =
+        plannedBill.subcategoryId && right.subcategoryId === plannedBill.subcategoryId ? 1 : 0;
 
-      if (leftSameTag !== rightSameTag) {
-        return rightSameTag - leftSameTag;
+      if (leftSameSubcategory !== rightSameSubcategory) {
+        return rightSameSubcategory - leftSameSubcategory;
       }
 
       const leftSameAmount = left.amount.eq(plannedBill.amount) ? 1 : 0;
@@ -1089,7 +1089,7 @@ async function loadDashboardMonthData(
   const getLinkCandidatesForPlannedIncome = (plannedIncome: {
     amount: Prisma.Decimal;
     categoryId: string;
-    tagId: string | null;
+    subcategoryId: string | null;
   }) =>
     [...plannedIncomeLinkCandidateTransactions].sort((left, right) => {
       const leftSameCategory = left.categoryId === plannedIncome.categoryId ? 1 : 0;
@@ -1099,13 +1099,13 @@ async function loadDashboardMonthData(
         return rightSameCategory - leftSameCategory;
       }
 
-      const leftSameTag =
-        plannedIncome.tagId && left.tagId === plannedIncome.tagId ? 1 : 0;
-      const rightSameTag =
-        plannedIncome.tagId && right.tagId === plannedIncome.tagId ? 1 : 0;
+      const leftSameSubcategory =
+        plannedIncome.subcategoryId && left.subcategoryId === plannedIncome.subcategoryId ? 1 : 0;
+      const rightSameSubcategory =
+        plannedIncome.subcategoryId && right.subcategoryId === plannedIncome.subcategoryId ? 1 : 0;
 
-      if (leftSameTag !== rightSameTag) {
-        return rightSameTag - leftSameTag;
+      if (leftSameSubcategory !== rightSameSubcategory) {
+        return rightSameSubcategory - leftSameSubcategory;
       }
 
       const leftSameAmount = left.amount.eq(plannedIncome.amount) ? 1 : 0;
@@ -1122,7 +1122,7 @@ async function loadDashboardMonthData(
     name: plannedBill.name,
     amount: plannedBill.amount,
     categoryId: plannedBill.categoryId,
-    tagId: plannedBill.tagId,
+    subcategoryId: plannedBill.subcategoryId,
     dueDayOfMonth: plannedBill.dueDayOfMonth,
     status: getPlannedBillStatus(
       forecast.monthContext.monthRelation,
@@ -1149,7 +1149,7 @@ async function loadDashboardMonthData(
       name: plannedBill.category.name,
       isArchived: plannedBill.category.isArchived,
     },
-    tag: plannedBill.tag,
+    subcategory: plannedBill.subcategory,
     linkCandidates: getLinkCandidatesForPlannedBill(plannedBill),
   }));
   const dashboardPlannedIncomes = plannedIncomes.map((plannedIncome) => ({
@@ -1157,7 +1157,7 @@ async function loadDashboardMonthData(
     name: plannedIncome.name,
     amount: plannedIncome.amount,
     categoryId: plannedIncome.categoryId,
-    tagId: plannedIncome.tagId,
+    subcategoryId: plannedIncome.subcategoryId,
     expectedDayOfMonth: plannedIncome.expectedDayOfMonth,
     status: getPlannedIncomeStatus(
       forecast.monthContext.monthRelation,
@@ -1184,7 +1184,7 @@ async function loadDashboardMonthData(
       name: plannedIncome.category.name,
       isArchived: plannedIncome.category.isArchived,
     },
-    tag: plannedIncome.tag,
+    subcategory: plannedIncome.subcategory,
     linkCandidates: getLinkCandidatesForPlannedIncome(plannedIncome),
   }));
   const plannedIncomeSummary = buildPlannedIncomeSummary(dashboardPlannedIncomes);
