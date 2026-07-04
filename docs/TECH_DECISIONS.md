@@ -294,6 +294,61 @@ Rules:
 
 Do not merge planned income into the transaction table.
 
+### Balance adjustments
+
+Use a separate user-owned `BalanceAdjustment` model for money that belongs in
+historical balance without becoming transaction income.
+
+Locked fields and storage:
+
+- `userId` derived from the authenticated session
+- positive `amount` stored as Prisma `Decimal` / Postgres `numeric(14,2)`
+- `effectiveMonth` stored as a strict `YYYY-MM` completed-month string
+- optional note and timestamps
+- cascading deletion with the owning user
+- index on `(userId, effectiveMonth)`
+
+Rules:
+
+- adjustments can be created, edited, and deleted
+- create and update reject zero, negative, current-month, and future-month data
+- every read and mutation is scoped to the authenticated `userId`
+- adjustments affect Total Balance only
+- adjustments never affect transaction income, expenses, planned items,
+  safe-to-spend, or forecast calculations
+- negative/debit adjustments and separate accounts are not part of V1
+
+---
+
+## Total Balance decisions
+
+Total Balance is a calculated completed-month ledger view, not a bank balance or
+reconciliation system.
+
+Locked formulas:
+
+- `endingBalance = balanceAdjustmentsToDate + incomeToDate - expensesToDate`
+- `netChange = incomeInPeriod - expensesInPeriod + balanceAdjustmentsInPeriod`
+- `endingBalance = startingBalance + netChange`
+
+Period rules:
+
+- current and future months are excluded
+- custom month ranges are inclusive complete months
+- custom year ranges expand to complete January-December years
+- activity before the selected period remains in starting balance
+- months without activity carry the previous ending balance forward
+- negative balances remain visible
+
+Dashboard rules:
+
+- Total Balance renders before Monthly Snapshot
+- Total Balance period parameters are independent from the Monthly Snapshot
+  `month` parameter and are preserved across dashboard mutations
+- invalid balance ranges normalize to current year and return an actionable error
+- Add Money and adjustment management use inline query-parameter-driven forms
+- calculations stay Decimal-safe on the server; chart numbers are display-only
+
 ---
 
 ## Forecast decisions
@@ -416,6 +471,7 @@ This applies to:
 - transactions
 - planned bills
 - planned income
+- balance adjustments
 - import validation and confirmation
 
 ---
@@ -436,6 +492,7 @@ This rule applies to:
 - transactions
 - planned bills
 - planned income
+- balance adjustments
 - imports
 - dashboard data
 - export data

@@ -26,6 +26,8 @@ Implemented through the current planning polish work:
   - planned-income monthly received/skipped state
   - mark planned income received, skip, undo, or link an existing income transaction
   - dashboard forecast, safe-to-spend, daily safe spend, and needs-attention signals
+  - completed-month Total Balance history with preset and custom periods
+  - positive balance adjustments for opening balances and previously untracked money
 
 ## Current Behavior
 
@@ -37,6 +39,10 @@ Implemented through the current planning polish work:
 - `/transactions` supports month/type/category/tag filters plus create, edit, and delete.
 - `/categories` manages income and expense categories, category archiving, and category-scoped tags.
 - `/dashboard` supports month selection (`?month=YYYY-MM`) and shows:
+  - cumulative Total Balance for completed months
+  - independent preset, custom-month, and custom-year balance periods
+  - starting balance, net change, ending balance, and monthly balance history
+  - Add Money plus inline adjustment editing and deletion
   - actual income and expense totals
   - net left now
   - safe to spend
@@ -69,6 +75,8 @@ Implemented through the current planning polish work:
 - Simple explainable forecasting
 - Safe-to-spend and daily-safe-spend planning indicators
 - CSV import and CSV export
+- Completed-month cumulative balance history
+- Positive balance adjustments that remain separate from transaction income
 
 ### Explicitly out of scope
 
@@ -119,6 +127,23 @@ dailySafeSpend = safeToSpend / remainingDaysIncludingToday
 projectedEndOfMonthNet = netLeftNow + pendingPlannedIncome - forecastRemainingSpend
 ```
 
+## Total Balance Model
+
+Total Balance is a calculated historical ledger view, not a bank-synced account
+balance. It includes completed months only and uses all prior activity when
+calculating the selected period's starting balance.
+
+```text
+endingBalance = balanceAdjustmentsToDate + incomeToDate - expensesToDate
+netChange = incomeInPeriod - expensesInPeriod + balanceAdjustmentsInPeriod
+endingBalance = startingBalance + netChange
+```
+
+`Add money` records a positive balance adjustment for a completed month. It can
+be edited or deleted later through `Manage adjustments`. Adjustments affect
+Total Balance only; they do not change transaction income, monthly totals,
+safe-to-spend, planned income, or forecast values.
+
 ## Deployment
 
 Vercel Git deployments are opt-in for this repo. The ignored build step in
@@ -149,7 +174,7 @@ Read these in order for product and implementation rules:
 4. `docs/PRODUCT_SPEC.md`
 5. `docs/ROADMAP.md` for candidate future work
 
-Active implementation plan:
+Completed implementation plan retained as the feature reference:
 
 - `docs/TOTAL_BALANCE_IMPLEMENTATION_PLAN.md`
 
@@ -190,10 +215,13 @@ npm run dev
 
 ## Verification
 
-Typical manual verification commands:
+Project verification commands:
 
 ```bash
+npx prisma validate
+npx prisma migrate status
+npx prisma generate
+npm test
+npx tsc --noEmit --pretty false
 npm run lint
-npx tsc --noEmit
-npm run dev
 ```

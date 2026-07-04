@@ -236,9 +236,38 @@ Rules:
 - Current month is the primary planning context.
 - Negative safe-to-spend and daily-safe-spend values remain visible.
 
+### Total Balance
+
+Total Balance is a completed-month historical ledger shown before Monthly
+Snapshot. It is calculated from actual transactions and positive balance
+adjustments; it is not a bank-synced balance or reconciliation system.
+
+For a selected completed period, it shows:
+
+- starting balance from all earlier activity
+- net change inside the period
+- ending balance
+- one monthly ending-balance point for every month, including inactive months
+
+Supported periods are current year, trailing 3/6/9/12 completed months,
+previous 1/2/3 full years, all time, and custom inclusive month or full-year
+ranges. Current and future months and incomplete years are rejected. Total
+Balance selection remains independent from the Monthly Snapshot month.
+
+Users can add positive money adjustments for completed months, then review,
+edit, or delete them inline. Adjustments are useful for opening balances and
+previously untracked money. They affect Total Balance only and never increase
+transaction income or alter monthly totals, planned items, safe-to-spend, or
+forecast calculations.
+
+Empty states distinguish no completed history from a current-year range with no
+completed month. A selected period with no new activity still shows carried
+balances when earlier activity exists.
+
 ### Dashboard
 
-The dashboard supports a selected month and includes:
+The dashboard contains independent Total Balance and Monthly Snapshot sections.
+Monthly Snapshot supports a selected month and includes:
 
 - actual income total
 - actual expense total
@@ -306,14 +335,6 @@ The panel does not perform automatic corrections or matching.
 All authenticated routes require login and completed setup, except `/setup`
 during onboarding.
 
-## Active Planned Extension
-
-The next active implementation target is Total Balance, documented in
-`docs/TOTAL_BALANCE_IMPLEMENTATION_PLAN.md`.
-
-That feature is planned but is not part of the implemented product until its
-schema, calculations, dashboard UI, and verification are completed.
-
 ## Open Roadmap
 
 Open product ideas are maintained in `docs/ROADMAP.md`.
@@ -369,6 +390,9 @@ Do not implement without an explicit product decision:
   is received.
 - Linked existing transactions do not create duplicates.
 - Forecast values are deterministic and explainable.
+- Total Balance includes completed activity and carries balances across inactive
+  months without changing transaction totals or forecasts.
+- Balance-adjustment reads and mutations are scoped to the authenticated user.
 - Safe to spend is clearly presented as an estimate, not an account balance.
 - Currency formatting follows the user's configured currency.
 - The app remains responsive and follows `docs/DESIGN_SYSTEM.md`.

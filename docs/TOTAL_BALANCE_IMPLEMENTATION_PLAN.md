@@ -1,5 +1,7 @@
 # Total Balance Implementation Plan
 
+**Status:** Implemented. All seven milestones are complete.
+
 ## Summary
 
 Add a `Total Balance` area to the dashboard before `Monthly Snapshot`.
@@ -14,7 +16,8 @@ system.
 
 ## Locked Implementation Decisions
 
-- The dashboard page heading becomes `Dashboard`.
+- The dashboard uses peer `Total Balance` and `Monthly Snapshot` section headings
+  without an additional page-level heading.
 - `Total Balance` is the first dashboard section.
 - The existing month-specific dashboard content is grouped under a separate
   `Monthly Snapshot` section after Total Balance.
@@ -310,7 +313,6 @@ Place the new `Total Balance` section immediately before `Monthly Snapshot`.
 
 Recommended composition:
 
-- Page heading: `Dashboard`
 - Section heading: `Total Balance`
 - Primary value: selected-period ending balance
 - Supporting values:
@@ -321,6 +323,16 @@ Recommended composition:
 - Ending-balance line chart
 - `Add money` command
 - adjustment management access for edit/delete
+
+Implemented layout:
+
+- period selection sits below the Total Balance heading and outside the history
+  card
+- ending balance leads the history card, with starting balance and net change
+  beneath it
+- the monthly line chart follows the summary values
+- Add Money and Manage adjustments sit below the chart inside the card
+- custom period fields appear in a distinct supporting card
 
 After the Total Balance section, render a distinct `Monthly Snapshot` heading
 with its existing month selector and dashboard content. Changing either
@@ -389,7 +401,6 @@ currency formatting, and design tokens. Do not create a second visual system.
 
 ### Milestone 5: Dashboard UI
 
-- Rename the page heading to `Dashboard`.
 - Add Total Balance before Monthly Snapshot.
 - Add a distinct `Monthly Snapshot` section heading around the existing
   month-specific dashboard content.
@@ -410,6 +421,9 @@ currency formatting, and design tokens. Do not create a second visual system.
 - Update `docs/TECH_DECISIONS.md` with the locked balance model.
 - Update relevant route/dashboard documentation.
 - Run automated and manual verification.
+
+All milestone tasks above are implemented. Verification results are reported in
+the Milestone 7 implementation handoff rather than persisted in this plan.
 
 ## Public Interfaces And Types
 
@@ -475,7 +489,8 @@ framework dependency.
 ### Expected Project Checks
 
 ```powershell
-cmd /c npx prisma migrate dev --name add_balance_adjustments
+cmd /c npx prisma validate
+cmd /c npx prisma migrate status
 cmd /c npx prisma generate
 cmd /c npm test
 cmd /c npx tsc --noEmit --pretty false
