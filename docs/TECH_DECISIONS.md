@@ -352,7 +352,7 @@ Dashboard rules:
 - Total Balance period parameters are independent from the Monthly Snapshot
   `month` parameter and are preserved across dashboard mutations
 - invalid balance ranges normalize to current year and return an actionable error
-- Add Money and adjustment management use inline query-parameter-driven forms
+- Add Money opens its inline form immediately with local client state; its query parameter remains available for validation-error recovery, while adjustment management stays query-parameter-driven
 - calculations stay Decimal-safe on the server; chart numbers are display-only
 
 ---

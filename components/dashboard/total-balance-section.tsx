@@ -1,10 +1,11 @@
-import { History, ListRestart, PencilLine, Plus, Trash2, X } from 'lucide-react'
+import { History, PencilLine, Trash2, X } from 'lucide-react'
 import Link from 'next/link'
 
 import type {
   DashboardBalanceQueryParams,
   DashboardTotalBalanceData
 } from '@/actions/dashboard'
+import { BalanceAdjustmentCreateDisclosure } from '@/components/dashboard/balance-adjustment-create-disclosure'
 import { BalanceAdjustmentFormFields } from '@/components/dashboard/balance-adjustment-form-fields'
 import { TotalBalanceChart } from '@/components/dashboard/total-balance-chart'
 import { TotalBalancePeriodControls } from '@/components/dashboard/total-balance-period-controls'
@@ -79,11 +80,6 @@ export function TotalBalanceSection ({
   const closeAdjustmentHref = buildDashboardHref({
     month,
     balanceQuery: data.queryParams
-  })
-  const addAdjustmentHref = buildDashboardHref({
-    month,
-    balanceQuery: data.queryParams,
-    balanceAdjustment: 'add'
   })
   const manageAdjustmentsHref = buildDashboardHref({
     month,
@@ -186,104 +182,41 @@ export function TotalBalanceSection ({
             />
           )}
 
-          <div className='flex flex-wrap gap-2'>
-            <Link
-              href={addAdjustmentHref}
-              className={buttonVariants({ size: 'sm' })}
-            >
-              <Plus data-icon='inline-start' />
-              Add money
-            </Link>
-            <Link
-              href={manageAdjustmentsHref}
-              className={buttonVariants({ variant: 'outline', size: 'sm' })}
-            >
-              <ListRestart data-icon='inline-start' />
-              Manage adjustments
-            </Link>
-          </div>
+          <BalanceAdjustmentCreateDisclosure
+            currency={currency}
+            month={month}
+            latestCompletedMonth={data.latestCompletedMonth}
+            initialOpen={adjustmentState === 'add'}
+            manageHref={manageAdjustmentsHref}
+            createAdjustmentAction={createAdjustmentAction}
+          >
 
-          {adjustmentState ? (
-            <>
-              <Separator />
+            {adjustmentState && adjustmentState !== 'add' ? (
+              <>
+                <Separator />
 
-              {adjustmentState === 'add' ? (
                 <div className='flex flex-col gap-5'>
-                  <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
-                    <div className='flex flex-col gap-1.5'>
-                      <h3 className='text-base font-semibold text-foreground'>
-                        Add money
-                      </h3>
-                      <p className='max-w-2xl text-sm leading-6 text-muted-foreground'>
-                        Add an opening balance or previously untracked money.
-                        This changes Total Balance without being counted as
-                        transaction income.
-                      </p>
-                    </div>
-                    <Link
-                      href={closeAdjustmentHref}
-                      className={buttonVariants({
-                        variant: 'ghost',
-                        size: 'sm'
-                      })}
-                    >
-                      <X data-icon='inline-start' />
-                      Close
-                    </Link>
+                <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
+                  <div className='flex flex-col gap-1.5'>
+                    <h3 className='text-base font-semibold text-foreground'>
+                      Balance adjustments
+                    </h3>
+                    <p className='max-w-2xl text-sm leading-6 text-muted-foreground'>
+                      Review money added directly to historical balance. These
+                      entries never become income transactions.
+                    </p>
                   </div>
-
-                  <form
-                    action={createAdjustmentAction}
-                    className='flex flex-col gap-5'
+                  <Link
+                    href={closeAdjustmentHref}
+                    className={buttonVariants({
+                      variant: 'ghost',
+                      size: 'sm'
+                    })}
                   >
-                    <input type='hidden' name='month' value={month} />
-                    <BalanceAdjustmentFormFields
-                      idPrefix='create-balance-adjustment'
-                      currency={currency}
-                      latestCompletedMonth={data.latestCompletedMonth}
-                      defaultValues={{
-                        amount: '',
-                        effectiveMonth: data.latestCompletedMonth,
-                        note: ''
-                      }}
-                    />
-                    <div className='flex flex-wrap justify-end gap-3'>
-                      <Link
-                        href={closeAdjustmentHref}
-                        className={buttonVariants({ variant: 'outline' })}
-                      >
-                        Cancel
-                      </Link>
-                      <Button type='submit'>
-                        <Plus data-icon='inline-start' />
-                        Save adjustment
-                      </Button>
-                    </div>
-                  </form>
+                    <X data-icon='inline-start' />
+                    Close
+                  </Link>
                 </div>
-              ) : (
-                <div className='flex flex-col gap-5'>
-                  <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
-                    <div className='flex flex-col gap-1.5'>
-                      <h3 className='text-base font-semibold text-foreground'>
-                        Balance adjustments
-                      </h3>
-                      <p className='max-w-2xl text-sm leading-6 text-muted-foreground'>
-                        Review money added directly to historical balance. These
-                        entries never become income transactions.
-                      </p>
-                    </div>
-                    <Link
-                      href={closeAdjustmentHref}
-                      className={buttonVariants({
-                        variant: 'ghost',
-                        size: 'sm'
-                      })}
-                    >
-                      <X data-icon='inline-start' />
-                      Close
-                    </Link>
-                  </div>
 
                   {adjustmentNotFound ? (
                     <PageNotice variant='error' title='Adjustment unavailable'>
@@ -296,18 +229,6 @@ export function TotalBalanceSection ({
                       icon={History}
                       title='No balance adjustments yet'
                       description='Add an opening balance or previously untracked money to include it in completed-month history.'
-                      action={
-                        <Link
-                          href={addAdjustmentHref}
-                          className={buttonVariants({
-                            variant: 'outline',
-                            size: 'sm'
-                          })}
-                        >
-                          <Plus data-icon='inline-start' />
-                          Add money
-                        </Link>
-                      }
                     />
                   ) : (
                     <div className='flex flex-col gap-3'>
@@ -413,9 +334,9 @@ export function TotalBalanceSection ({
                     </div>
                   )}
                 </div>
-              )}
-            </>
-          ) : null}
+              </>
+            ) : null}
+          </BalanceAdjustmentCreateDisclosure>
         </CardContent>
       </Card>
     </section>

@@ -38,9 +38,6 @@ export function BalanceAdjustmentFormFields({
           autoComplete="off"
           required
         />
-        <FieldDescription>
-          Enter a positive amount with up to two decimal places.
-        </FieldDescription>
       </Field>
 
       <Field>
