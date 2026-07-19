@@ -56,7 +56,7 @@ export function BalanceAdjustmentCreateDisclosure({
           <Separator />
           <div
             id="add-balance-adjustment-form"
-            className="flex flex-col gap-5"
+            className="flex flex-col gap-4"
           >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex flex-col gap-1.5">
@@ -80,7 +80,7 @@ export function BalanceAdjustmentCreateDisclosure({
               </Button>
             </div>
 
-            <form action={createAdjustmentAction} className="flex flex-col gap-5">
+            <form action={createAdjustmentAction} className="flex flex-col gap-4">
               <input type="hidden" name="month" value={month} />
               <BalanceAdjustmentFormFields
                 idPrefix="create-balance-adjustment"

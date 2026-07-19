@@ -46,7 +46,7 @@ function CategorySubcategoriesSection({
   deleteSubcategoryAction: (formData: FormData) => Promise<void>;
 }) {
   return (
-    <div className="rounded-[22px] border border-border/80 bg-card/70 p-4">
+    <div className="rounded-xl border border-border/80 bg-card/70 p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <ListTree className="size-[16px] text-muted-foreground" />
@@ -245,7 +245,7 @@ export default async function CategoriesPage({
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-5">
       <PageHeader
         eyebrow="Structure"
         title="Categories"
@@ -254,7 +254,7 @@ export default async function CategoriesPage({
 
       <section className="grid gap-4 md:grid-cols-3">
         <Card>
-          <CardContent className="space-y-1 p-5">
+          <CardContent className="flex flex-col gap-1 p-4">
             <p className="text-sm font-medium text-muted-foreground">Total categories</p>
             <p className="text-xl font-semibold tracking-tight text-foreground">
               {categories.length}
@@ -262,7 +262,7 @@ export default async function CategoriesPage({
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="space-y-1 p-5">
+          <CardContent className="flex flex-col gap-1 p-4">
             <p className="text-sm font-medium text-muted-foreground">Active</p>
             <p className="text-xl font-semibold tracking-tight text-foreground">
               {categories.filter((category) => !category.isArchived).length}
@@ -270,7 +270,7 @@ export default async function CategoriesPage({
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="space-y-1 p-5">
+          <CardContent className="flex flex-col gap-1 p-4">
             <p className="text-sm font-medium text-muted-foreground">Total subcategories</p>
             <p className="text-xl font-semibold tracking-tight text-foreground">
               {categories.reduce((sum, category) => sum + category.subcategories.length, 0)}
@@ -322,7 +322,7 @@ export default async function CategoriesPage({
         </CardContent>
       </Card>
 
-      <section className="grid gap-5 xl:grid-cols-2">
+      <section className="grid gap-4 xl:grid-cols-2">
         {sections.map((section) => (
           <Card key={section.title} className="overflow-hidden">
             <CardHeader className="border-b border-border/70 pb-5">
@@ -337,7 +337,7 @@ export default async function CategoriesPage({
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="grid gap-5 p-6">
+            <CardContent className="grid gap-4 p-5">
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <FolderKanban className="size-[18px] text-muted-foreground" />
@@ -355,7 +355,7 @@ export default async function CategoriesPage({
                     {section.active.map((category) => (
                       <div
                         key={category.id}
-                        className="rounded-[24px] border border-border/80 bg-background/60 p-4"
+                        className="rounded-xl border border-border/80 bg-background/60 p-4"
                       >
                         <div className="flex flex-col gap-3">
                           <form
@@ -411,7 +411,7 @@ export default async function CategoriesPage({
                     {section.archived.map((category) => (
                       <div
                         key={category.id}
-                        className="rounded-[24px] border border-border/80 bg-background/60 p-4"
+                        className="rounded-xl border border-border/80 bg-background/60 p-4"
                       >
                         <div className="flex flex-col gap-3">
                           <form

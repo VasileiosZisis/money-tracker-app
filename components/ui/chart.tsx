@@ -109,7 +109,7 @@ export function ChartTooltipContent({
   }
 
   return (
-    <div className="grid min-w-[180px] gap-2 rounded-2xl border border-border/80 bg-card/95 p-3 text-card-foreground shadow-surface backdrop-blur-xl">
+    <div className="grid min-w-[180px] gap-2 rounded-xl border border-border/80 bg-card/95 p-3 text-card-foreground shadow-surface backdrop-blur-xl">
       {!hideLabel ? (
         <p className="text-xs font-medium text-muted-foreground">
           {labelFormatter && label !== undefined

@@ -301,7 +301,7 @@ export default async function TransactionsPage({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-5">
       <PageHeader
         eyebrow="Entries"
         title="Transactions"
@@ -310,7 +310,7 @@ export default async function TransactionsPage({
 
       <section className="grid gap-4 md:grid-cols-3">
         <Card>
-          <CardContent className="space-y-1 p-5">
+          <CardContent className="flex flex-col gap-1 p-4">
             <p className="text-sm font-medium text-muted-foreground">Selected month</p>
             <p className="text-xl font-semibold tracking-tight text-foreground">
               {formatMonthLabel(selectedMonth)}
@@ -318,7 +318,7 @@ export default async function TransactionsPage({
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="space-y-1 p-5">
+          <CardContent className="flex flex-col gap-1 p-4">
             <p className="text-sm font-medium text-muted-foreground">Visible entries</p>
             <p className="text-xl font-semibold tracking-tight text-foreground">
               {transactions.length}
@@ -326,7 +326,7 @@ export default async function TransactionsPage({
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="space-y-1 p-5">
+          <CardContent className="flex flex-col gap-1 p-4">
             <p className="text-sm font-medium text-muted-foreground">Current filter</p>
             <p className="text-xl font-semibold tracking-tight text-foreground">
               {selectedType === "ALL"
@@ -351,8 +351,8 @@ export default async function TransactionsPage({
         </PageNotice>
       ) : null}
 
-      <section className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <div className="space-y-5">
+      <section className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
+        <div className="flex flex-col gap-4">
           <Card className="h-fit">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -363,8 +363,8 @@ export default async function TransactionsPage({
                 Narrow the visible list by month, type, category, and subcategory.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-5">
-              <form method="get" className="space-y-5">
+            <CardContent className="flex flex-col gap-4">
+              <form method="get" className="flex flex-col gap-4">
                 <FormField htmlFor="filter-month" label="Month">
                   <Input
                     id="filter-month"
@@ -431,7 +431,7 @@ export default async function TransactionsPage({
                 </div>
               </form>
 
-              <div className="rounded-[22px] border border-border/80 bg-background/60 p-4">
+              <div className="rounded-xl border border-border/80 bg-background/60 p-4">
                 <p className="text-sm font-medium text-muted-foreground">Context</p>
                 <p className="mt-2 text-sm leading-6 text-foreground">
                   New entries only show active categories by default. Archived categories remain
@@ -450,7 +450,7 @@ export default async function TransactionsPage({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form action={createTransactionAction} className="grid gap-5">
+              <form action={createTransactionAction} className="grid gap-4">
                 <TransactionFormFields
                   idPrefix="create-transaction"
                   categories={activeCategories}
@@ -486,7 +486,7 @@ export default async function TransactionsPage({
               {transactions.length === 1 ? "entry" : "entries"}.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4 p-6">
+          <CardContent className="grid gap-4 p-5">
             {transactions.length === 0 ? (
               <EmptyState
                 icon={FolderOpen}
@@ -500,7 +500,7 @@ export default async function TransactionsPage({
                 return (
                   <div
                     key={transaction.id}
-                    className="rounded-[24px] border border-border/80 bg-background/60 p-4 sm:p-5"
+                    className="rounded-xl border border-border/80 bg-background/60 p-4"
                   >
                     <div className="space-y-4">
                       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -565,7 +565,7 @@ export default async function TransactionsPage({
                       ) : null}
 
                       {isEditing ? (
-                        <form action={updateTransactionAction} className="grid gap-5 border-t border-border/70 pt-5">
+                        <form action={updateTransactionAction} className="grid gap-4 border-t border-border/70 pt-4">
                           <input type="hidden" name="id" value={transaction.id} />
                           <TransactionFormFields
                             idPrefix={`edit-${transaction.id}`}

@@ -193,7 +193,7 @@ export default async function PlannedIncomePage({
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-5">
       <PageHeader
         eyebrow="Planning"
         title="Planned Income"
@@ -201,7 +201,7 @@ export default async function PlannedIncomePage({
         actions={
           <Link
             href="#planned-income-form"
-            className={cn(buttonVariants(), "rounded-2xl px-4")}
+            className={cn(buttonVariants(), "rounded-lg")}
           >
             <Plus />
             Add planned income
@@ -211,7 +211,7 @@ export default async function PlannedIncomePage({
 
       <section className="grid gap-4 md:grid-cols-3">
         <Card>
-          <CardContent className="space-y-1 p-5">
+          <CardContent className="flex flex-col gap-1 p-4">
             <p className="text-sm font-medium text-muted-foreground">Total planned income</p>
             <p className="text-xl font-semibold tracking-tight text-foreground">
               {plannedIncomes.length}
@@ -219,7 +219,7 @@ export default async function PlannedIncomePage({
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="space-y-1 p-5">
+          <CardContent className="flex flex-col gap-1 p-4">
             <p className="text-sm font-medium text-muted-foreground">Active</p>
             <p className="text-xl font-semibold tracking-tight text-foreground">
               {activeIncomes.length}
@@ -227,7 +227,7 @@ export default async function PlannedIncomePage({
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="space-y-1 p-5">
+          <CardContent className="flex flex-col gap-1 p-4">
             <p className="text-sm font-medium text-muted-foreground">Inactive</p>
             <p className="text-xl font-semibold tracking-tight text-foreground">
               {inactiveIncomes.length}
@@ -257,9 +257,9 @@ export default async function PlannedIncomePage({
             the income is actually received.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-5">
+        <CardContent className="flex flex-col gap-4">
           {!hasIncomeCategoryOptions ? (
-            <div className="rounded-[24px] border border-border/80 bg-background/60 p-4">
+            <div className="rounded-xl border border-border/80 bg-background/60 p-4">
               <p className="text-sm leading-6 text-muted-foreground">
                 You need at least one active income category before you can add planned
                 income.
@@ -278,7 +278,7 @@ export default async function PlannedIncomePage({
             </div>
           ) : null}
 
-          <form action={createPlannedIncomeAction} className="grid gap-5">
+          <form action={createPlannedIncomeAction} className="grid gap-4">
             <PlannedIncomeFormFields
               idPrefix="create-planned-income"
               currency={currency}
@@ -321,7 +321,7 @@ export default async function PlannedIncomePage({
           }
         />
       ) : (
-        <section className="grid gap-5 xl:grid-cols-2">
+        <section className="grid gap-4 xl:grid-cols-2">
           {sections.map((section) => (
             <Card key={section.title} className="overflow-hidden">
               <CardHeader className="border-b border-border/70 pb-5">
@@ -334,7 +334,7 @@ export default async function PlannedIncomePage({
                 </div>
               </CardHeader>
 
-              <CardContent className="grid gap-4 p-6">
+              <CardContent className="grid gap-4 p-5">
                 {section.incomes.length === 0 ? (
                   <EmptyState
                     icon={FolderOpen}
@@ -352,7 +352,7 @@ export default async function PlannedIncomePage({
                     return (
                       <div
                         key={plannedIncome.id}
-                        className="rounded-[24px] border border-border/80 bg-background/60 p-4 sm:p-5"
+                        className="rounded-xl border border-border/80 bg-background/60 p-4"
                       >
                         <div className="space-y-4">
                           <div className="flex flex-col gap-4">
@@ -378,7 +378,7 @@ export default async function PlannedIncomePage({
                               </div>
 
                               <div className="grid gap-3 sm:grid-cols-3">
-                                <div className="rounded-2xl border border-border/70 bg-card/70 p-3">
+                                <div className="rounded-xl border border-border/70 bg-card/70 p-3">
                                   <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
                                     Category
                                   </p>
@@ -391,7 +391,7 @@ export default async function PlannedIncomePage({
                                     </p>
                                   ) : null}
                                 </div>
-                                <div className="rounded-2xl border border-border/70 bg-card/70 p-3">
+                                <div className="rounded-xl border border-border/70 bg-card/70 p-3">
                                   <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
                                     Status
                                   </p>
@@ -399,7 +399,7 @@ export default async function PlannedIncomePage({
                                     {plannedIncome.isActive ? "Included in projection" : "Paused"}
                                   </p>
                                 </div>
-                                <div className="rounded-2xl border border-border/70 bg-card/70 p-3">
+                                <div className="rounded-xl border border-border/70 bg-card/70 p-3">
                                   <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
                                     Amount
                                   </p>
@@ -442,7 +442,7 @@ export default async function PlannedIncomePage({
                           </div>
 
                           {isEditing ? (
-                            <form action={updatePlannedIncomeAction} className="grid gap-5 border-t border-border/70 pt-5">
+                            <form action={updatePlannedIncomeAction} className="grid gap-4 border-t border-border/70 pt-4">
                               <input type="hidden" name="id" value={plannedIncome.id} />
                               <input
                                 type="hidden"

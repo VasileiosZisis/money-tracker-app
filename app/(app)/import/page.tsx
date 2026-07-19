@@ -3,7 +3,7 @@ import { ImportWorkspace } from "./import-workspace";
 
 export default function ImportPage() {
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-5">
       <PageHeader
         eyebrow="Migration"
         title="Import"

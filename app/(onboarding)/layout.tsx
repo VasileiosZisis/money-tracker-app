@@ -24,8 +24,8 @@ export default async function OnboardingLayout({
   }
 
   return (
-    <div className="relative min-h-screen px-4 py-8 sm:px-6 lg:px-8">
-      <div className="absolute right-4 top-4 sm:right-6 sm:top-6">
+    <div className="relative min-h-screen px-4 py-5 sm:px-5">
+      <div className="absolute right-4 top-4 sm:right-5 sm:top-5">
         <ThemeToggle />
       </div>
       <main className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-6xl items-center">

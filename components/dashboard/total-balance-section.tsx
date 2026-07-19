@@ -119,10 +119,10 @@ export function TotalBalanceSection ({
       ) : null}
 
       <Card className='overflow-hidden'>
-        <CardContent className='flex flex-col gap-6 p-6 md:p-7'>
+        <CardContent className='flex flex-col gap-5 p-5'>
           {summary ? (
-            <div className='flex flex-col gap-6'>
-              <div className='flex flex-col gap-6'>
+            <div className='flex flex-col gap-5'>
+              <div className='flex flex-col gap-5'>
                 <div className='flex flex-col gap-3'>
                   <p className='text-sm font-medium text-muted-foreground'>
                     Ending balance
@@ -142,7 +142,7 @@ export function TotalBalanceSection ({
                     <p className='text-sm font-medium text-muted-foreground'>
                       Starting balance
                     </p>
-                    <p className='font-mono text-2xl font-semibold tracking-tight text-foreground'>
+                    <p className='font-mono text-xl font-semibold tracking-tight text-foreground'>
                       {formatter.format(
                         Number(summary.startingBalance.toString())
                       )}
@@ -155,7 +155,7 @@ export function TotalBalanceSection ({
                     </p>
                     <p
                       className={cn(
-                        'font-mono text-2xl font-semibold tracking-tight',
+                          'font-mono text-xl font-semibold tracking-tight',
                         netChangeClassName
                       )}
                     >
@@ -195,7 +195,7 @@ export function TotalBalanceSection ({
               <>
                 <Separator />
 
-                <div className='flex flex-col gap-5'>
+                <div className='flex flex-col gap-4'>
                 <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
                   <div className='flex flex-col gap-1.5'>
                     <h3 className='text-base font-semibold text-foreground'>
@@ -239,7 +239,7 @@ export function TotalBalanceSection ({
                         return (
                           <div
                             key={adjustment.id}
-                            className='flex flex-col gap-4 rounded-2xl border border-border/70 bg-background/60 p-4'
+                            className='flex flex-col gap-3 rounded-xl border border-border/70 bg-background/60 p-4'
                           >
                             <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
                               <div className='flex min-w-0 flex-col gap-1.5'>
@@ -282,7 +282,7 @@ export function TotalBalanceSection ({
                                 <Separator />
                                 <form
                                   action={updateAdjustmentAction}
-                                  className='flex flex-col gap-5'
+                                  className='flex flex-col gap-4'
                                 >
                                   <input
                                     type='hidden'

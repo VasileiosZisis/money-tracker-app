@@ -313,7 +313,7 @@ export function ImportWorkspace() {
   const hasNoValidRows = preview !== null && preview.rowsForConfirmation.length === 0;
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-5">
       {error ? (
         <PageNotice variant="error" title="Import needs attention">
           {error}
@@ -326,7 +326,7 @@ export function ImportWorkspace() {
         </PageNotice>
       ) : null}
 
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(320px,0.75fr)]">
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(300px,0.75fr)]">
         <Card>
           <CardHeader>
             <CardTitle>Upload CSV</CardTitle>
@@ -335,8 +335,8 @@ export function ImportWorkspace() {
               then confirm before anything is written to the database.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-5">
-            <form onSubmit={handleFileSubmit} className="grid gap-5">
+          <CardContent className="flex flex-col gap-4">
+            <form onSubmit={handleFileSubmit} className="grid gap-4">
               <div className="space-y-2">
                 <Label htmlFor="import-file">CSV file</Label>
                 <Input
@@ -372,7 +372,7 @@ export function ImportWorkspace() {
               </div>
             </form>
 
-            <div className="rounded-[24px] border border-border/80 bg-background/60 p-4">
+            <div className="rounded-xl border border-border/80 bg-background/60 p-4">
               <p className="text-sm font-medium text-muted-foreground">Required columns</p>
               <p className="mt-2 text-sm leading-6 text-foreground">
                 localDate, type, category, and amount
@@ -393,20 +393,20 @@ export function ImportWorkspace() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-[24px] border border-border/80 bg-background/60 p-4">
+            <div className="rounded-xl border border-border/80 bg-background/60 p-4">
               <p className="text-sm font-medium text-muted-foreground">1. Preview</p>
               <p className="mt-2 text-sm leading-6 text-foreground">
                 The app parses the CSV, detects columns, validates each row, and shows what needs
                 to be fixed before import.
               </p>
             </div>
-            <div className="rounded-[24px] border border-border/80 bg-background/60 p-4">
+            <div className="rounded-xl border border-border/80 bg-background/60 p-4">
               <p className="text-sm font-medium text-muted-foreground">2. Resolve categories</p>
               <p className="mt-2 text-sm leading-6 text-foreground">
                 Unknown categories can be mapped to an existing one or created during import.
               </p>
             </div>
-            <div className="rounded-[24px] border border-border/80 bg-background/60 p-4">
+            <div className="rounded-xl border border-border/80 bg-background/60 p-4">
               <p className="text-sm font-medium text-muted-foreground">3. Confirm</p>
               <p className="mt-2 text-sm leading-6 text-foreground">
                 Confirmation creates normal transactions. Existing rows are never overwritten.
@@ -428,7 +428,7 @@ export function ImportWorkspace() {
         <>
           <section className="grid gap-4 md:grid-cols-4">
             <Card>
-              <CardContent className="space-y-1 p-5">
+              <CardContent className="flex flex-col gap-1 p-4">
                 <p className="text-sm font-medium text-muted-foreground">Total rows</p>
                 <p className="text-xl font-semibold tracking-tight text-foreground">
                   {preview.summary.totalRows}
@@ -436,7 +436,7 @@ export function ImportWorkspace() {
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="space-y-1 p-5">
+              <CardContent className="flex flex-col gap-1 p-4">
                 <p className="text-sm font-medium text-muted-foreground">Valid rows</p>
                 <p className="text-xl font-semibold tracking-tight text-foreground">
                   {preview.summary.validRows}
@@ -444,7 +444,7 @@ export function ImportWorkspace() {
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="space-y-1 p-5">
+              <CardContent className="flex flex-col gap-1 p-4">
                 <p className="text-sm font-medium text-muted-foreground">Invalid rows</p>
                 <p className="text-xl font-semibold tracking-tight text-foreground">
                   {preview.summary.invalidRows}
@@ -452,7 +452,7 @@ export function ImportWorkspace() {
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="space-y-1 p-5">
+              <CardContent className="flex flex-col gap-1 p-4">
                 <p className="text-sm font-medium text-muted-foreground">Categories to create</p>
                 <p className="text-xl font-semibold tracking-tight text-foreground">
                   {categoriesToCreateCount}
@@ -461,7 +461,7 @@ export function ImportWorkspace() {
             </Card>
           </section>
 
-          <section className="grid gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(320px,0.8fr)]">
+          <section className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(300px,0.8fr)]">
             <Card>
               <CardHeader>
                 <CardTitle>Column mapping</CardTitle>
@@ -497,7 +497,7 @@ export function ImportWorkspace() {
                   </div>
                 ))}
 
-                <div className="rounded-[24px] border border-border/80 bg-background/60 p-4 sm:col-span-2">
+                <div className="rounded-xl border border-border/80 bg-background/60 p-4 sm:col-span-2">
                   <div className="flex items-center gap-2">
                     <Rows3 className="size-[18px] text-muted-foreground" />
                     <p className="text-sm font-medium text-muted-foreground">Detected columns</p>
@@ -536,12 +536,12 @@ export function ImportWorkspace() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="rounded-[24px] border border-border/80 bg-background/60 p-4">
+                <div className="rounded-xl border border-border/80 bg-background/60 p-4">
                   <p className="text-sm font-medium text-muted-foreground">Preview file</p>
                   <p className="mt-2 text-sm font-semibold text-foreground">{preview.fileName}</p>
                 </div>
 
-                <div className="rounded-[24px] border border-border/80 bg-background/60 p-4">
+                <div className="rounded-xl border border-border/80 bg-background/60 p-4">
                   <p className="text-sm font-medium text-muted-foreground">Ready to import</p>
                   <p className="mt-2 text-sm leading-6 text-foreground">
                     {preview.rowsForConfirmation.length} rows will be submitted after category
@@ -608,7 +608,7 @@ export function ImportWorkspace() {
                   return (
                     <div
                       key={candidate.key}
-                      className="rounded-[24px] border border-border/80 bg-background/60 p-4"
+                      className="rounded-xl border border-border/80 bg-background/60 p-4"
                     >
                       <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px_220px]">
                         <div className="space-y-2">
@@ -717,7 +717,7 @@ export function ImportWorkspace() {
             </CardHeader>
             <CardContent className="grid gap-4">
               {hasNoValidRows ? (
-                <div className="rounded-[24px] border border-warning/20 bg-warning/5 p-4">
+                <div className="rounded-xl border border-warning/20 bg-warning/5 p-4">
                   <p className="text-sm font-medium text-foreground">No valid preview rows yet</p>
                   <p className="mt-1 text-sm leading-6 text-muted-foreground">
                     The file was parsed, but none of the rows are valid yet. Check the column
@@ -736,7 +736,7 @@ export function ImportWorkspace() {
                 preview.rows.slice(0, 20).map((row) => (
                   <div
                     key={row.rowNumber}
-                    className="rounded-[24px] border border-border/80 bg-background/60 p-4"
+                    className="rounded-xl border border-border/80 bg-background/60 p-4"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="space-y-2">

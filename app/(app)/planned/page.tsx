@@ -191,7 +191,7 @@ export default async function PlannedBillsPage({
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-5">
       <PageHeader
         eyebrow="Planning"
         title="Planned Bills"
@@ -199,7 +199,7 @@ export default async function PlannedBillsPage({
         actions={
           <Link
             href="#planned-bill-form"
-            className={cn(buttonVariants(), "rounded-2xl px-4")}
+            className={cn(buttonVariants(), "rounded-lg")}
           >
             <Plus />
             Add planned bill
@@ -209,7 +209,7 @@ export default async function PlannedBillsPage({
 
       <section className="grid gap-4 md:grid-cols-3">
         <Card>
-          <CardContent className="space-y-1 p-5">
+          <CardContent className="flex flex-col gap-1 p-4">
             <p className="text-sm font-medium text-muted-foreground">Total planned bills</p>
             <p className="text-xl font-semibold tracking-tight text-foreground">
               {plannedBills.length}
@@ -217,7 +217,7 @@ export default async function PlannedBillsPage({
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="space-y-1 p-5">
+          <CardContent className="flex flex-col gap-1 p-4">
             <p className="text-sm font-medium text-muted-foreground">Active</p>
             <p className="text-xl font-semibold tracking-tight text-foreground">
               {activeBills.length}
@@ -225,7 +225,7 @@ export default async function PlannedBillsPage({
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="space-y-1 p-5">
+          <CardContent className="flex flex-col gap-1 p-4">
             <p className="text-sm font-medium text-muted-foreground">Inactive</p>
             <p className="text-xl font-semibold tracking-tight text-foreground">
               {inactiveBills.length}
@@ -255,9 +255,9 @@ export default async function PlannedBillsPage({
             between 1 and 28.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-5">
+        <CardContent className="flex flex-col gap-4">
           {!hasExpenseCategoryOptions ? (
-            <div className="rounded-[24px] border border-border/80 bg-background/60 p-4">
+            <div className="rounded-xl border border-border/80 bg-background/60 p-4">
               <p className="text-sm leading-6 text-muted-foreground">
                 You need at least one active expense category before you can add a planned
                 bill.
@@ -276,7 +276,7 @@ export default async function PlannedBillsPage({
             </div>
           ) : null}
 
-          <form action={createPlannedBillAction} className="grid gap-5">
+          <form action={createPlannedBillAction} className="grid gap-4">
             <PlannedBillFormFields
               idPrefix="create-planned-bill"
               currency={currency}
@@ -319,7 +319,7 @@ export default async function PlannedBillsPage({
           }
         />
       ) : (
-        <section className="grid gap-5 xl:grid-cols-2">
+        <section className="grid gap-4 xl:grid-cols-2">
           {sections.map((section) => (
             <Card key={section.title} className="overflow-hidden">
               <CardHeader className="border-b border-border/70 pb-5">
@@ -332,7 +332,7 @@ export default async function PlannedBillsPage({
                 </div>
               </CardHeader>
 
-              <CardContent className="grid gap-4 p-6">
+              <CardContent className="grid gap-4 p-5">
                 {section.bills.length === 0 ? (
                   <EmptyState
                     icon={FolderOpen}
@@ -350,7 +350,7 @@ export default async function PlannedBillsPage({
                     return (
                       <div
                         key={plannedBill.id}
-                        className="rounded-[24px] border border-border/80 bg-background/60 p-4 sm:p-5"
+                        className="rounded-xl border border-border/80 bg-background/60 p-4"
                       >
                         <div className="space-y-4">
                           <div className="flex flex-col gap-4">
@@ -376,7 +376,7 @@ export default async function PlannedBillsPage({
                               </div>
 
                               <div className="grid gap-3 sm:grid-cols-3">
-                                <div className="rounded-2xl border border-border/70 bg-card/70 p-3">
+                                <div className="rounded-xl border border-border/70 bg-card/70 p-3">
                                   <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
                                     Category
                                   </p>
@@ -389,7 +389,7 @@ export default async function PlannedBillsPage({
                                     </p>
                                   ) : null}
                                 </div>
-                                <div className="rounded-2xl border border-border/70 bg-card/70 p-3">
+                                <div className="rounded-xl border border-border/70 bg-card/70 p-3">
                                   <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
                                     Status
                                   </p>
@@ -397,7 +397,7 @@ export default async function PlannedBillsPage({
                                     {plannedBill.isActive ? "Included in planning" : "Paused"}
                                   </p>
                                 </div>
-                                <div className="rounded-2xl border border-border/70 bg-card/70 p-3">
+                                <div className="rounded-xl border border-border/70 bg-card/70 p-3">
                                   <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
                                     Amount
                                   </p>
@@ -436,7 +436,7 @@ export default async function PlannedBillsPage({
                           </div>
 
                           {isEditing ? (
-                            <form action={updatePlannedBillAction} className="grid gap-5 border-t border-border/70 pt-5">
+                            <form action={updatePlannedBillAction} className="grid gap-4 border-t border-border/70 pt-4">
                               <input type="hidden" name="id" value={plannedBill.id} />
                               <input
                                 type="hidden"

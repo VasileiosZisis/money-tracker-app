@@ -21,7 +21,7 @@ export function PageNotice({
   return (
     <div
       className={cn(
-        "rounded-[24px] border p-5",
+        "rounded-xl border p-4",
         variant === "error"
           ? "border-destructive/20 bg-destructive/5"
           : "border-success/20 bg-success/5",
@@ -31,7 +31,7 @@ export function PageNotice({
       <div className="flex items-start gap-3">
         <div
           className={cn(
-            "flex size-10 items-center justify-center rounded-2xl",
+            "flex size-9 items-center justify-center rounded-lg",
             variant === "error"
               ? "bg-destructive/10 text-destructive"
               : "bg-success/10 text-success",

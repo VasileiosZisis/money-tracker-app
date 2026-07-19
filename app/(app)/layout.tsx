@@ -70,15 +70,15 @@ export default async function AppLayout ({
   return (
     <div className='min-h-screen'>
       <SidebarProvider>
-        <div className='mx-auto flex min-h-screen gap-4 px-4 py-4 sm:px-6 lg:gap-6 lg:py-0 lg:pr-6 lg:pl-0'>
+        <div className='mx-auto flex min-h-screen gap-3 px-3 py-3 sm:px-5 lg:gap-5 lg:py-0 lg:pr-5 lg:pl-0'>
           <AppSidebar
             displayName={displayName}
             initials={initials}
             userImage={userImage}
           />
 
-          <main className='flex min-w-0 flex-1 flex-col gap-4 py-6 lg:gap-6'>
-            <div className='mb-4 flex items-center gap-3 lg:hidden'>
+          <main className='flex min-w-0 flex-1 flex-col gap-3 py-5 lg:gap-5'>
+            <div className='mb-2 flex items-center gap-2.5 lg:hidden'>
               <SidebarTrigger />
               <Link
                 href='/dashboard'
@@ -88,7 +88,7 @@ export default async function AppLayout ({
               </Link>
             </div>
 
-            <div className='mx-auto w-full space-y-8'>
+            <div className='mx-auto flex w-full flex-col gap-5'>
               {children}
             </div>
           </main>

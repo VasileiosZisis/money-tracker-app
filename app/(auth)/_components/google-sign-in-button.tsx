@@ -13,7 +13,7 @@ export function GoogleSignInButton() {
   return (
     <Button
       onClick={handleSignIn}
-      className="mt-6 h-11 w-full justify-center rounded-2xl"
+      className="mt-4 h-10 w-full justify-center rounded-lg"
     >
       <LogIn />
       Continue with Google

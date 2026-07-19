@@ -47,8 +47,8 @@ export function AppSidebar({ displayName, initials, userImage }: AppSidebarProps
   return (
     <Sidebar variant="sidebar">
       <SidebarHeader>
-        <Link href="/dashboard" className="flex items-center gap-3" onClick={handleNavigate}>
-          <div className="flex size-12 items-center justify-center rounded-2xl bg-sidebar-primary text-sidebar-primary-foreground shadow-floating">
+        <Link href="/dashboard" className="flex items-center gap-2.5" onClick={handleNavigate}>
+          <div className="flex size-10 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground shadow-floating">
             <ScrollText className="size-5" />
           </div>
           <span className="text-base font-semibold tracking-tight text-sidebar-foreground">
@@ -72,8 +72,8 @@ export function AppSidebar({ displayName, initials, userImage }: AppSidebarProps
                         <span
                           className={
                             active
-                              ? "flex size-9 items-center justify-center rounded-xl border border-white/15 bg-white/10"
-                              : "flex size-9 items-center justify-center rounded-xl border border-border/50 bg-background/60 text-muted-foreground"
+                              ? "flex size-8 items-center justify-center rounded-lg border border-white/15 bg-white/10"
+                              : "flex size-8 items-center justify-center rounded-lg border border-border/50 bg-background/60 text-muted-foreground"
                           }
                         >
                           <Icon className="size-[18px]" />
@@ -92,16 +92,16 @@ export function AppSidebar({ displayName, initials, userImage }: AppSidebarProps
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <div className="flex items-center gap-3 rounded-2xl px-3.5 py-2 text-sidebar-foreground">
+            <div className="flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-sidebar-foreground">
               {userImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={userImage}
                   alt={displayName}
-                  className="size-9 rounded-xl object-cover"
+                  className="size-8 rounded-lg object-cover"
                 />
               ) : (
-                <div className="flex size-9 items-center justify-center rounded-xl border border-border/50 bg-background/60 font-semibold text-muted-foreground">
+                <div className="flex size-8 items-center justify-center rounded-lg border border-border/50 bg-background/60 font-semibold text-muted-foreground">
                   {initials}
                 </div>
               )}

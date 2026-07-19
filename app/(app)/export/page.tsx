@@ -22,14 +22,14 @@ export default function ExportPage() {
   const defaultMonth = getCurrentMonth();
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-5">
       <PageHeader
         eyebrow="Records"
         title="Export"
         description="Download a clean CSV for any month already tracked in the app."
       />
 
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(320px,0.7fr)]">
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(300px,0.7fr)]">
         <Card>
           <CardHeader>
             <CardTitle>CSV export</CardTitle>
@@ -38,7 +38,7 @@ export default function ExportPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form action="/export/download" method="get" className="grid gap-5">
+            <form action="/export/download" method="get" className="grid gap-4">
               <div className="space-y-2">
                 <label htmlFor="month" className="text-sm font-medium text-foreground">
                   Month
@@ -62,9 +62,9 @@ export default function ExportPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-[24px] border border-border/80 bg-background/60 p-4">
+            <div className="rounded-xl border border-border/80 bg-background/60 p-4">
               <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-2xl bg-accent text-accent-foreground">
+                <div className="flex size-9 items-center justify-center rounded-lg bg-accent text-accent-foreground">
                   <FileSpreadsheet className="size-[18px]" />
                 </div>
                 <div>
@@ -76,9 +76,9 @@ export default function ExportPage() {
               </div>
             </div>
 
-            <div className="rounded-[24px] border border-border/80 bg-background/60 p-4">
+            <div className="rounded-xl border border-border/80 bg-background/60 p-4">
               <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-2xl bg-accent text-accent-foreground">
+                <div className="flex size-9 items-center justify-center rounded-lg bg-accent text-accent-foreground">
                   <ShieldCheck className="size-[18px]" />
                 </div>
                 <div>

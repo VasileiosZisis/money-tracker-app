@@ -23,11 +23,11 @@ export default function SignOutButton({
         onClick={handleSignOut}
         variant="ghost"
         className={cn(
-          "group/menu-button h-auto w-full justify-start gap-3 rounded-2xl px-3.5 py-2 text-sidebar-foreground shadow-none",
+          "group/menu-button h-auto w-full justify-start gap-2.5 rounded-lg px-3 py-1.5 text-sidebar-foreground shadow-none",
           "hover:bg-sidebar-accent hover:text-foreground",
         )}
       >
-        <span className="flex size-9 items-center justify-center rounded-xl border border-border/50 bg-background/60 text-muted-foreground transition-colors group-hover/menu-button:text-foreground">
+        <span className="flex size-8 items-center justify-center rounded-lg border border-border/50 bg-background/60 text-muted-foreground transition-colors group-hover/menu-button:text-foreground">
           <LogOut className="size-[18px]" />
         </span>
         <span className="text-sm font-semibold">Sign Out</span>
@@ -39,7 +39,7 @@ export default function SignOutButton({
     <Button
       onClick={handleSignOut}
       variant="outline"
-      className="rounded-2xl border-border/70 bg-card/80"
+      className="rounded-lg border-border/70 bg-card/80"
     >
       <LogOut />
       Sign Out

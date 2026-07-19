@@ -11,7 +11,7 @@ Core traits:
 - soft neutral background with lightly tinted surfaces
 - restrained teal primary accent
 - strong hierarchy around money totals and monthly context
-- roomy but controlled spacing
+- compact, deliberate spacing with clear grouping and little wasted space
 - subtle borders and soft elevation
 - desktop-first shell with a left sidebar rail and no persistent desktop top bar
 - responsive layouts that collapse cleanly on smaller screens
@@ -22,64 +22,84 @@ Theme tokens live in `app/globals.css` as CSS variables.
 
 ### Light mode
 
-- `--background`: `#f4f7fb`
-- `--foreground`: `#0f172a`
-- `--card`: `rgba(255, 255, 255, 0.88)`
-- `--card-foreground`: `#0f172a`
+- `--background`: `#edf2f7`
+- `--foreground`: `#0b1220`
+- `--card`: `rgba(255, 255, 255, 0.96)`
+- `--card-foreground`: `#0b1220`
 - `--popover`: `#ffffff`
-- `--popover-foreground`: `#0f172a`
-- `--primary`: `#15586b`
-- `--primary-foreground`: `#f8fcfd`
-- `--secondary`: `#eef3f8`
-- `--secondary-foreground`: `#1e293b`
-- `--muted`: `#eef3f7`
-- `--muted-foreground`: `#5b6b80`
-- `--accent`: `#e5f1f1`
-- `--accent-foreground`: `#134e5e`
-- `--destructive`: `#b42318`
-- `--destructive-foreground`: `#fff5f5`
-- `--success`: `#14785c`
-- `--success-foreground`: `#f2fbf8`
-- `--warning`: `#b7791f`
-- `--warning-foreground`: `#fff9ef`
-- `--info`: `#15586b`
-- `--border`: `rgba(148, 163, 184, 0.36)`
-- `--input`: `#d6e0e9`
-- `--ring`: `rgba(21, 88, 107, 0.24)`
+- `--popover-foreground`: `#0b1220`
+- `--primary`: `#0f5264`
+- `--primary-foreground`: `#f7fcfd`
+- `--secondary`: `#d4e0ea`
+- `--secondary-foreground`: `#172235`
+- `--muted`: `#e4e9ef`
+- `--muted-foreground`: `#526176`
+- `--accent`: `#cfe6e3`
+- `--accent-foreground`: `#0b4654`
+- `--destructive`: `#a61b12`
+- `--destructive-foreground`: `#fff7f7`
+- `--success`: `#0e6b50`
+- `--success-foreground`: `#f1fff9`
+- `--warning`: `#92570a`
+- `--warning-foreground`: `#fffaf0`
+- `--info`: `#0f5264`
+- `--border`: `rgba(71, 85, 105, 0.34)`
+- `--input`: `#b8c6d3`
+- `--ring`: `rgba(15, 82, 100, 0.38)`
+- `--chart-1`: `#0f5264`
+- `--chart-2`: `#b55432`
+- `--chart-3`: `#5274a5`
+- `--chart-4`: `#7a6aa6`
+- `--chart-5`: `#6b7c55`
 
 ### Dark mode
 
-- `--background`: `#08111c`
-- `--foreground`: `#e5edf5`
-- `--card`: `rgba(12, 23, 38, 0.88)`
-- `--card-foreground`: `#e5edf5`
-- `--popover`: `#0d1724`
-- `--popover-foreground`: `#e5edf5`
-- `--primary`: `#78b8b0`
-- `--primary-foreground`: `#07111b`
-- `--secondary`: `rgba(148, 163, 184, 0.12)`
-- `--secondary-foreground`: `#e2e8f0`
-- `--muted`: `rgba(148, 163, 184, 0.10)`
-- `--muted-foreground`: `#94a3b8`
-- `--accent`: `rgba(120, 184, 176, 0.16)`
-- `--accent-foreground`: `#d7f5f0`
-- `--destructive`: `#f87171`
-- `--destructive-foreground`: `#160809`
-- `--success`: `#64c29c`
-- `--success-foreground`: `#07150f`
-- `--warning`: `#f7c77a`
-- `--warning-foreground`: `#1b1306`
-- `--info`: `#78b8b0`
-- `--border`: `rgba(148, 163, 184, 0.16)`
-- `--input`: `rgba(148, 163, 184, 0.20)`
-- `--ring`: `rgba(120, 184, 176, 0.30)`
+- `--background`: `#060c14`
+- `--foreground`: `#eef4fa`
+- `--card`: `rgba(16, 29, 46, 0.96)`
+- `--card-foreground`: `#eef4fa`
+- `--popover`: `#111d2d`
+- `--popover-foreground`: `#eef4fa`
+- `--primary`: `#8fd8cf`
+- `--primary-foreground`: `#04110f`
+- `--secondary`: `rgba(148, 163, 184, 0.24)`
+- `--secondary-foreground`: `#f1f5f9`
+- `--muted`: `rgba(148, 163, 184, 0.12)`
+- `--muted-foreground`: `#aebacc`
+- `--accent`: `rgba(143, 216, 207, 0.24)`
+- `--accent-foreground`: `#e8fffc`
+- `--destructive`: `#ff8c8c`
+- `--destructive-foreground`: `#1a0607`
+- `--success`: `#7ddbb5`
+- `--success-foreground`: `#04140d`
+- `--warning`: `#ffd28b`
+- `--warning-foreground`: `#1b1103`
+- `--info`: `#8fd8cf`
+- `--border`: `rgba(148, 163, 184, 0.30)`
+- `--input`: `rgba(148, 163, 184, 0.40)`
+- `--ring`: `rgba(143, 216, 207, 0.48)`
+- `--chart-1`: `#8fd8cf`
+- `--chart-2`: `#f39a72`
+- `--chart-3`: `#8fb5e7`
+- `--chart-4`: `#b7a2e1`
+- `--chart-5`: `#adc68e`
+
+### Contrast hierarchy
+
+- Page backgrounds, cards, inset surfaces, and interactive surfaces must remain visibly distinct in both themes.
+- Borders should clearly define cards and controls without becoming the strongest element on the page; input borders are intentionally stronger than standard borders.
+- Muted text must remain comfortably readable and should not visually merge with disabled or decorative content.
+- Secondary and muted surfaces use neutral gray-blue values; accent surfaces use a visibly greener teal tint so their roles are easy to distinguish.
+- Semantic success, warning, and destructive colors must remain distinct from the primary teal and from each other.
+- Chart colors may use a broader set of restrained hues because data series must be distinguishable at a glance.
+- Background overlays should add depth without washing the page and surface tokens into the same value range.
 
 ### Sidebar tokens
 
-- `--sidebar`: translucent surface used by the desktop rail
-- `--sidebar-primary`: active nav background
-- `--sidebar-accent`: hover background for inactive nav items
-- `--sidebar-border`: border treatment for the rail, slightly stronger than before in light mode so the flush-left shell and icon chrome stay readable
+- Light mode uses `rgba(255, 255, 255, 0.92)` for `--sidebar`, `#0f5264` for `--sidebar-primary`, `#d9e3ec` for `--sidebar-accent`, and `rgba(71, 85, 105, 0.30)` for `--sidebar-border`.
+- Dark mode uses `rgba(11, 22, 36, 0.96)` for `--sidebar`, `#8fd8cf` for `--sidebar-primary`, `rgba(148, 163, 184, 0.18)` for `--sidebar-accent`, and `rgba(148, 163, 184, 0.28)` for `--sidebar-border`.
+- Sidebar text and ring colors follow the corresponding foreground and primary theme colors.
+- Active navigation uses `--sidebar-primary`; inactive hover states use `--sidebar-accent`.
 
 ### Background treatment
 
@@ -88,6 +108,8 @@ The app background is not flat. `body` uses soft radial and linear overlays from
 - `--background-spot-1`
 - `--background-spot-2`
 - `--background-overlay`
+
+Light mode uses `rgba(15, 82, 100, 0.16)`, `rgba(100, 116, 139, 0.22)`, and `rgba(255, 255, 255, 0.28)` respectively. Dark mode uses `rgba(143, 216, 207, 0.16)`, `rgba(51, 65, 85, 0.40)`, and `rgba(6, 12, 20, 0.26)`.
 
 Use the existing background system instead of introducing page-specific gradients without a clear reason.
 
@@ -114,38 +136,42 @@ Rules:
 
 ## Spacing
 
-Spacing follows an 8px rhythm with Tailwind spacing utilities.
+Spacing uses Tailwind's 4px base scale, with 8px increments as the main visual rhythm. The interface should feel compact by default while preserving clear grouping and readable touch targets.
 
 Common spacing patterns:
 
-- Page stack: `space-y-6` or `space-y-8`
-- Card padding: `p-5`, `p-6`, or `p-7`
-- Form stack spacing: `gap-5`
+- Page stack: `gap-5` or `gap-6`
+- Standard card padding: `p-5`
+- Compact summary and inset-card padding: `p-3` or `p-4`
+- Prominent one-off surfaces: `p-6` maximum when the extra space supports hierarchy
+- Form stack spacing: `gap-4`
 - Dense inline controls: `gap-2` or `gap-3`
 
 Rules:
 
-- Prefer fewer, larger gaps over many micro-gaps.
+- Prefer compact, consistent gaps over oversized whitespace.
 - Keep filters and supporting controls grouped tightly inside cards.
-- Avoid collapsing content into crowded table rows or form blocks.
+- Avoid crowding labels, values, or interactive targets even when reducing density.
+- Page gutters should generally use `px-3` to `px-5`; avoid `px-6` or larger shell gutters without a specific layout need.
 
 ## Radius
 
-The global radius token is `--radius: 1rem`.
+The global radius token is `--radius: 0.625rem` (10px).
 
 Practical usage:
 
-- Inputs and buttons: `rounded-xl`
+- Inputs and buttons: `rounded-lg`
 - Pills and badges: `rounded-full`
-- Standard cards: `rounded-3xl`
-- Small inset panels inside cards: `rounded-[22px]` to `rounded-[24px]`
-- Large shell surfaces: `rounded-[28px]` to `rounded-[32px]`
+- Standard cards: `rounded-2xl`
+- Small inset panels inside cards: `rounded-xl`
+- Icon containers and compact controls: `rounded-lg`
+- Large shell surfaces: `rounded-2xl` maximum; the flush sidebar keeps square outer corners
 
 Rules:
 
-- Do not use sharp corners.
-- Do not over-round everything into toy-like shapes.
-- Reserve the largest radii for shell chrome and major summary surfaces.
+- Do not use sharp corners for primary interactive controls or cards.
+- Avoid arbitrary pixel radii in page code; use the shared radius scale.
+- Reserve `rounded-full` for true pills, status badges, and circular geometry.
 
 ## Shadows and elevation
 
@@ -153,6 +179,8 @@ Elevation is defined through CSS variables and mapped in Tailwind:
 
 - `shadow-surface`: primary card elevation
 - `shadow-floating`: stronger emphasis for primary buttons, active nav items, and key chips
+
+Light mode shadows use slate at `0.28` and `0.24` alpha. Dark mode shadows use black at `0.70` and `0.62` alpha so elevated surfaces remain visible against the deeper background.
 
 Rules:
 
@@ -186,7 +214,13 @@ Rules:
 ### Dashboard composition
 
 - Lead with the selected month and the net result.
+- In Monthly Snapshot, place Income total, Expense total, and Projected net left—in that order—in one secondary metric row below Net left now and before the cash-flow chart. Mirror the Total Balance primary/secondary metric structure, use `gap-6` between secondary metrics, and render secondary values at `text-xl` so both lead cards align visually.
+- Dashboard composition uses four distinct responsive rows: Total Balance with Monthly Snapshot (`md` two-column), the three forecast metrics (`md` three-column), Needs Attention at full width, and Recent Transactions with Planned Bills and Planned Income (`xl` three-column). All rows stack on smaller screens while preserving that content order.
+- Safe to spend, Daily safe spend, and Forecast remaining spend use compact metric cards without descriptive text beneath their values.
+- Use a `Planning & Forecast` section heading above the three forecast metric cards and Needs Attention to distinguish planning-oriented information from Total Balance and Monthly Snapshot.
+- The Needs Attention card lists actionable signals without a numeric count badge in its header.
 - Support the main number with income, expense, and ratio-based context derived from existing data.
+- Vertically center summary-card icons against their paired label and value block.
 - A line chart is acceptable in the lead dashboard card when it is directly grounded in real monthly data, such as day-by-day cumulative income and expense progress for the selected month.
 - In light mode, chart grid lines should read slightly darker than default border treatments so quantitative guides remain legible against bright card surfaces.
 - Keep recent transactions visible and legible.
@@ -211,8 +245,8 @@ Rules:
 ### Inputs, selects, and textareas
 
 - Use `components/ui/input.tsx`, `components/ui/select.tsx`, and `components/ui/textarea.tsx`.
-- Controls should be at least `h-11`.
-- Inputs use subtle inset highlight, soft border, and 4px ring on focus.
+- Inputs and selects use `h-10`; default buttons use `h-9`, with `h-10` for prominent actions.
+- Inputs use subtle inset highlight, soft border, and a 3px ring on focus.
 - Avoid browser-default form styling in page code.
 
 ### Badges
@@ -234,7 +268,7 @@ Rules:
 
 ### Tables and lists
 
-- Desktop tables should breathe: larger row padding, muted headers, subtle hover background.
+- Desktop tables should use compact but legible row padding, muted headers, and a subtle hover background.
 - Mobile should prefer stacked cards over forcing wide tables.
 - Use badges and mono values to improve scannability.
 
@@ -269,7 +303,8 @@ Guidelines:
 
 ## Color usage rules
 
-- Primary teal is the only strong accent.
+- Primary teal is the only strong general-purpose UI accent.
+- Additional restrained hues are allowed only for chart series where differentiation is functional.
 - Success and destructive are semantic, not decorative.
 - Keep surfaces neutral and let money figures carry emphasis.
 - Do not introduce bright gradient-heavy widgets unless they support a real information hierarchy and stay consistent with the app shell.
@@ -281,7 +316,7 @@ Do:
 - prioritize monthly context, clarity, and trust
 - keep actions obvious but visually restrained
 - use mono numerals for important amounts
-- preserve roomy spacing on larger screens
+- preserve a compact rhythm while keeping sections easy to scan
 
 Do not:
 

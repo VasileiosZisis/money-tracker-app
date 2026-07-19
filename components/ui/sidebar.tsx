@@ -6,8 +6,8 @@ import { PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const SIDEBAR_WIDTH = "18.25rem";
-const SIDEBAR_WIDTH_MOBILE = "18rem";
+const SIDEBAR_WIDTH = "16.5rem";
+const SIDEBAR_WIDTH_MOBILE = "17rem";
 const MOBILE_BREAKPOINT = 1024;
 
 type SidebarContextValue = {
@@ -137,7 +137,7 @@ export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
 
     const containerClassName = cn(
       "flex h-full w-full flex-col border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-surface backdrop-blur-xl",
-      variant === "inset" ? "rounded-[32px]" : "rounded-none",
+      variant === "inset" ? "rounded-2xl" : "rounded-none",
       className,
     );
 
@@ -228,7 +228,7 @@ export const SidebarTrigger = React.forwardRef<
       ref={ref}
       variant="outline"
       size="icon"
-      className={cn("rounded-2xl border-border/70 bg-card/80", className)}
+      className={cn("rounded-lg border-border/70 bg-card/80", className)}
       onClick={toggleSidebar}
       aria-label="Toggle navigation"
       {...props}
@@ -242,7 +242,7 @@ SidebarTrigger.displayName = "SidebarTrigger";
 
 export const SidebarHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} data-slot="sidebar-header" className={cn("px-4 py-5", className)} {...props} />
+    <div ref={ref} data-slot="sidebar-header" className={cn("px-3 py-4", className)} {...props} />
   ),
 );
 
@@ -253,7 +253,7 @@ export const SidebarContent = React.forwardRef<HTMLDivElement, React.HTMLAttribu
     <div
       ref={ref}
       data-slot="sidebar-content"
-      className={cn("flex flex-1 flex-col overflow-y-auto px-4 pb-5", className)}
+      className={cn("flex flex-1 flex-col overflow-y-auto px-3 pb-4", className)}
       {...props}
     />
   ),
@@ -266,7 +266,7 @@ export const SidebarFooter = React.forwardRef<HTMLDivElement, React.HTMLAttribut
     <div
       ref={ref}
       data-slot="sidebar-footer"
-      className={cn("px-4 pb-5 pt-2", className)}
+      className={cn("px-3 pb-4 pt-2", className)}
       {...props}
     />
   ),
@@ -289,7 +289,7 @@ export const SidebarGroupContent = React.forwardRef<
   <div
     ref={ref}
     data-slot="sidebar-group-content"
-    className={cn("space-y-1.5", className)}
+    className={cn("flex flex-col gap-1", className)}
     {...props}
   />
 ));
@@ -301,7 +301,7 @@ export const SidebarMenu = React.forwardRef<HTMLUListElement, React.HTMLAttribut
     <ul
       ref={ref}
       data-slot="sidebar-menu"
-      className={cn("space-y-1.5", className)}
+      className={cn("flex flex-col gap-1", className)}
       {...props}
     />
   ),
@@ -354,7 +354,7 @@ export const SidebarMenuButton = React.forwardRef<
   SidebarMenuButtonProps
 >(({ asChild = false, isActive = false, className, children, ...props }, ref) => {
   const menuButtonClassName = cn(
-    "group/menu-button flex w-full items-center gap-3 rounded-2xl px-3.5 py-2 text-sm font-semibold transition-colors",
+    "group/menu-button flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors",
     isActive
       ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-floating"
       : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground",

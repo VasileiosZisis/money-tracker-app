@@ -57,7 +57,6 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { PageNotice } from '@/components/ui/page-notice'
 import { Select } from '@/components/ui/select'
-import { formatMonthLabel } from '@/lib/dates/month'
 import { cn } from '@/lib/utils'
 
 type DashboardPageProps = {
@@ -427,8 +426,8 @@ function MetricCard ({
 
   return (
     <Card className='h-full'>
-      <CardContent className='flex h-full flex-col gap-5 p-6'>
-        <div className='flex items-start justify-between gap-3'>
+      <CardContent className='flex h-full flex-col gap-4 p-5'>
+        <div className='flex items-center justify-between gap-3'>
           <div className='space-y-1.5'>
             <p className='text-sm font-medium text-muted-foreground'>{title}</p>
             <p
@@ -442,7 +441,7 @@ function MetricCard ({
           </div>
           <div
             className={cn(
-              'flex size-11 items-center justify-center rounded-2xl',
+              'flex size-10 items-center justify-center rounded-lg',
               toneStyles.iconClassName
             )}
           >
@@ -460,73 +459,6 @@ function MetricCard ({
   )
 }
 
-function ForecastBreakdown ({
-  formatter,
-  forecast
-}: {
-  formatter: Intl.NumberFormat
-  forecast: ForecastData
-}) {
-  return (
-    <div className='space-y-3'>
-      <p>
-        Safe to spend excludes pending income. Projected month-end net includes
-        pending income.
-      </p>
-      <dl className='grid gap-1.5'>
-        <div className='flex items-center justify-between gap-3'>
-          <dt>Reserved planned bills</dt>
-          <dd className='font-mono text-foreground'>
-            {formatMoney(formatter, forecast.unpaidPlannedBills)}
-          </dd>
-        </div>
-        <div className='flex items-center justify-between gap-3'>
-          <dt>Variable spend estimate</dt>
-          <dd className='font-mono text-foreground'>
-            {formatMoney(formatter, forecast.variableCategoryForecast)}
-          </dd>
-        </div>
-        <div className='flex items-center justify-between gap-3'>
-          <dt>Pending planned income</dt>
-          <dd className='font-mono text-foreground'>
-            {formatMoney(formatter, forecast.pendingPlannedIncome)}
-          </dd>
-        </div>
-        <div className='flex items-center justify-between gap-3'>
-          <dt>Projected month-end net</dt>
-          <dd className='font-mono text-foreground'>
-            {formatMoney(formatter, forecast.projectedEndOfMonthNet)}
-          </dd>
-        </div>
-      </dl>
-      <div className='rounded-2xl border border-border/70 bg-card/70 p-3'>
-        <p className='text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground'>
-          Projected net
-        </p>
-        <p className='mt-2 text-sm leading-6 text-muted-foreground'>
-          Net left now + Pending planned income - Forecast remaining spend
-        </p>
-        <p className='mt-1 font-mono text-sm font-semibold text-foreground'>
-          {formatMoney(formatter, forecast.netLeftNow)} +{' '}
-          {formatMoney(formatter, forecast.pendingPlannedIncome)} -{' '}
-          {formatMoney(formatter, forecast.forecastRemainingSpend)} ={' '}
-          {formatMoney(formatter, forecast.projectedEndOfMonthNet)}
-        </p>
-      </div>
-    </div>
-  )
-}
-
-function getDailySafeSpendHelper (forecast: ForecastData) {
-  if (forecast.monthContext.monthRelation === 'past') {
-    return 'The selected month is complete, so there is no daily spending room left to plan.'
-  }
-
-  const dayLabel = forecast.dailySafeSpendDays === 1 ? 'day' : 'days'
-
-  return `Estimated daily room across ${forecast.dailySafeSpendDays} remaining ${dayLabel}, including today.`
-}
-
 function NeedsAttentionSection ({
   items
 }: {
@@ -542,12 +474,9 @@ function NeedsAttentionSection ({
               Daily signals that can affect spending decisions.
             </CardDescription>
           </div>
-          <Badge variant={items.length > 0 ? 'warning' : 'success'}>
-            {items.length}
-          </Badge>
         </div>
       </CardHeader>
-      <CardContent className='grid gap-4 p-6'>
+      <CardContent className='grid gap-4 p-5'>
         {items.length === 0 ? (
           <EmptyState
             icon={CircleCheckBig}
@@ -561,11 +490,11 @@ function NeedsAttentionSection ({
             return (
               <div
                 key={`${item.type}-${index}`}
-                className='flex gap-3 rounded-[24px] border border-border/80 bg-background/60 p-4'
+                className='flex gap-3 rounded-xl border border-border/80 bg-background/60 p-4'
               >
                 <div
                   className={cn(
-                    'mt-1 flex size-10 shrink-0 items-center justify-center rounded-2xl',
+                    'mt-1 flex size-9 shrink-0 items-center justify-center rounded-lg',
                     toneStyles.iconClassName
                   )}
                 >
@@ -856,6 +785,7 @@ export default async function DashboardPage ({
 
   const forecastState = getForecastState(data.forecast)
   const netTone = getNetTone(data.netLeft)
+  const projectedNetTone = getNetTone(data.forecast.projectedEndOfMonthNet)
   const displayedPlannedBills = data.plannedBills
   const displayedPlannedBillsTotal = data.forecast.unpaidPlannedBills
   const displayedPlannedIncomes = data.plannedIncomes
@@ -864,7 +794,7 @@ export default async function DashboardPage ({
     displayedPlannedIncomes.length > 0 && plannedIncomeSummary.pendingCount === 0
 
   return (
-    <div className='space-y-6'>
+    <div className='flex flex-col gap-5'>
       {errorMessage ? (
         <PageNotice variant='error' title='Something needs attention'>
           {errorMessage}
@@ -877,32 +807,30 @@ export default async function DashboardPage ({
         </PageNotice>
       ) : null}
 
-      <TotalBalanceSection
-        currency={data.currency}
-        month={selectedMonth}
-        data={dashboardData.totalBalance}
-        adjustmentState={balanceAdjustmentState}
-        adjustmentNotFound={balanceAdjustmentNotFound}
-        createAdjustmentAction={createBalanceAdjustmentAction}
-        updateAdjustmentAction={updateBalanceAdjustmentAction}
-        deleteAdjustmentAction={deleteBalanceAdjustmentAction}
-      />
-
-      <section
-        aria-labelledby='monthly-snapshot-heading'
-        className='flex flex-col gap-6'
-      >
-        <div className='flex flex-col gap-1.5'>
-          <h2
-            id='monthly-snapshot-heading'
-            className='text-3xl font-semibold tracking-tight text-foreground md:text-4xl'
-          >
-            Monthly Snapshot
-          </h2>
-          <p className='text-sm leading-6 text-muted-foreground'>
-            {formatMonthLabel(selectedMonth)} actuals, planning, and forecast.
-          </p>
+      <div className='grid items-start gap-4 md:grid-cols-2'>
+        <div className='min-w-0'>
+          <TotalBalanceSection
+            currency={data.currency}
+            month={selectedMonth}
+            data={dashboardData.totalBalance}
+            adjustmentState={balanceAdjustmentState}
+            adjustmentNotFound={balanceAdjustmentNotFound}
+            createAdjustmentAction={createBalanceAdjustmentAction}
+            updateAdjustmentAction={updateBalanceAdjustmentAction}
+            deleteAdjustmentAction={deleteBalanceAdjustmentAction}
+          />
         </div>
+
+        <section
+          aria-labelledby='monthly-snapshot-heading'
+          className='flex min-w-0 flex-col gap-4'
+        >
+        <h2
+          id='monthly-snapshot-heading'
+          className='text-3xl font-semibold tracking-tight text-foreground md:text-4xl'
+        >
+          Monthly Snapshot
+        </h2>
 
       <form className='flex flex-wrap items-end gap-3' method='get'>
         <input
@@ -944,37 +872,58 @@ export default async function DashboardPage ({
         </button>
       </form>
 
-      <section className='grid gap-5 md:grid-cols-2'>
-        <MetricCard
-          title='Income total'
-          value={formatMoney(formatter, data.incomeSum)}
-          tone='success'
-          icon={<TrendingUp className='size-5' />}
-        />
-        <MetricCard
-          title='Expense total'
-          value={formatMoney(formatter, data.expenseSum)}
-          tone='danger'
-          icon={<TrendingDown className='size-5' />}
-        />
-      </section>
-
       <section>
         <Card className='overflow-hidden'>
-          <CardContent className='p-6 md:p-7'>
-            <div className='flex flex-col gap-6'>
-              <div className='flex flex-col gap-3'>
-                <p className='text-sm font-medium text-muted-foreground'>
-                  Net left now
-                </p>
-                <p
-                  className={cn(
-                    'font-mono text-4xl font-semibold tracking-tight',
-                    netTone.textClassName
-                  )}
-                >
-                  {formatMoney(formatter, data.netLeft)}
-                </p>
+          <CardContent className='p-5'>
+            <div className='flex flex-col gap-5'>
+              <div className='flex flex-col gap-5'>
+                <div className='flex flex-col gap-3'>
+                  <p className='text-sm font-medium text-muted-foreground'>
+                    Net left now
+                  </p>
+                  <p
+                    className={cn(
+                      'font-mono text-4xl font-semibold tracking-tight',
+                      netTone.textClassName
+                    )}
+                  >
+                    {formatMoney(formatter, data.netLeft)}
+                  </p>
+                </div>
+                <div className='flex flex-row items-start gap-6'>
+                  <div className='flex flex-col'>
+                    <p className='text-sm font-medium text-muted-foreground'>
+                      Income total
+                    </p>
+                    <p className='font-mono text-xl font-semibold tracking-tight text-success'>
+                      {formatMoney(formatter, data.incomeSum)}
+                    </p>
+                  </div>
+                  <div className='flex flex-col'>
+                    <p className='text-sm font-medium text-muted-foreground'>
+                      Expense total
+                    </p>
+                    <p className='font-mono text-xl font-semibold tracking-tight text-destructive'>
+                      {formatMoney(formatter, data.expenseSum)}
+                    </p>
+                  </div>
+                  <div className='flex flex-col'>
+                    <p className='text-sm font-medium text-muted-foreground'>
+                      Projected net left
+                    </p>
+                    <p
+                      className={cn(
+                        'font-mono text-xl font-semibold tracking-tight',
+                        projectedNetTone.textClassName
+                      )}
+                    >
+                      {formatMoney(
+                        formatter,
+                        data.forecast.projectedEndOfMonthNet
+                      )}
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <MonthCashflowChart
@@ -986,61 +935,59 @@ export default async function DashboardPage ({
           </CardContent>
         </Card>
       </section>
+        </section>
+      </div>
 
-      <section className='grid gap-5 md:grid-cols-3'>
-        <MetricCard
-          title='Safe to spend'
-          value={formatMoney(formatter, data.forecast.safeToSpend)}
-          helper='Estimated room left before expected spending would move the month beyond recorded income. Not an account balance.'
-          tone={forecastState.tone}
-          badgeLabel='Estimated'
-          badgeVariant={forecastState.badgeVariant}
-          icon={
-            forecastState.tone === 'danger' ? (
-              <ShieldAlert className='size-5' />
-            ) : (
-              <ShieldCheck className='size-5' />
-            )
-          }
-        />
-        <MetricCard
-          title='Daily safe spend'
-          value={formatDailyMoney(formatter, data.forecast.dailySafeSpend)}
-          helper={getDailySafeSpendHelper(data.forecast)}
-          tone={forecastState.tone}
-          badgeLabel={
-            data.forecast.monthContext.monthRelation === 'past'
-              ? 'Month complete'
-              : 'Estimate'
-          }
-          badgeVariant={
-            data.forecast.monthContext.monthRelation === 'past'
-              ? 'outline'
-              : forecastState.badgeVariant
-          }
-          icon={<TimerReset className='size-5' />}
-        />
-        <MetricCard
-          title='Forecast remaining spend'
-          value={formatMoney(formatter, data.forecast.forecastRemainingSpend)}
-          helper={
-            <ForecastBreakdown
-              formatter={formatter}
-              forecast={data.forecast}
-            />
-          }
-          tone={
-            data.forecast.forecastRemainingSpend.gt(0) ? 'warning' : 'default'
-          }
-          badgeLabel='Estimate'
-          badgeVariant='warning'
-          icon={<TrendingDown className='size-5' />}
-        />
+      <section
+        aria-labelledby='planning-forecast-heading'
+        className='flex flex-col gap-4'
+      >
+        <h2
+          id='planning-forecast-heading'
+          className='text-3xl font-semibold tracking-tight text-foreground md:text-4xl'
+        >
+          Planning &amp; Forecast
+        </h2>
+
+        <div className='grid gap-4 md:grid-cols-3'>
+          <MetricCard
+            title='Safe to spend'
+            value={formatMoney(formatter, data.forecast.safeToSpend)}
+            tone={forecastState.tone}
+            icon={
+              forecastState.tone === 'danger' ? (
+                <ShieldAlert className='size-5' />
+              ) : (
+                <ShieldCheck className='size-5' />
+              )
+            }
+          />
+          <MetricCard
+            title='Daily safe spend'
+            value={formatDailyMoney(formatter, data.forecast.dailySafeSpend)}
+            tone={forecastState.tone}
+            badgeLabel={
+              data.forecast.monthContext.monthRelation === 'past'
+                ? 'Month complete'
+                : undefined
+            }
+            badgeVariant='outline'
+            icon={<TimerReset className='size-5' />}
+          />
+          <MetricCard
+            title='Forecast remaining spend'
+            value={formatMoney(formatter, data.forecast.forecastRemainingSpend)}
+            tone={
+              data.forecast.forecastRemainingSpend.gt(0) ? 'warning' : 'default'
+            }
+            icon={<TrendingDown className='size-5' />}
+          />
+        </div>
+
+        <NeedsAttentionSection items={data.attentionItems} />
       </section>
 
-      <NeedsAttentionSection items={data.attentionItems} />
-
-      <section className='grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]'>
+      <section className='grid gap-4 xl:grid-cols-3'>
         <Card className='overflow-hidden'>
           <CardHeader className='flex flex-row items-end justify-between gap-4 pb-0'>
             <CardTitle>Recent transactions</CardTitle>
@@ -1082,12 +1029,12 @@ export default async function DashboardPage ({
                   return (
                     <div
                       key={transaction.id}
-                      className='flex flex-col gap-4 rounded-[24px] border border-border/80 bg-background/60 p-4 md:flex-row md:items-center md:justify-between'
+                      className='flex flex-col gap-3 rounded-xl border border-border/80 bg-background/60 p-4 md:flex-row md:items-center md:justify-between'
                     >
                       <div className='flex min-w-0 items-start gap-3'>
                         <div
                           className={cn(
-                            'mt-1 flex size-10 items-center justify-center rounded-2xl',
+                            'mt-1 flex size-9 items-center justify-center rounded-lg',
                             transaction.type === 'INCOME'
                               ? 'bg-success/10 text-success'
                               : 'bg-destructive/10 text-destructive'
@@ -1146,7 +1093,7 @@ export default async function DashboardPage ({
           </CardContent>
         </Card>
 
-        <Card className='overflow-hidden'>
+        <Card className='order-3 overflow-hidden'>
           <CardHeader className='border-b border-border/70 pb-5'>
             <div className='flex flex-wrap items-start justify-between gap-3'>
               <div className='space-y-3'>
@@ -1187,7 +1134,7 @@ export default async function DashboardPage ({
               </Link>
             </div>
           </CardHeader>
-          <CardContent className='grid gap-4 p-6'>
+          <CardContent className='grid gap-4 p-5'>
             {displayedPlannedIncomes.length === 0 ? (
               <EmptyState
                 icon={TrendingUp}
@@ -1224,11 +1171,11 @@ export default async function DashboardPage ({
                 return (
                   <div
                     key={plannedIncome.id}
-                    className='grid gap-4 rounded-[24px] border border-border/80 bg-background/60 p-4'
+                    className='grid gap-3 rounded-xl border border-border/80 bg-background/60 p-4'
                   >
                     <div className='flex flex-col gap-4 md:flex-row md:items-start md:justify-between'>
                       <div className='flex min-w-0 items-start gap-3'>
-                        <div className='mt-1 flex size-10 items-center justify-center rounded-2xl bg-success/10 text-success'>
+                        <div className='mt-1 flex size-9 items-center justify-center rounded-lg bg-success/10 text-success'>
                           <TrendingUp className='size-[18px]' />
                         </div>
                         <div className='min-w-0 space-y-1'>
@@ -1419,7 +1366,7 @@ export default async function DashboardPage ({
           </CardContent>
         </Card>
 
-        <Card className='overflow-hidden'>
+        <Card className='order-2 overflow-hidden'>
           <CardHeader className='border-b border-border/70 pb-5'>
             <div className='flex flex-wrap items-start justify-between gap-3'>
               <div className='space-y-3'>
@@ -1447,7 +1394,7 @@ export default async function DashboardPage ({
               </Link>
             </div>
           </CardHeader>
-          <CardContent className='grid gap-4 p-6'>
+          <CardContent className='grid gap-4 p-5'>
             {displayedPlannedBills.length === 0 ? (
               <EmptyState
                 icon={CalendarClock}
@@ -1476,11 +1423,11 @@ export default async function DashboardPage ({
                 return (
                   <div
                     key={plannedBill.id}
-                    className='grid gap-4 rounded-[24px] border border-border/80 bg-background/60 p-4'
+                    className='grid gap-3 rounded-xl border border-border/80 bg-background/60 p-4'
                   >
                     <div className='flex flex-col gap-4 md:flex-row md:items-start md:justify-between'>
                       <div className='flex min-w-0 items-start gap-3'>
-                        <div className='mt-1 flex size-10 items-center justify-center rounded-2xl bg-accent text-accent-foreground'>
+                        <div className='mt-1 flex size-9 items-center justify-center rounded-lg bg-accent text-accent-foreground'>
                           <CalendarClock className='size-[18px]' />
                         </div>
                         <div className='min-w-0 space-y-1'>
@@ -1670,7 +1617,6 @@ export default async function DashboardPage ({
 
           </CardContent>
         </Card>
-      </section>
       </section>
     </div>
   )

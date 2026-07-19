@@ -36,7 +36,7 @@ export function AppNavigation({ orientation, children }: AppNavigationProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                "group flex items-center gap-3 rounded-2xl px-3.5 py-3 transition-colors",
+                "group flex items-center gap-2.5 rounded-lg px-3 py-2 transition-colors",
                 active
                   ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-floating"
                   : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground",
@@ -44,7 +44,7 @@ export function AppNavigation({ orientation, children }: AppNavigationProps) {
             >
               <span
                 className={cn(
-                  "flex size-9 items-center justify-center rounded-xl border transition-colors",
+                  "flex size-8 items-center justify-center rounded-lg border transition-colors",
                   active
                     ? "border-white/15 bg-white/10"
                     : "border-border/50 bg-background/60 text-muted-foreground group-hover:text-foreground",

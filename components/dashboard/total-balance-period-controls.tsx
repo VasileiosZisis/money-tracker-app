@@ -109,8 +109,8 @@ export function TotalBalancePeriodControls({
 
         {range === "custom" ? (
           <Card className="w-1/2">
-            <CardContent className="p-5">
-              <FieldGroup className="gap-6 md:grid md:grid-cols-[auto_1fr] md:items-end">
+            <CardContent className="p-4">
+              <FieldGroup className="gap-4 md:grid md:grid-cols-[auto_1fr] md:items-end">
               <Field>
                 <FieldTitle id="balanceModeLabel">Custom period</FieldTitle>
                 <input type="hidden" name="balanceMode" value={mode} />

@@ -26,7 +26,7 @@ export function BalanceAdjustmentFormFields({
   defaultValues,
 }: BalanceAdjustmentFormFieldsProps) {
   return (
-    <FieldGroup className="gap-5 md:grid md:grid-cols-2">
+    <FieldGroup className="gap-4 md:grid md:grid-cols-2">
       <Field>
         <FieldLabel htmlFor={`${idPrefix}-amount`}>Amount</FieldLabel>
         <CurrencyInput
