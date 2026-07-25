@@ -21,6 +21,7 @@ type TotalBalanceChartProps = {
   data: Array<{
     month: string;
     endingBalance: number;
+    balanceChange: number;
   }>;
 };
 
@@ -28,6 +29,10 @@ const chartConfig = {
   endingBalance: {
     label: "Ending balance",
     color: "var(--primary)",
+  },
+  balanceChange: {
+    label: "Monthly change",
+    color: "var(--muted-foreground)",
   },
 } satisfies ChartConfig;
 
@@ -86,12 +91,19 @@ export function TotalBalanceChart({
           }}
           tickFormatter={(value) => axisFormatter.format(value)}
         />
+        <YAxis yAxisId="balanceChange" hide />
         <ChartTooltip
           cursor={false}
           content={
             <ChartTooltipContent
               labelFormatter={(label) => formatMonth(String(label), "long")}
-              valueFormatter={(value) => valueFormatter.format(value)}
+              valueFormatter={(value, dataKey) => {
+                const formattedValue = valueFormatter.format(value);
+
+                return dataKey === "balanceChange" && value > 0
+                  ? `+${formattedValue}`
+                  : formattedValue;
+              }}
             />
           }
         />
@@ -102,6 +114,14 @@ export function TotalBalanceChart({
           strokeWidth={3}
           dot={false}
           activeDot={{ r: 4 }}
+        />
+        <Line
+          dataKey="balanceChange"
+          yAxisId="balanceChange"
+          stroke="var(--color-balanceChange)"
+          strokeOpacity={0}
+          dot={false}
+          activeDot={false}
         />
       </LineChart>
     </ChartContainer>

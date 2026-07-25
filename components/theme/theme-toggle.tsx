@@ -67,7 +67,7 @@ export function ThemeToggle({ variant = "icon" }: ThemeToggleProps) {
   }
 
   const icon =
-    theme === "dark" ? <SunMedium className="size-[18px]" /> : <MoonStar className="size-[18px]" />;
+    theme === "dark" ? <SunMedium className="size-4.5" /> : <MoonStar className="size-4.5" />;
 
   if (variant === "sidebar") {
     return (

@@ -190,6 +190,9 @@ export type DashboardMonthData = {
       name: string;
       type: "INCOME" | "EXPENSE";
     };
+    subcategory: {
+      name: string;
+    } | null;
   }>;
 };
 
@@ -834,6 +837,11 @@ async function loadDashboardMonthData(
             type: true,
           },
         },
+        subcategory: {
+          select: {
+            name: true,
+          },
+        },
       },
       orderBy: [{ localDate: "desc" }, { createdAt: "desc" }],
       take: 5,
@@ -1220,6 +1228,11 @@ async function loadDashboardMonthData(
         name: transaction.category.name,
         type: transaction.category.type,
       },
+      subcategory: transaction.subcategory
+        ? {
+            name: transaction.subcategory.name,
+          }
+        : null,
     })),
   };
 }

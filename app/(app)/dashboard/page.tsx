@@ -49,7 +49,6 @@ import { buttonVariants } from '@/components/ui/button'
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle
 } from '@/components/ui/card'
@@ -470,13 +469,10 @@ function NeedsAttentionSection ({
         <div className='flex flex-wrap items-start justify-between gap-3'>
           <div className='space-y-1.5'>
             <CardTitle>Needs attention</CardTitle>
-            <CardDescription>
-              Daily signals that can affect spending decisions.
-            </CardDescription>
           </div>
         </div>
       </CardHeader>
-      <CardContent className='grid gap-4 p-5'>
+      <CardContent className='grid gap-4 p-3'>
         {items.length === 0 ? (
           <EmptyState
             icon={CircleCheckBig}
@@ -498,7 +494,7 @@ function NeedsAttentionSection ({
                     toneStyles.iconClassName
                   )}
                 >
-                  <CircleAlert className='size-[18px]' />
+                  <CircleAlert className='size-4.5' />
                 </div>
                 <div className='min-w-0 space-y-2'>
                   <div className='flex flex-wrap items-center gap-2'>
@@ -786,12 +782,17 @@ export default async function DashboardPage ({
   const forecastState = getForecastState(data.forecast)
   const netTone = getNetTone(data.netLeft)
   const projectedNetTone = getNetTone(data.forecast.projectedEndOfMonthNet)
-  const displayedPlannedBills = data.plannedBills
+  const displayedPlannedBills = data.plannedBills.filter(
+    plannedBill =>
+      plannedBill.status !== 'paid' && plannedBill.status !== 'skipped'
+  )
+  const hasActivePlannedBills = data.plannedBills.length > 0
   const displayedPlannedBillsTotal = data.forecast.unpaidPlannedBills
-  const displayedPlannedIncomes = data.plannedIncomes
+  const displayedPlannedIncomes = data.plannedIncomes.filter(
+    plannedIncome => plannedIncome.status !== 'received'
+  )
+  const hasActivePlannedIncomes = data.plannedIncomes.length > 0
   const plannedIncomeSummary = data.plannedIncomeSummary
-  const plannedIncomeIsSettled =
-    displayedPlannedIncomes.length > 0 && plannedIncomeSummary.pendingCount === 0
 
   return (
     <div className='flex flex-col gap-5'>
@@ -987,7 +988,7 @@ export default async function DashboardPage ({
         <NeedsAttentionSection items={data.attentionItems} />
       </section>
 
-      <section className='grid gap-4 xl:grid-cols-3'>
+      <section className='grid items-start gap-4 xl:grid-cols-3'>
         <Card className='overflow-hidden'>
           <CardHeader className='flex flex-row items-end justify-between gap-4 pb-0'>
             <CardTitle>Recent transactions</CardTitle>
@@ -1002,7 +1003,7 @@ export default async function DashboardPage ({
               <ArrowRight />
             </Link>
           </CardHeader>
-          <CardContent className='pt-6'>
+          <CardContent className='px-3 pt-6'>
             {data.recentTransactions.length === 0 ? (
               <EmptyState
                 icon={FolderClock}
@@ -1041,34 +1042,20 @@ export default async function DashboardPage ({
                           )}
                         >
                           {transaction.type === 'INCOME' ? (
-                            <TrendingUp className='size-[18px]' />
+                            <TrendingUp className='size-4.5' />
                           ) : (
-                            <TrendingDown className='size-[18px]' />
+                            <TrendingDown className='size-4.5' />
                           )}
                         </div>
                         <div className='min-w-0 space-y-1'>
-                          <div className='flex flex-wrap items-center gap-2'>
-                            <p className='text-sm font-semibold text-foreground'>
-                              {transaction.category.name}
-                            </p>
-                            <Badge
-                              variant={
-                                transaction.type === 'INCOME'
-                                  ? 'success'
-                                  : 'destructive'
-                              }
-                            >
-                              {transaction.type === 'INCOME'
-                                ? 'Income'
-                                : 'Expense'}
-                            </Badge>
-                          </div>
-                          <p className='truncate text-sm leading-6 text-muted-foreground'>
-                            {getSourceOrNote(
-                              transaction.source,
-                              transaction.note
-                            )}
+                          <p className='text-sm font-semibold text-foreground'>
+                            {transaction.category.name}
                           </p>
+                          {transaction.subcategory ? (
+                            <p className='truncate text-sm leading-6 text-muted-foreground'>
+                              {transaction.subcategory.name}
+                            </p>
+                          ) : null}
                         </div>
                       </div>
 
@@ -1095,47 +1082,39 @@ export default async function DashboardPage ({
 
         <Card className='order-3 overflow-hidden'>
           <CardHeader className='border-b border-border/70 pb-5'>
-            <div className='flex flex-wrap items-start justify-between gap-3'>
-              <div className='space-y-3'>
+            <div>
+              <div className='flex items-center justify-between gap-3'>
                 <CardTitle>Planned income</CardTitle>
-                <p className='max-w-md text-sm leading-6 text-muted-foreground'>
-                  Active planned income improves projected month-end net, but
-                  it does not increase conservative safe-to-spend until received.
-                </p>
-                <div className='flex flex-wrap gap-2'>
-                  <Badge variant='outline'>{displayedPlannedIncomes.length}</Badge>
-                  <Badge variant='outline'>
-                    Pending {formatMoney(formatter, plannedIncomeSummary.pendingTotal)}
-                  </Badge>
-                  <Badge variant='outline'>
-                    Received {formatMoney(formatter, plannedIncomeSummary.receivedTotal)}
-                  </Badge>
-                  <Badge variant='outline'>
-                    Skipped {plannedIncomeSummary.skippedCount}
-                  </Badge>
-                </div>
-                {plannedIncomeSummary.nextPendingIncome ? (
-                  <p className='max-w-md text-sm leading-6 text-muted-foreground'>
-                    Next: {plannedIncomeSummary.nextPendingIncome.name} · day{' '}
-                    {plannedIncomeSummary.nextPendingIncome.expectedDayOfMonth} ·{' '}
-                    {formatMoney(formatter, plannedIncomeSummary.nextPendingIncome.amount)}
-                  </p>
-                ) : null}
+                <Link
+                  href='/planned-income'
+                  className={cn(
+                    buttonVariants({ variant: 'ghost', size: 'sm' }),
+                    'rounded-xl px-0 text-primary hover:bg-transparent'
+                  )}
+                >
+                  View all
+                  <ArrowRight />
+                </Link>
               </div>
-              <Link
-                href='/planned-income'
-                className={cn(
-                  buttonVariants({ variant: 'ghost', size: 'sm' }),
-                  'rounded-xl px-0 text-primary hover:bg-transparent'
-                )}
-              >
-                View all
-                <ArrowRight />
-              </Link>
+              <div className='flex flex-wrap gap-2'>
+                <Badge variant='outline' className='text-base'>
+                  {displayedPlannedIncomes.length}
+                </Badge>
+                <Badge variant='outline' className='border-0 text-base'>
+                  Pending {formatMoney(formatter, plannedIncomeSummary.pendingTotal)}
+                </Badge>
+                <Badge variant='outline' className='border-0 text-base'>
+                  Received {formatMoney(formatter, plannedIncomeSummary.receivedTotal)}
+                </Badge>
+                <Badge variant='outline' className='border-0 text-base'>
+                  Skipped {plannedIncomeSummary.skippedCount}
+                </Badge>
+              </div>
             </div>
           </CardHeader>
-          <CardContent className='grid gap-4 p-5'>
-            {displayedPlannedIncomes.length === 0 ? (
+          {!hasActivePlannedIncomes || displayedPlannedIncomes.length > 0 ? (
+            <CardContent className='grid gap-4 p-5'>
+              {!hasActivePlannedIncomes ? (
               <EmptyState
                 icon={TrendingUp}
                 title='No active planned income'
@@ -1154,15 +1133,7 @@ export default async function DashboardPage ({
                 }
               />
             ) : (
-              <>
-                {plannedIncomeIsSettled ? (
-                  <EmptyState
-                    icon={CircleCheckBig}
-                    title='Planned income is settled'
-                    description='All active planned income for this month has been received or skipped.'
-                  />
-                ) : null}
-                {displayedPlannedIncomes.map(plannedIncome => {
+              displayedPlannedIncomes.map(plannedIncome => {
                 const statusMeta = getPlannedIncomeStatusMeta(plannedIncome.status)
                 const isHandled =
                   plannedIncome.status === 'received' ||
@@ -1176,7 +1147,7 @@ export default async function DashboardPage ({
                     <div className='flex flex-col gap-4 md:flex-row md:items-start md:justify-between'>
                       <div className='flex min-w-0 items-start gap-3'>
                         <div className='mt-1 flex size-9 items-center justify-center rounded-lg bg-success/10 text-success'>
-                          <TrendingUp className='size-[18px]' />
+                          <TrendingUp className='size-4.5' />
                         </div>
                         <div className='min-w-0 space-y-1'>
                           <div className='flex flex-wrap items-center gap-2'>
@@ -1351,66 +1322,70 @@ export default async function DashboardPage ({
                               Link transaction
                             </button>
                           </form>
-                        ) : (
-                          <p className='border-t border-border/70 pt-4 text-sm leading-6 text-muted-foreground'>
-                            No unlinked income transactions found for this month.
-                          </p>
-                        )}
+                        ) : null}
                       </div>
                     )}
                   </div>
                 )
-              })}
-              </>
-            )}
-          </CardContent>
+              })
+              )}
+            </CardContent>
+          ) : null}
         </Card>
 
         <Card className='order-2 overflow-hidden'>
           <CardHeader className='border-b border-border/70 pb-5'>
-            <div className='flex flex-wrap items-start justify-between gap-3'>
-              <div className='space-y-3'>
+            <div>
+              <div className='flex items-center justify-between gap-3'>
                 <CardTitle>Planned bills</CardTitle>
-                <p className='max-w-md text-sm leading-6 text-muted-foreground'>
-                  Active bills stay reserved until you mark them paid or skip
-                  them for this month.
-                </p>
-                <div className='flex flex-wrap gap-2'>
-                  <Badge variant='outline'>{displayedPlannedBills.length}</Badge>
-                  <Badge variant='outline'>
-                    Reserved {formatMoney(formatter, displayedPlannedBillsTotal)}
-                  </Badge>
-                </div>
+                <Link
+                  href='/planned'
+                  className={cn(
+                    buttonVariants({ variant: 'ghost', size: 'sm' }),
+                    'rounded-xl px-0 text-primary hover:bg-transparent'
+                  )}
+                >
+                  View all
+                  <ArrowRight />
+                </Link>
               </div>
-              <Link
-                href='/planned'
-                className={cn(
-                  buttonVariants({ variant: 'ghost', size: 'sm' }),
-                  'rounded-xl px-0 text-primary hover:bg-transparent'
-                )}
-              >
-                View all
-                <ArrowRight />
-              </Link>
+              <div className='flex flex-wrap gap-2'>
+                <Badge variant='outline' className='text-base'>
+                  {displayedPlannedBills.length}
+                </Badge>
+                <Badge variant='outline' className='border-0 text-base'>
+                  Reserved {formatMoney(formatter, displayedPlannedBillsTotal)}
+                </Badge>
+              </div>
             </div>
           </CardHeader>
-          <CardContent className='grid gap-4 p-5'>
+          <CardContent className='grid gap-4 p-3'>
             {displayedPlannedBills.length === 0 ? (
               <EmptyState
                 icon={CalendarClock}
-                title='No active planned bills'
-                description='Add expected monthly bills to make the forecast more grounded.'
+                title={
+                  hasActivePlannedBills
+                    ? 'All planned bills handled'
+                    : 'No active planned bills'
+                }
+                description={
+                  hasActivePlannedBills
+                    ? 'Paid and skipped bills remain available under View all.'
+                    : 'Add expected monthly bills to make the forecast more grounded.'
+                }
                 action={
-                  <Link
-                    href='/planned'
-                    className={cn(
-                      buttonVariants({ variant: 'outline', size: 'sm' }),
-                      'rounded-xl'
-                    )}
-                  >
-                    <Plus />
-                    Add planned bill
-                  </Link>
+                  hasActivePlannedBills ? undefined : (
+                    <Link
+                      href='/planned'
+                      className={cn(
+                        buttonVariants({ variant: 'outline', size: 'sm' }),
+                        'rounded-xl'
+                      )}
+                    >
+                      <Plus />
+                      Add planned bill
+                    </Link>
+                  )
                 }
               />
             ) : (
@@ -1428,26 +1403,27 @@ export default async function DashboardPage ({
                     <div className='flex flex-col gap-4 md:flex-row md:items-start md:justify-between'>
                       <div className='flex min-w-0 items-start gap-3'>
                         <div className='mt-1 flex size-9 items-center justify-center rounded-lg bg-accent text-accent-foreground'>
-                          <CalendarClock className='size-[18px]' />
+                          <CalendarClock className='size-4.5' />
                         </div>
                         <div className='min-w-0 space-y-1'>
                           <div className='flex flex-wrap items-center gap-2'>
                             <h3 className='text-sm font-semibold text-foreground'>
                               {plannedBill.category.name}
                             </h3>
-                            {plannedBill.subcategory ? (
-                              <Badge variant='outline'>{plannedBill.subcategory.name}</Badge>
+                            {plannedBill.status !== 'upcoming' ? (
+                              <Badge variant={statusMeta.variant}>
+                                {statusMeta.label}
+                              </Badge>
                             ) : null}
-                            <Badge variant={statusMeta.variant}>
-                              {statusMeta.label}
-                            </Badge>
                             {plannedBill.category.isArchived ? (
                               <Badge variant='outline'>Archived category</Badge>
                             ) : null}
                           </div>
-                          <p className='text-sm leading-6 text-muted-foreground'>
-                            {plannedBill.name}
-                          </p>
+                          {plannedBill.subcategory ? (
+                            <p className='truncate text-sm leading-6 text-muted-foreground'>
+                              {plannedBill.subcategory.name}
+                            </p>
+                          ) : null}
                           {plannedBill.occurrence?.paidAtLocalDate ? (
                             <div className='flex flex-wrap items-center gap-2'>
                               <p className='text-xs font-medium text-muted-foreground'>
@@ -1467,7 +1443,11 @@ export default async function DashboardPage ({
 
                       <div className='flex items-center justify-between gap-3 md:flex-col md:items-end'>
                         <p className='text-sm font-medium text-muted-foreground'>
-                          Due day {plannedBill.dueDayOfMonth}
+                          {formatLocalDate(
+                            `${selectedMonth}-${String(
+                              plannedBill.dueDayOfMonth
+                            ).padStart(2, '0')}`
+                          )}
                         </p>
                         <p className='font-mono text-base font-semibold tracking-tight text-foreground'>
                           {formatMoney(formatter, plannedBill.amount)}

@@ -254,8 +254,9 @@ For a selected completed period, it shows:
 
 Supported periods are current year, trailing 3/6/9/12 completed months,
 previous 1/2/3 full years, all time, and custom inclusive month or full-year
-ranges. Current and future months and incomplete years are rejected. Total
-Balance selection remains independent from the Monthly Snapshot month.
+ranges. All time is the default. Current and future months and incomplete years
+are rejected. Total Balance selection remains independent from the Monthly
+Snapshot month.
 
 Users can add positive money adjustments for completed months, then review,
 edit, or delete them inline. Adjustments are useful for opening balances and
@@ -287,6 +288,14 @@ Monthly Snapshot supports a selected month and includes:
 - planned bill status and actions
 - recent transactions
 - monthly cashflow context
+
+The dashboard Planned Bills card lists only active, unhandled bills. Paid and
+skipped occurrences remain available on `/planned` and are omitted from the
+dashboard list.
+
+The dashboard Planned Income card omits received occurrences from its item
+list. Received totals remain visible in the summary, and received occurrences
+remain available on `/planned-income`.
 
 Planned item statuses include applicable states such as:
 

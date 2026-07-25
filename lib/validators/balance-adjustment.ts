@@ -119,7 +119,7 @@ export const balancePeriodModeSchema = z.enum(["months", "years"]);
 const rawBalanceRangeQuerySchema = z.object({
   balanceRange: z.preprocess(
     firstQueryValue,
-    balanceRangePresetSchema.default("current-year"),
+    balanceRangePresetSchema.default("all-time"),
   ),
   balanceMode: optionalQueryStringSchema,
   balanceStart: optionalQueryStringSchema,

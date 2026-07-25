@@ -356,7 +356,7 @@ export default async function TransactionsPage({
           <Card className="h-fit">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Filter className="size-[18px]" />
+                <Filter className="size-4.5" />
                 Filters
               </CardTitle>
               <CardDescription>

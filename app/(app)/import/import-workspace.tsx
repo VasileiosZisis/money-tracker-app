@@ -499,7 +499,7 @@ export function ImportWorkspace() {
 
                 <div className="rounded-xl border border-border/80 bg-background/60 p-4 sm:col-span-2">
                   <div className="flex items-center gap-2">
-                    <Rows3 className="size-[18px] text-muted-foreground" />
+                    <Rows3 className="size-4.5 text-muted-foreground" />
                     <p className="text-sm font-medium text-muted-foreground">Detected columns</p>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">

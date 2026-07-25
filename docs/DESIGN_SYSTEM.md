@@ -218,12 +218,13 @@ Rules:
 - Dashboard composition uses four distinct responsive rows: Total Balance with Monthly Snapshot (`md` two-column), the three forecast metrics (`md` three-column), Needs Attention at full width, and Recent Transactions with Planned Bills and Planned Income (`xl` three-column). All rows stack on smaller screens while preserving that content order.
 - Safe to spend, Daily safe spend, and Forecast remaining spend use compact metric cards without descriptive text beneath their values.
 - Use a `Planning & Forecast` section heading above the three forecast metric cards and Needs Attention to distinguish planning-oriented information from Total Balance and Monthly Snapshot.
-- The Needs Attention card lists actionable signals without a numeric count badge in its header.
+- The Needs Attention card uses a title-only header without supporting copy or a numeric count badge, and uses compact `p-3` content padding.
 - Support the main number with income, expense, and ratio-based context derived from existing data.
 - Vertically center summary-card icons against their paired label and value block.
 - A line chart is acceptable in the lead dashboard card when it is directly grounded in real monthly data, such as day-by-day cumulative income and expense progress for the selected month.
 - In light mode, chart grid lines should read slightly darker than default border treatments so quantitative guides remain legible against bright card surfaces.
 - Keep recent transactions visible and legible.
+- Recent transaction rows use semantic icon and amount color as the income/expense indicator, omit the redundant type badge, and show the subcategory as the optional secondary line. If no subcategory exists, render no secondary text.
 - Do not invent analytics or charts that are not backed by real data.
 
 ## Component styling principles

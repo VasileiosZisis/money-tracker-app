@@ -50,7 +50,7 @@ export function AppNavigation({ orientation, children }: AppNavigationProps) {
                     : "border-border/50 bg-background/60 text-muted-foreground group-hover:text-foreground",
                 )}
               >
-                <Icon className="size-[18px]" />
+                <Icon className="size-4.5" />
               </span>
               <span className="block text-sm font-semibold">{item.label}</span>
             </Link>

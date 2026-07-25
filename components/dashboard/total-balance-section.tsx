@@ -65,10 +65,20 @@ export function TotalBalanceSection ({
   })
   const summary = data.summary
   const chartData =
-    summary?.monthlyBalances.map(point => ({
-      month: point.month,
-      endingBalance: Number(point.endingBalance.toString())
-    })) ?? []
+    summary?.monthlyBalances.map((point, index) => {
+      const previousEndingBalance =
+        index === 0
+          ? summary.startingBalance
+          : summary.monthlyBalances[index - 1].endingBalance
+
+      return {
+        month: point.month,
+        endingBalance: Number(point.endingBalance.toString()),
+        balanceChange: Number(
+          point.endingBalance.minus(previousEndingBalance).toString()
+        )
+      }
+    }) ?? []
   const endingBalanceClassName = summary?.endingBalance.lt(0)
     ? 'text-destructive'
     : 'text-foreground'
@@ -114,7 +124,7 @@ export function TotalBalanceSection ({
 
       {data.validationError ? (
         <PageNotice variant='error' title='Invalid Total Balance period'>
-          {data.validationError} Showing the current-year range instead.
+          {data.validationError} Showing the all-time range instead.
         </PageNotice>
       ) : null}
 

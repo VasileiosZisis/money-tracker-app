@@ -65,7 +65,7 @@ export default function ExportPage() {
             <div className="rounded-xl border border-border/80 bg-background/60 p-4">
               <div className="flex items-center gap-3">
                 <div className="flex size-9 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-                  <FileSpreadsheet className="size-[18px]" />
+                  <FileSpreadsheet className="size-4.5" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-foreground">Columns</p>
@@ -79,7 +79,7 @@ export default function ExportPage() {
             <div className="rounded-xl border border-border/80 bg-background/60 p-4">
               <div className="flex items-center gap-3">
                 <div className="flex size-9 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-                  <ShieldCheck className="size-[18px]" />
+                  <ShieldCheck className="size-4.5" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-foreground">Scope</p>

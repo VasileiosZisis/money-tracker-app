@@ -12,7 +12,10 @@ import {
   type BalanceAdjustmentLike,
   type BalanceTransactionLike,
 } from "@/lib/balance";
-import type { BalanceRangeQuery } from "@/lib/validators/balance-adjustment";
+import {
+  createBalanceRangeQuerySchema,
+  type BalanceRangeQuery,
+} from "@/lib/validators/balance-adjustment";
 
 const REFERENCE_DATE = "2026-07-01";
 
@@ -27,6 +30,12 @@ function resolve(selection: BalanceRangeQuery, earliestActivityMonth?: string | 
     earliestActivityMonth,
   });
 }
+
+test("balance range defaults to all time", () => {
+  assert.deepEqual(createBalanceRangeQuerySchema(REFERENCE_DATE).parse({}), {
+    balanceRange: "all-time",
+  });
+});
 
 test("completed-month utilities work across year boundaries", () => {
   assert.equal(getLatestCompletedMonth("2026-01-15"), "2025-12");

@@ -76,7 +76,7 @@ export function AppSidebar({ displayName, initials, userImage }: AppSidebarProps
                               : "flex size-8 items-center justify-center rounded-lg border border-border/50 bg-background/60 text-muted-foreground"
                           }
                         >
-                          <Icon className="size-[18px]" />
+                          <Icon className="size-4.5" />
                         </span>
                         <span>{item.label}</span>
                       </Link>

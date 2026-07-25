@@ -28,7 +28,7 @@ export default function SignOutButton({
         )}
       >
         <span className="flex size-8 items-center justify-center rounded-lg border border-border/50 bg-background/60 text-muted-foreground transition-colors group-hover/menu-button:text-foreground">
-          <LogOut className="size-[18px]" />
+          <LogOut className="size-4.5" />
         </span>
         <span className="text-sm font-semibold">Sign Out</span>
       </Button>

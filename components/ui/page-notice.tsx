@@ -37,7 +37,7 @@ export function PageNotice({
               : "bg-success/10 text-success",
           )}
         >
-          <Icon className="size-[18px]" />
+          <Icon className="size-4.5" />
         </div>
         <div className="space-y-1">
           {title ? <p className="text-sm font-semibold text-foreground">{title}</p> : null}
