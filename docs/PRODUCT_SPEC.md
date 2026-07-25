@@ -288,6 +288,10 @@ Monthly Snapshot supports a selected month and includes:
 - planned bill status and actions
 - recent transactions
 - monthly cashflow context
+- selected-month actual spending by category and subcategory
+
+The spending breakdown uses actual expense transactions only. Planned bills
+appear in the breakdown only after they are represented by a normal transaction.
 
 The dashboard Planned Bills card lists only active, unhandled bills. Paid and
 skipped occurrences remain available on `/planned` and are omitted from the

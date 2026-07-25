@@ -10,6 +10,10 @@ import {
   type TotalBalanceSummary,
 } from "@/lib/balance";
 import { getMonthRange } from "@/lib/dates/month";
+import {
+  buildSpendingByCategory,
+  type DashboardSpendingCategory,
+} from "@/lib/dashboard/spending-by-category";
 import { db } from "@/lib/db";
 import {
   buildForecastMonthContext,
@@ -160,6 +164,7 @@ export type DashboardMonthData = {
     expense: number | null;
   }>;
   chartYAxisMax: number;
+  spendingByCategory: DashboardSpendingCategory[];
   forecast: ForecastSummary;
   attentionItems: DashboardAttentionItem[];
   latestTransactionEntry: {
@@ -858,6 +863,18 @@ async function loadDashboardMonthData(
         type: true,
         amount: true,
         localDate: true,
+        categoryId: true,
+        subcategoryId: true,
+        category: {
+          select: {
+            name: true,
+          },
+        },
+        subcategory: {
+          select: {
+            name: true,
+          },
+        },
       },
     }),
     db.transaction.findMany({
@@ -1062,6 +1079,7 @@ async function loadDashboardMonthData(
     incomeSum,
     transactions: monthlyChartTransactions,
   });
+  const spendingByCategory = buildSpendingByCategory(monthlyChartTransactions);
   const currency = user?.currency ?? "USD";
   const getLinkCandidatesForPlannedBill = (plannedBill: {
     amount: Prisma.Decimal;
@@ -1205,6 +1223,7 @@ async function loadDashboardMonthData(
     netLeft: incomeSum.minus(expenseSum),
     chartSeries,
     chartYAxisMax,
+    spendingByCategory,
     forecast,
     attentionItems: buildAttentionItems({
       currency,

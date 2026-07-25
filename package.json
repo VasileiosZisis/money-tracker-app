@@ -9,7 +9,7 @@
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "start": "next start",
-    "test": "tsx --test lib/balance/balance.test.ts",
+    "test": "tsx --test lib/balance/balance.test.ts lib/dashboard/spending-by-category.test.ts",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "check": "npm run lint && npm run typecheck && npm run build"

@@ -2,6 +2,7 @@ import { Prisma } from '@/generated/prisma/client'
 import {
   ArrowRight,
   CalendarClock,
+  ChartNoAxesCombined,
   CircleAlert,
   CircleCheckBig,
   FolderClock,
@@ -43,6 +44,7 @@ import {
   undoPlannedBillOccurrence
 } from '@/actions/planned-bills'
 import { MonthCashflowChart } from '@/components/dashboard/month-cashflow-chart'
+import { SpendingByCategoryChart } from '@/components/dashboard/spending-by-category-chart'
 import { TotalBalanceSection } from '@/components/dashboard/total-balance-section'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
@@ -938,6 +940,34 @@ export default async function DashboardPage ({
       </section>
         </section>
       </div>
+
+      <section
+        aria-labelledby='spending-by-category-heading'
+        className='flex flex-col gap-4'
+      >
+        <h2
+          id='spending-by-category-heading'
+          className='text-3xl font-semibold tracking-tight text-foreground md:text-4xl'
+        >
+          Monthly Spendings
+        </h2>
+        <Card>
+          <CardContent className='p-5'>
+            {data.spendingByCategory.length > 0 ? (
+              <SpendingByCategoryChart
+                currency={data.currency}
+                data={data.spendingByCategory}
+              />
+            ) : (
+              <EmptyState
+                icon={ChartNoAxesCombined}
+                title='No spending to break down'
+                description='Add an expense transaction for this month to see category and subcategory spending here.'
+              />
+            )}
+          </CardContent>
+        </Card>
+      </section>
 
       <section
         aria-labelledby='planning-forecast-heading'

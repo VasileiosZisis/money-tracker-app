@@ -215,13 +215,14 @@ Rules:
 
 - Lead with the selected month and the net result.
 - In Monthly Snapshot, place Income total, Expense total, and Projected net left—in that order—in one secondary metric row below Net left now and before the cash-flow chart. Mirror the Total Balance primary/secondary metric structure, use `gap-6` between secondary metrics, and render secondary values at `text-xl` so both lead cards align visually.
-- Dashboard composition uses four distinct responsive rows: Total Balance with Monthly Snapshot (`md` two-column), the three forecast metrics (`md` three-column), Needs Attention at full width, and Recent Transactions with Planned Bills and Planned Income (`xl` three-column). All rows stack on smaller screens while preserving that content order.
+- Dashboard composition uses five distinct responsive rows: Total Balance with Monthly Snapshot (`md` two-column), Spending by category at full width, the three forecast metrics (`md` three-column), Needs Attention at full width, and Recent Transactions with Planned Bills and Planned Income (`xl` three-column). All rows stack on smaller screens while preserving that content order.
 - Safe to spend, Daily safe spend, and Forecast remaining spend use compact metric cards without descriptive text beneath their values.
 - Use a `Planning & Forecast` section heading above the three forecast metric cards and Needs Attention to distinguish planning-oriented information from Total Balance and Monthly Snapshot.
 - The Needs Attention card uses a title-only header without supporting copy or a numeric count badge, and uses compact `p-3` content padding.
 - Support the main number with income, expense, and ratio-based context derived from existing data.
 - Vertically center summary-card icons against their paired label and value block.
 - A line chart is acceptable in the lead dashboard card when it is directly grounded in real monthly data, such as day-by-day cumulative income and expense progress for the selected month.
+- Spending by category uses a full-width hierarchical horizontal bar chart immediately before Planning & Forecast. Category totals share one scale, subcategories form stacked segments, and the chart shows every category with actual expenses for the selected month.
 - In light mode, chart grid lines should read slightly darker than default border treatments so quantitative guides remain legible against bright card surfaces.
 - Keep recent transactions visible and legible.
 - Recent transaction rows use semantic icon and amount color as the income/expense indicator, omit the redundant type badge, and show the subcategory as the optional secondary line. If no subcategory exists, render no secondary text.
