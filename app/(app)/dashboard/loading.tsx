@@ -21,11 +21,11 @@ export default function DashboardLoading() {
             <Skeleton className="h-4 w-full max-w-xl" />
           </div>
           <Card className="overflow-hidden">
-            <CardHeader className="flex flex-col gap-3 border-b border-border/70 pb-5">
+            <CardHeader className="flex flex-col gap-3 border-b border-border/70 pb-4">
               <Skeleton className="h-5 w-52" />
               <Skeleton className="h-4 w-40" />
             </CardHeader>
-            <CardContent className="flex flex-col gap-5 p-5">
+            <CardContent className="flex flex-col gap-5 p-4">
               <div className="grid gap-4 lg:grid-cols-3">
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />

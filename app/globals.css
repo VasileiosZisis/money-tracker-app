@@ -46,9 +46,6 @@
   --sidebar-ring: rgba(15, 82, 100, 0.38);
   --shadow-surface: 0 24px 60px -34px rgba(15, 23, 42, 0.28);
   --shadow-floating: 0 24px 48px -28px rgba(15, 23, 42, 0.24);
-  --background-spot-1: rgba(15, 82, 100, 0.16);
-  --background-spot-2: rgba(100, 116, 139, 0.22);
-  --background-overlay: rgba(255, 255, 255, 0.28);
 }
 
 .dark {
@@ -91,9 +88,6 @@
   --sidebar-ring: rgba(143, 216, 207, 0.48);
   --shadow-surface: 0 26px 62px -34px rgba(0, 0, 0, 0.7);
   --shadow-floating: 0 24px 50px -28px rgba(0, 0, 0, 0.62);
-  --background-spot-1: rgba(143, 216, 207, 0.16);
-  --background-spot-2: rgba(51, 65, 85, 0.4);
-  --background-overlay: rgba(6, 12, 20, 0.26);
 }
 
 @layer base {
@@ -107,11 +101,7 @@
 
   body {
     @apply min-h-screen bg-background font-sans text-foreground antialiased;
-    background-image:
-      radial-gradient(circle at top left, var(--background-spot-1), transparent 28%),
-      radial-gradient(circle at top right, var(--background-spot-2), transparent 26%),
-      linear-gradient(180deg, var(--background-overlay), transparent 22%);
-    background-attachment: fixed;
+    background-image: none;
   }
 
   button,

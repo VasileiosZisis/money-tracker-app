@@ -135,6 +135,58 @@ function buildDashboardUrl (params: {
   return `/dashboard?${searchParams.toString()}`
 }
 
+function DashboardMonthFilter ({
+  id,
+  selectedMonth,
+  balanceQuery
+}: {
+  id: string
+  selectedMonth: string
+  balanceQuery: DashboardBalanceQueryParams
+}) {
+  return (
+    <form className='flex flex-wrap items-end gap-3' method='get'>
+      <input
+        type='hidden'
+        name='balanceRange'
+        value={balanceQuery.balanceRange}
+      />
+      {balanceQuery.balanceMode ? (
+        <input
+          type='hidden'
+          name='balanceMode'
+          value={balanceQuery.balanceMode}
+        />
+      ) : null}
+      {balanceQuery.balanceStart ? (
+        <input
+          type='hidden'
+          name='balanceStart'
+          value={balanceQuery.balanceStart}
+        />
+      ) : null}
+      {balanceQuery.balanceEnd ? (
+        <input
+          type='hidden'
+          name='balanceEnd'
+          value={balanceQuery.balanceEnd}
+        />
+      ) : null}
+      <div className='space-y-1.5'>
+        <Input
+          id={id}
+          type='month'
+          name='month'
+          defaultValue={selectedMonth}
+        />
+      </div>
+      <button className={buttonVariants({ size: 'default' })} type='submit'>
+        Apply
+      </button>
+    </form>
+  )
+}
+
 function formatMoney (formatter: Intl.NumberFormat, amount: Prisma.Decimal) {
   return formatter.format(Number(amount.toString()))
 }
@@ -427,7 +479,7 @@ function MetricCard ({
 
   return (
     <Card className='h-full'>
-      <CardContent className='flex h-full flex-col gap-4 p-5'>
+      <CardContent className='flex h-full flex-col gap-4 p-4'>
         <div className='flex items-center justify-between gap-3'>
           <div className='space-y-1.5'>
             <p className='text-sm font-medium text-muted-foreground'>{title}</p>
@@ -467,7 +519,7 @@ function NeedsAttentionSection ({
 }) {
   return (
     <Card className='overflow-hidden'>
-      <CardHeader className='border-b border-border/70 pb-5'>
+      <CardHeader className='border-b border-border/70 pb-4'>
         <div className='flex flex-wrap items-start justify-between gap-3'>
           <div className='space-y-1.5'>
             <CardTitle>Needs attention</CardTitle>
@@ -488,7 +540,7 @@ function NeedsAttentionSection ({
             return (
               <div
                 key={`${item.type}-${index}`}
-                className='flex gap-3 rounded-xl border border-border/80 bg-background/60 p-4'
+                className='flex gap-3 rounded-xl border border-border/80 bg-background/60 p-3'
               >
                 <div
                   className={cn(
@@ -835,49 +887,15 @@ export default async function DashboardPage ({
           Monthly Snapshot
         </h2>
 
-      <form className='flex flex-wrap items-end gap-3' method='get'>
-        <input
-          type='hidden'
-          name='balanceRange'
-          value={balanceQuery.balanceRange}
-        />
-        {balanceQuery.balanceMode ? (
-          <input
-            type='hidden'
-            name='balanceMode'
-            value={balanceQuery.balanceMode}
-          />
-        ) : null}
-        {balanceQuery.balanceStart ? (
-          <input
-            type='hidden'
-            name='balanceStart'
-            value={balanceQuery.balanceStart}
-          />
-        ) : null}
-        {balanceQuery.balanceEnd ? (
-          <input
-            type='hidden'
-            name='balanceEnd'
-            value={balanceQuery.balanceEnd}
-          />
-        ) : null}
-        <div className='space-y-1.5'>
-          <Input
-            id='month'
-            type='month'
-            name='month'
-            defaultValue={selectedMonth}
-          />
-        </div>
-        <button className={buttonVariants({ size: 'default' })} type='submit'>
-          Apply
-        </button>
-      </form>
+      <DashboardMonthFilter
+        id='monthly-snapshot-month'
+        selectedMonth={selectedMonth}
+        balanceQuery={balanceQuery}
+      />
 
       <section>
         <Card className='overflow-hidden'>
-          <CardContent className='p-5'>
+          <CardContent className='p-4'>
             <div className='flex flex-col gap-5'>
               <div className='flex flex-col gap-5'>
                 <div className='flex flex-col gap-3'>
@@ -951,8 +969,13 @@ export default async function DashboardPage ({
         >
           Monthly Spendings
         </h2>
+        <DashboardMonthFilter
+          id='monthly-spendings-month'
+          selectedMonth={selectedMonth}
+          balanceQuery={balanceQuery}
+        />
         <Card>
-          <CardContent className='p-5'>
+          <CardContent className='p-4'>
             {data.spendingByCategory.length > 0 ? (
               <SpendingByCategoryChart
                 currency={data.currency}
@@ -1018,7 +1041,18 @@ export default async function DashboardPage ({
         <NeedsAttentionSection items={data.attentionItems} />
       </section>
 
-      <section className='grid items-start gap-4 xl:grid-cols-3'>
+      <section
+        aria-labelledby='transactions-plans-heading'
+        className='flex flex-col gap-4'
+      >
+        <h2
+          id='transactions-plans-heading'
+          className='text-3xl font-semibold tracking-tight text-foreground md:text-4xl'
+        >
+          Transactions &amp; Plans
+        </h2>
+
+        <div className='grid items-start gap-4 xl:grid-cols-3'>
         <Card className='overflow-hidden'>
           <CardHeader className='flex flex-row items-end justify-between gap-4 pb-0'>
             <CardTitle>Recent transactions</CardTitle>
@@ -1060,7 +1094,7 @@ export default async function DashboardPage ({
                   return (
                     <div
                       key={transaction.id}
-                      className='flex flex-col gap-3 rounded-xl border border-border/80 bg-background/60 p-4 md:flex-row md:items-center md:justify-between'
+                      className='flex flex-col gap-3 rounded-xl border border-border/80 bg-background/60 p-3 md:flex-row md:items-center md:justify-between'
                     >
                       <div className='flex min-w-0 items-start gap-3'>
                         <div
@@ -1077,7 +1111,7 @@ export default async function DashboardPage ({
                             <TrendingDown className='size-4.5' />
                           )}
                         </div>
-                        <div className='min-w-0 space-y-1'>
+                        <div className='flex min-w-0 flex-col'>
                           <p className='text-sm font-semibold text-foreground'>
                             {transaction.category.name}
                           </p>
@@ -1089,7 +1123,7 @@ export default async function DashboardPage ({
                         </div>
                       </div>
 
-                      <div className='flex items-center justify-between gap-3 md:flex-col md:items-end'>
+                      <div className='flex items-center justify-between md:flex-col md:items-end'>
                         <p className='text-sm font-medium text-muted-foreground'>
                           {formatLocalDate(transaction.localDate)}
                         </p>
@@ -1111,7 +1145,7 @@ export default async function DashboardPage ({
         </Card>
 
         <Card className='order-3 overflow-hidden'>
-          <CardHeader className='border-b border-border/70 pb-5'>
+          <CardHeader className='border-b border-border/70 pb-4'>
             <div>
               <div className='flex items-center justify-between gap-3'>
                 <CardTitle>Planned income</CardTitle>
@@ -1143,7 +1177,7 @@ export default async function DashboardPage ({
             </div>
           </CardHeader>
           {!hasActivePlannedIncomes || displayedPlannedIncomes.length > 0 ? (
-            <CardContent className='grid gap-4 p-5'>
+            <CardContent className='grid gap-4 p-4'>
               {!hasActivePlannedIncomes ? (
               <EmptyState
                 icon={TrendingUp}
@@ -1172,14 +1206,14 @@ export default async function DashboardPage ({
                 return (
                   <div
                     key={plannedIncome.id}
-                    className='grid gap-3 rounded-xl border border-border/80 bg-background/60 p-4'
+                    className='grid gap-3 rounded-xl border border-border/80 bg-background/60 p-3'
                   >
                     <div className='flex flex-col gap-4 md:flex-row md:items-start md:justify-between'>
                       <div className='flex min-w-0 items-start gap-3'>
                         <div className='mt-1 flex size-9 items-center justify-center rounded-lg bg-success/10 text-success'>
                           <TrendingUp className='size-4.5' />
                         </div>
-                        <div className='min-w-0 space-y-1'>
+                        <div className='flex min-w-0 flex-col'>
                           <div className='flex flex-wrap items-center gap-2'>
                             <h3 className='text-sm font-semibold text-foreground'>
                               {plannedIncome.category.name}
@@ -1214,7 +1248,7 @@ export default async function DashboardPage ({
                         </div>
                       </div>
 
-                      <div className='flex items-center justify-between gap-3 md:flex-col md:items-end'>
+                      <div className='flex items-center justify-between md:flex-col md:items-end'>
                         <p className='text-sm font-medium text-muted-foreground'>
                           Expected day {plannedIncome.expectedDayOfMonth}
                         </p>
@@ -1241,7 +1275,7 @@ export default async function DashboardPage ({
                         </button>
                       </form>
                     ) : (
-                      <div className='grid gap-3 border-t border-border/70 pt-4'>
+                      <div className='grid gap-3 border-t border-border/70'>
                         <form
                           action={markIncomeReceivedAction}
                           className='grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]'
@@ -1314,7 +1348,7 @@ export default async function DashboardPage ({
                         {plannedIncome.linkCandidates.length > 0 ? (
                           <form
                             action={linkExistingIncomeTransactionAction}
-                            className='grid gap-3 border-t border-border/70 pt-4 sm:grid-cols-[minmax(0,1fr)_auto]'
+                            className='grid gap-3 border-t border-border/70 sm:grid-cols-[minmax(0,1fr)_auto]'
                           >
                             <input
                               type='hidden'
@@ -1364,7 +1398,7 @@ export default async function DashboardPage ({
         </Card>
 
         <Card className='order-2 overflow-hidden'>
-          <CardHeader className='border-b border-border/70 pb-5'>
+          <CardHeader className='border-b border-border/70 pb-4'>
             <div>
               <div className='flex items-center justify-between gap-3'>
                 <CardTitle>Planned bills</CardTitle>
@@ -1428,14 +1462,14 @@ export default async function DashboardPage ({
                 return (
                   <div
                     key={plannedBill.id}
-                    className='grid gap-3 rounded-xl border border-border/80 bg-background/60 p-4'
+                    className='grid gap-3 rounded-xl border border-border/80 bg-background/60 p-3'
                   >
                     <div className='flex flex-col gap-4 md:flex-row md:items-start md:justify-between'>
                       <div className='flex min-w-0 items-start gap-3'>
                         <div className='mt-1 flex size-9 items-center justify-center rounded-lg bg-accent text-accent-foreground'>
                           <CalendarClock className='size-4.5' />
                         </div>
-                        <div className='min-w-0 space-y-1'>
+                        <div className='flex min-w-0 flex-col'>
                           <div className='flex flex-wrap items-center gap-2'>
                             <h3 className='text-sm font-semibold text-foreground'>
                               {plannedBill.category.name}
@@ -1471,7 +1505,7 @@ export default async function DashboardPage ({
                         </div>
                       </div>
 
-                      <div className='flex items-center justify-between gap-3 md:flex-col md:items-end'>
+                      <div className='flex items-center justify-between md:flex-col md:items-end'>
                         <p className='text-sm font-medium text-muted-foreground'>
                           {formatLocalDate(
                             `${selectedMonth}-${String(
@@ -1614,7 +1648,7 @@ export default async function DashboardPage ({
                             </button>
                           </form>
                         ) : (
-                          <p className='border-t border-border/70 pt-4 text-sm leading-6 text-muted-foreground'>
+                          <p className='border-t border-border/70 text-sm leading-6 text-muted-foreground'>
                             No unlinked expense transactions found for this month.
                           </p>
                         )}
@@ -1627,6 +1661,7 @@ export default async function DashboardPage ({
 
           </CardContent>
         </Card>
+        </div>
       </section>
     </div>
   )

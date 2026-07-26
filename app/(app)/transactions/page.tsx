@@ -479,14 +479,14 @@ export default async function TransactionsPage({
         </div>
 
         <Card className="overflow-hidden">
-          <CardHeader className="border-b border-border/70 pb-5">
+          <CardHeader className="border-b border-border/70 pb-4">
             <CardTitle>Transactions list</CardTitle>
             <CardDescription>
               Reviewing {formatMonthLabel(selectedMonth)} with {transactions.length} visible{" "}
               {transactions.length === 1 ? "entry" : "entries"}.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4 p-5">
+          <CardContent className="grid gap-4 p-4">
             {transactions.length === 0 ? (
               <EmptyState
                 icon={FolderOpen}

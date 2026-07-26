@@ -103,7 +103,7 @@ export default async function SetupPage({
   return (
     <section className="grid w-full gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(400px,0.85fr)]">
       <Card className="overflow-hidden">
-        <CardContent className="flex h-full flex-col justify-between gap-6 p-5 md:p-6">
+        <CardContent className="flex h-full flex-col justify-between gap-6 p-4 md:p-6">
           <div className="flex flex-col gap-5">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-floating">

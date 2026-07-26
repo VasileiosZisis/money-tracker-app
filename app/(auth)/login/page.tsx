@@ -55,7 +55,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
       <div className="grid w-full max-w-6xl gap-4 lg:grid-cols-[minmax(0,1.1fr)_400px]">
         <Card className="overflow-hidden">
-          <CardContent className="flex h-full flex-col justify-between gap-6 p-5 md:p-6">
+          <CardContent className="flex h-full flex-col justify-between gap-6 p-4 md:p-6">
             <div className="flex flex-col gap-5">
               <div className="flex items-center gap-3">
                 <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-floating">
@@ -118,7 +118,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               Use Google authentication to access your personal tracker.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-4 pt-5">
+          <CardContent className="flex flex-col gap-4 pt-4">
             {error ? (
               <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm leading-6 text-foreground">
                 {getAuthErrorMessage(error)}

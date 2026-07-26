@@ -324,7 +324,7 @@ export default async function PlannedIncomePage({
         <section className="grid gap-4 xl:grid-cols-2">
           {sections.map((section) => (
             <Card key={section.title} className="overflow-hidden">
-              <CardHeader className="border-b border-border/70 pb-5">
+              <CardHeader className="border-b border-border/70 pb-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="space-y-1.5">
                     <CardTitle>{section.title}</CardTitle>
@@ -334,7 +334,7 @@ export default async function PlannedIncomePage({
                 </div>
               </CardHeader>
 
-              <CardContent className="grid gap-4 p-5">
+              <CardContent className="grid gap-4 p-4">
                 {section.incomes.length === 0 ? (
                   <EmptyState
                     icon={FolderOpen}

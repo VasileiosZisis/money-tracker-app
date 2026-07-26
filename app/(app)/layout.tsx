@@ -1,9 +1,9 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { AppSidebar } from '@/components/app-shell/app-sidebar'
+import { PageContextBar } from '@/components/app-shell/page-context-bar'
 import { getSession } from '@/lib/auth/session'
-import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
+import { SidebarProvider } from '@/components/ui/sidebar'
 import { db } from '@/lib/db'
 
 function getDisplayName (
@@ -77,16 +77,8 @@ export default async function AppLayout ({
             userImage={userImage}
           />
 
-          <main className='flex min-w-0 flex-1 flex-col gap-3 py-5 lg:gap-5'>
-            <div className='mb-2 flex items-center gap-2.5 lg:hidden'>
-              <SidebarTrigger />
-              <Link
-                href='/dashboard'
-                className='text-base font-semibold tracking-tight text-foreground'
-              >
-                Money Tracker
-              </Link>
-            </div>
+          <main className='flex min-w-0 flex-1 flex-col gap-3 pb-5 lg:gap-5'>
+            <PageContextBar />
 
             <div className='mx-auto flex w-full flex-col gap-5'>
               {children}

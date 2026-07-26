@@ -129,7 +129,7 @@ export function TotalBalanceSection ({
       ) : null}
 
       <Card className='overflow-hidden'>
-        <CardContent className='flex flex-col gap-5 p-5'>
+        <CardContent className='flex flex-col gap-5 p-4'>
           {summary ? (
             <div className='flex flex-col gap-5'>
               <div className='flex flex-col gap-5'>

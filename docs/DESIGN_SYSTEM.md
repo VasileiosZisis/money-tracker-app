@@ -13,7 +13,7 @@ Core traits:
 - strong hierarchy around money totals and monthly context
 - compact, deliberate spacing with clear grouping and little wasted space
 - subtle borders and soft elevation
-- desktop-first shell with a left sidebar rail and no persistent desktop top bar
+- desktop-first shell with a left sidebar rail and compact contextual top bar
 - responsive layouts that collapse cleanly on smaller screens
 
 ## Theme tokens
@@ -103,15 +103,7 @@ Theme tokens live in `app/globals.css` as CSS variables.
 
 ### Background treatment
 
-The app background is not flat. `body` uses soft radial and linear overlays from CSS variables:
-
-- `--background-spot-1`
-- `--background-spot-2`
-- `--background-overlay`
-
-Light mode uses `rgba(15, 82, 100, 0.16)`, `rgba(100, 116, 139, 0.22)`, and `rgba(255, 255, 255, 0.28)` respectively. Dark mode uses `rgba(143, 216, 207, 0.16)`, `rgba(51, 65, 85, 0.40)`, and `rgba(6, 12, 20, 0.26)`.
-
-Use the existing background system instead of introducing page-specific gradients without a clear reason.
+The `body` uses only the solid `--background` theme color. Do not add body-level background images, gradients, or fixed overlays. Create depth through the existing surface, border, and elevation tokens instead.
 
 ## Typography
 
@@ -141,7 +133,7 @@ Spacing uses Tailwind's 4px base scale, with 8px increments as the main visual r
 Common spacing patterns:
 
 - Page stack: `gap-5` or `gap-6`
-- Standard card padding: `p-5`
+- Standard card padding: `p-4`; shared card headers, content, and footers use the corresponding `px-4`, `pt-4`, and `pb-4` directional utilities.
 - Compact summary and inset-card padding: `p-3` or `p-4`
 - Prominent one-off surfaces: `p-6` maximum when the extra space supports hierarchy
 - Form stack spacing: `gap-4`
@@ -200,14 +192,17 @@ Rules:
 - Desktop sidebar user identity and utility controls should visually reuse the same row treatment as the primary nav links: matching spacing, icon box sizing, corner radius, and hover language.
 - Desktop sidebar utility controls such as sign-out and theme toggle should sit in the sidebar footer/menu area after the account identity block.
 - The desktop sidebar should sit flush against the left edge, span the full viewport height, and use square outer corners instead of an inset card treatment.
-- Desktop content should start directly in the page body without a shell-level top bar.
+- Authenticated pages use a `h-18` contextual bar at the top of `main`, matching the 72px sidebar header height.
+- The contextual bar uses three aligned regions: current page at the left edge, the user's local current date centered, and days remaining before month end at the right edge.
+- The contextual bar uses the sidebar background token and extends its bottom border through the main-content gutters, from the sidebar edge to the right viewport edge.
+- Current-page labels reuse the app navigation labels; all three contextual-bar items use `text-xl`, foreground color, and semibold weight.
 - Main content should use the full available width inside the shell, with individual pages deciding their own internal width constraints where needed.
 
 ### Mobile behavior
 
 - Mobile uses the same shadcn sidebar as an off-canvas drawer.
 - The mobile drawer should also open edge-to-edge without outer padding or rounded outer corners.
-- The page body should expose a compact trigger row so the off-canvas sidebar is reachable on small screens.
+- The contextual bar includes the sidebar trigger on small screens so the off-canvas navigation remains reachable.
 - Keep actions reachable without requiring dense toolbars.
 - Tables should degrade into stacked cards where needed.
 
@@ -218,6 +213,7 @@ Rules:
 - Dashboard composition uses five distinct responsive rows: Total Balance with Monthly Snapshot (`md` two-column), Spending by category at full width, the three forecast metrics (`md` three-column), Needs Attention at full width, and Recent Transactions with Planned Bills and Planned Income (`xl` three-column). All rows stack on smaller screens while preserving that content order.
 - Safe to spend, Daily safe spend, and Forecast remaining spend use compact metric cards without descriptive text beneath their values.
 - Use a `Planning & Forecast` section heading above the three forecast metric cards and Needs Attention to distinguish planning-oriented information from Total Balance and Monthly Snapshot.
+- Use a `Transactions & Plans` section heading above Recent Transactions, Planned Bills, and Planned Income to separate activity and scheduled-item cards from Planning & Forecast.
 - The Needs Attention card uses a title-only header without supporting copy or a numeric count badge, and uses compact `p-3` content padding.
 - Support the main number with income, expense, and ratio-based context derived from existing data.
 - Vertically center summary-card icons against their paired label and value block.
@@ -226,6 +222,9 @@ Rules:
 - In light mode, chart grid lines should read slightly darker than default border treatments so quantitative guides remain legible against bright card surfaces.
 - Keep recent transactions visible and legible.
 - Recent transaction rows use semantic icon and amount color as the income/expense indicator, omit the redundant type badge, and show the subcategory as the optional secondary line. If no subcategory exists, render no secondary text.
+- Dashboard item containers inside Needs Attention, Recent Transactions, Planned Bills, and Planned Income use compact `p-3` padding.
+- In Recent Transactions, Planned Bills, and Planned Income rows, primary/secondary text and date-or-day/amount stacks use no internal vertical gap.
+- Planned Bills list-item action areas and their internal separators add no top padding.
 - Do not invent analytics or charts that are not backed by real data.
 
 ## Component styling principles
