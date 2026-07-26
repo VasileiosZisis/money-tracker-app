@@ -196,6 +196,8 @@ Rules:
 - The contextual bar uses three aligned regions: current page at the left edge, the user's local current date centered, and days remaining before month end at the right edge.
 - The contextual bar uses the sidebar background token and extends its bottom border through the main-content gutters, from the sidebar edge to the right viewport edge.
 - Current-page labels reuse the app navigation labels; all three contextual-bar items use `text-xl`, foreground color, and semibold weight.
+- The Transactions page relies on the contextual bar for its page title and begins directly with notices and working controls; do not repeat an `Entries` eyebrow, `Transactions` heading, introductory description, or summary cards for Selected Month, Visible Entries, and Current Filter.
+- The Transactions Filters card spans the full content width above the Add Transaction and Transactions List workspace, has no title or icon header, uses explicit `p-4 pb-4` content padding, and contains only its filter controls and actions. Its month, type, category, subcategory, and action controls form one horizontal row at `xl` and collapse to two columns or a single column at smaller breakpoints.
 - Main content should use the full available width inside the shell, with individual pages deciding their own internal width constraints where needed.
 
 ### Mobile behavior

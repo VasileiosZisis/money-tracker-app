@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Filter, FolderOpen, PencilLine, Plus, Trash2 } from "lucide-react";
+import { FolderOpen, PencilLine, Plus, Trash2 } from "lucide-react";
 
 import {
   createTransaction,
@@ -10,7 +10,6 @@ import {
   updateTransaction,
 } from "@/actions/transactions";
 import { TransactionFormFields } from "@/app/(app)/transactions/transaction-form-fields";
-import { PageHeader } from "@/components/app-shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -302,43 +301,6 @@ export default async function TransactionsPage({
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader
-        eyebrow="Entries"
-        title="Transactions"
-        description="Add, edit, filter, and review manual income and expense entries in a simpler server-first workflow."
-      />
-
-      <section className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardContent className="flex flex-col gap-1 p-4">
-            <p className="text-sm font-medium text-muted-foreground">Selected month</p>
-            <p className="text-xl font-semibold tracking-tight text-foreground">
-              {formatMonthLabel(selectedMonth)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex flex-col gap-1 p-4">
-            <p className="text-sm font-medium text-muted-foreground">Visible entries</p>
-            <p className="text-xl font-semibold tracking-tight text-foreground">
-              {transactions.length}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex flex-col gap-1 p-4">
-            <p className="text-sm font-medium text-muted-foreground">Current filter</p>
-            <p className="text-xl font-semibold tracking-tight text-foreground">
-              {selectedType === "ALL"
-                ? "All types"
-                : selectedType === "INCOME"
-                  ? "Income"
-                  : "Expense"}
-            </p>
-          </CardContent>
-        </Card>
-      </section>
-
       {errorMessage ? (
         <PageNotice variant="error" title="Something needs attention">
           {errorMessage}
@@ -351,20 +313,13 @@ export default async function TransactionsPage({
         </PageNotice>
       ) : null}
 
-      <section className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
-        <div className="flex flex-col gap-4">
-          <Card className="h-fit">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Filter className="size-4.5" />
-                Filters
-              </CardTitle>
-              <CardDescription>
-                Narrow the visible list by month, type, category, and subcategory.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <form method="get" className="flex flex-col gap-4">
+      <section className="flex flex-col gap-4">
+          <Card>
+            <CardContent className="p-4 pb-4 flex flex-col gap-4">
+              <form
+                method="get"
+                className="grid gap-3 md:grid-cols-2 xl:grid-cols-[repeat(4,minmax(0,1fr))_auto] xl:items-end"
+              >
                 <FormField htmlFor="filter-month" label="Month">
                   <Input
                     id="filter-month"
@@ -418,30 +373,26 @@ export default async function TransactionsPage({
                   </Select>
                 </FormField>
 
-                <div className="flex flex-wrap gap-3">
-                  <Button type="submit" className="flex-1">
+                <div className="flex gap-2">
+                  <Button type="submit" className="flex-1 xl:flex-none">
                     Apply filters
                   </Button>
                   <Link
                     href={buildTransactionsPageUrl({ month: getCurrentMonthKey() })}
-                    className={cn(buttonVariants({ variant: "outline" }), "flex-1")}
+                    className={cn(
+                      buttonVariants({ variant: "outline" }),
+                      "flex-1 xl:flex-none",
+                    )}
                   >
                     Reset
                   </Link>
                 </div>
               </form>
 
-              <div className="rounded-xl border border-border/80 bg-background/60 p-4">
-                <p className="text-sm font-medium text-muted-foreground">Context</p>
-                <p className="mt-2 text-sm leading-6 text-foreground">
-                  New entries only show active categories by default. Archived categories remain
-                  editable on existing transactions. Subcategory filters narrow to the chosen category
-                  when one is selected.
-                </p>
-              </div>
             </CardContent>
           </Card>
 
+        <div className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
           <Card>
             <CardHeader>
               <CardTitle>Add transaction</CardTitle>
@@ -476,7 +427,6 @@ export default async function TransactionsPage({
               </form>
             </CardContent>
           </Card>
-        </div>
 
         <Card className="overflow-hidden">
           <CardHeader className="border-b border-border/70 pb-4">
@@ -617,6 +567,7 @@ export default async function TransactionsPage({
             )}
           </CardContent>
         </Card>
+        </div>
       </section>
     </div>
   );
