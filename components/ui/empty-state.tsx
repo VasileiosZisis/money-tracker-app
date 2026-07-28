@@ -7,7 +7,7 @@ type EmptyStateProps = {
   className?: string;
   icon: LucideIcon;
   title: string;
-  description: string;
+  description?: string;
   action?: React.ReactNode;
 };
 
@@ -28,9 +28,11 @@ export function EmptyState({
       <div className="flex size-10 items-center justify-center rounded-lg bg-accent text-accent-foreground">
         <Icon className="size-5" />
       </div>
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-1.5">
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-        <p className="text-sm leading-6 text-muted-foreground">{description}</p>
+        {description ? (
+          <p className="text-sm leading-6 text-muted-foreground">{description}</p>
+        ) : null}
       </div>
       {action}
     </div>

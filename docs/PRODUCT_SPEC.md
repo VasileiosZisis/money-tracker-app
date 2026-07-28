@@ -309,9 +309,10 @@ The dashboard Planned Bills card lists only active, unhandled bills. Paid and
 skipped occurrences remain available on `/planned` and are omitted from the
 dashboard list.
 
-The dashboard Planned Income card omits received occurrences from its item
-list. Received totals remain visible in the summary, and received occurrences
-remain available on `/planned-income`.
+The dashboard Planned Income card lists only active, unhandled income. Received
+and skipped occurrences remain available on `/planned-income` and are omitted
+from the dashboard list and card summary. When active income exists but every
+item is handled, the card shows an `All planned income handled` empty state.
 
 Planned item statuses include applicable states such as:
 

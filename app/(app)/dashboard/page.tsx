@@ -843,7 +843,8 @@ export default async function DashboardPage ({
   const hasActivePlannedBills = data.plannedBills.length > 0
   const displayedPlannedBillsTotal = data.forecast.unpaidPlannedBills
   const displayedPlannedIncomes = data.plannedIncomes.filter(
-    plannedIncome => plannedIncome.status !== 'received'
+    plannedIncome =>
+      plannedIncome.status !== 'received' && plannedIncome.status !== 'skipped'
   )
   const hasActivePlannedIncomes = data.plannedIncomes.length > 0
   const plannedIncomeSummary = data.plannedIncomeSummary
@@ -1167,33 +1168,36 @@ export default async function DashboardPage ({
                 <Badge variant='outline' className='border-0 text-base'>
                   Pending {formatMoney(formatter, plannedIncomeSummary.pendingTotal)}
                 </Badge>
-                <Badge variant='outline' className='border-0 text-base'>
-                  Received {formatMoney(formatter, plannedIncomeSummary.receivedTotal)}
-                </Badge>
-                <Badge variant='outline' className='border-0 text-base'>
-                  Skipped {plannedIncomeSummary.skippedCount}
-                </Badge>
               </div>
             </div>
           </CardHeader>
-          {!hasActivePlannedIncomes || displayedPlannedIncomes.length > 0 ? (
-            <CardContent className='grid gap-4 p-4'>
-              {!hasActivePlannedIncomes ? (
+          <CardContent className='grid gap-4 p-3'>
+            {displayedPlannedIncomes.length === 0 ? (
               <EmptyState
                 icon={TrendingUp}
-                title='No active planned income'
-                description='Add salary or other expected repeat income so projected month-end net can account for money that has not arrived yet.'
+                title={
+                  hasActivePlannedIncomes
+                    ? 'All planned income handled'
+                    : 'No active planned income'
+                }
+                description={
+                  hasActivePlannedIncomes
+                    ? undefined
+                    : 'Add salary or other expected repeat income so projected month-end net can account for money that has not arrived yet.'
+                }
                 action={
-                  <Link
-                    href='/planned-income'
-                    className={cn(
-                      buttonVariants({ variant: 'outline', size: 'sm' }),
-                      'rounded-xl'
-                    )}
-                  >
-                    <Plus />
-                    Add planned income
-                  </Link>
+                  hasActivePlannedIncomes ? undefined : (
+                    <Link
+                      href='/planned-income'
+                      className={cn(
+                        buttonVariants({ variant: 'outline', size: 'sm' }),
+                        'rounded-xl'
+                      )}
+                    >
+                      <Plus />
+                      Add planned income
+                    </Link>
+                  )
                 }
               />
             ) : (
@@ -1393,8 +1397,7 @@ export default async function DashboardPage ({
                 )
               })
               )}
-            </CardContent>
-          ) : null}
+          </CardContent>
         </Card>
 
         <Card className='order-2 overflow-hidden'>
@@ -1434,7 +1437,7 @@ export default async function DashboardPage ({
                 }
                 description={
                   hasActivePlannedBills
-                    ? 'Paid and skipped bills remain available under View all.'
+                    ? undefined
                     : 'Add expected monthly bills to make the forecast more grounded.'
                 }
                 action={

@@ -271,8 +271,10 @@ Rules:
 - Use `components/ui/empty-state.tsx`.
 - Empty states should include:
   - a clear title
-  - one sentence of context
+  - one sentence of context when the title does not fully communicate the state
   - an action when the next step is obvious
+- The dashboard Planned Bills handled state uses only the `All planned bills handled` title without supporting description text.
+- The dashboard Planned Income card omits received and skipped items and summary badges; when every active item is handled, it shows only the `All planned income handled` title.
 
 ### Tables and lists
 
