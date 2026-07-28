@@ -197,7 +197,11 @@ Rules:
 - The contextual bar uses the sidebar background token and extends its bottom border through the main-content gutters, from the sidebar edge to the right viewport edge.
 - Current-page labels reuse the app navigation labels; all three contextual-bar items use `text-xl`, foreground color, and semibold weight.
 - The Transactions page relies on the contextual bar for its page title and begins directly with notices and working controls; do not repeat an `Entries` eyebrow, `Transactions` heading, introductory description, or summary cards for Selected Month, Visible Entries, and Current Filter.
-- The Transactions Filters card spans the full content width above the Add Transaction and Transactions List workspace, has no title or icon header, uses explicit `p-4 pb-4` content padding, and contains only its filter controls and actions. Its month, type, category, subcategory, and action controls form one horizontal row at `xl` and collapse to two columns or a single column at smaller breakpoints.
+- The Transactions workspace keeps Add Transaction in the left column and places the transaction-view controls directly above the Transactions List in the right column. The month input and primary Apply action match the compact Monthly Snapshot controls. An adjacent outline Filter action opens an inline card containing type, category, and subcategory controls with Apply and Reset actions. Advanced-filter choices cascade so type limits categories and category limits subcategories; resetting advanced filters preserves the selected month.
+- The Add Transaction card stays at content height, uses a title-only header, and presents one full-width field per row in this order: Date, Type, Amount, Category, Subcategory, Source, and Note.
+- The Transactions List card uses a title-only header. Transaction rows reuse the dashboard transaction language: semantic trending icons replace type badges, category labels use `text-sm`, and dates sit above `text-base` mono amounts colored with success or destructive tokens. List dates omit the year because the selected month already provides that context.
+- In transaction rows, subcategory is optional secondary text beneath the category. A note follows the subcategory with ` / ` only when both values exist; notes without a subcategory render without a separator, and empty secondary lines are omitted.
+- Collapsed transaction rows expose only a `View/Edit` action. The expanded editor contains `Close/Cancel`, Delete, and Save changes; Save changes remains disabled until the current form differs from the stored transaction.
 - Main content should use the full available width inside the shell, with individual pages deciding their own internal width constraints where needed.
 
 ### Mobile behavior
@@ -250,6 +254,7 @@ Rules:
 - Use `components/ui/input.tsx`, `components/ui/select.tsx`, and `components/ui/textarea.tsx`.
 - Inputs and selects use `h-10`; default buttons use `h-9`, with `h-10` for prominent actions.
 - Inputs use subtle inset highlight, soft border, and a 3px ring on focus.
+- Date inputs keep the native calendar indicator at the right edge and ensure it follows the readable foreground treatment in both light and dark themes.
 - Avoid browser-default form styling in page code.
 
 ### Badges

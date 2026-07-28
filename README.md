@@ -26,6 +26,7 @@ Implemented through the current planning polish work:
   - planned-income monthly received/skipped state
   - mark planned income received, skip, undo, or link an existing income transaction
   - dashboard forecast, safe-to-spend, daily safe spend, and needs-attention signals
+  - selected-month spending breakdown by category and subcategory
   - completed-month Total Balance history with preset and custom periods
   - positive balance adjustments for opening balances and previously untracked money
 
@@ -36,6 +37,7 @@ Implemented through the current planning polish work:
   - to `/setup` if `hasCompletedSetup` is `false`
   - to `/dashboard` if `hasCompletedSetup` is `true`
 - App routes under the authenticated shell require completed setup.
+- The authenticated shell uses a responsive sidebar plus a contextual top bar showing the current page, the user's local date, and days remaining in the month.
 - `/transactions` supports month/type/category/subcategory filters plus create, edit, and delete.
 - `/categories` manages income and expense categories, category archiving, and category-scoped subcategories.
 - `/dashboard` supports month selection (`?month=YYYY-MM`) and shows:
@@ -45,6 +47,7 @@ Implemented through the current planning polish work:
   - Add Money plus inline adjustment editing and deletion
   - actual income and expense totals
   - net left now
+  - selected-month actual spending grouped by category and subcategory
   - safe to spend
   - daily safe spend
   - forecast remaining spend
@@ -106,9 +109,9 @@ Implemented through the current planning polish work:
 
 ## Tech Stack
 
-- Next.js App Router + React + TypeScript
-- Tailwind CSS with token-based theming and dark mode
-- PostgreSQL + Prisma
+- Next.js 16 App Router + React 19 + TypeScript
+- Tailwind CSS 4 with token-based theming and dark mode
+- PostgreSQL + Prisma 7
 - NextAuth (Google OAuth) + Prisma adapter
 
 ## Planning Model
@@ -203,7 +206,7 @@ GOOGLE_CLIENT_SECRET=...
 ### 3. Initialize Prisma
 
 ```bash
-npx prisma generate
+npm run prisma:generate
 npx prisma migrate dev
 ```
 
@@ -220,8 +223,14 @@ Project verification commands:
 ```bash
 npx prisma validate
 npx prisma migrate status
-npx prisma generate
 npm test
-npx tsc --noEmit --pretty false
 npm run lint
+npm run typecheck
+npm run build
+```
+
+To run the lint, typecheck, and production build sequence together:
+
+```bash
+npm run check
 ```

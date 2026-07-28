@@ -132,10 +132,23 @@
     opacity: 0.72;
   }
 
+  input[type='date']::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 1;
+  }
+
+  input[type='date'] {
+    color-scheme: light;
+  }
+
   .dark input[type='month']::-webkit-calendar-picker-indicator {
     filter: invert(92%) sepia(14%) saturate(214%) hue-rotate(176deg) brightness(102%)
       contrast(92%);
     opacity: 0.9;
+  }
+
+  .dark input[type='date'] {
+    color-scheme: dark;
   }
 
   [data-surface='glass'] {

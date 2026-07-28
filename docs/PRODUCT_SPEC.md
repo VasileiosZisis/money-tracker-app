@@ -95,6 +95,18 @@ Users can:
 - delete transactions
 - filter by month, type, category, and subcategory
 
+Transaction-page interaction rules:
+
+- Month selection is applied independently from the optional type, category,
+  and subcategory filters.
+- Resetting advanced filters preserves the selected month.
+- Type limits the available categories, and category limits the available
+  subcategories.
+- A collapsed transaction exposes a `View/Edit` action; deletion remains
+  available inside the expanded editor.
+- The expanded editor disables Save changes until at least one submitted field
+  differs from the stored transaction.
+
 All transaction operations are scoped to the authenticated user.
 
 ### CSV Import

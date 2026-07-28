@@ -528,6 +528,21 @@ Transaction form fields remain:
 - `source`
 - `note`
 
+Transaction-page interaction rules:
+
+- month, type, category, and subcategory filters use URL search parameters and
+  GET navigation so filtered views remain addressable
+- the month control preserves applied advanced filters, while advanced-filter
+  Reset preserves the selected month
+- a small client component may own advanced-filter disclosure and cascading
+  draft selections; transaction reads and effective filter normalization remain
+  server-side
+- a client edit-form wrapper may compare current serialized field values with
+  the original transaction to disable Save changes until the form is dirty
+- update and delete operations remain server actions with the existing
+  server-side validation and ownership checks; client dirty-state detection is
+  a UX affordance, not a validation or authorization boundary
+
 Planned bill form fields:
 
 - `name`
