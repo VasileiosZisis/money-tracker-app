@@ -11,20 +11,18 @@ import {
   renameSubcategory,
   unarchiveCategory
 } from '@/actions/categories'
-import { PageHeader } from '@/components/app-shell/page-header'
+import { CategoryCreateFields } from '@/app/(app)/categories/category-create-fields'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle
 } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { PageNotice } from '@/components/ui/page-notice'
-import { Select } from '@/components/ui/select'
 import {
   buildPathWithSearchParams,
   firstSearchParamValue,
@@ -144,9 +142,14 @@ export default async function CategoriesPage ({
   async function createCategoryAction (formData: FormData) {
     'use server'
 
+    const subcategoryNames = formData
+      .getAll('subcategoryNames')
+      .map(value => String(value))
+
     const result = await createCategory({
       name: String(formData.get('name') ?? ''),
-      type: String(formData.get('type') ?? '') as 'INCOME' | 'EXPENSE'
+      type: String(formData.get('type') ?? '') as 'INCOME' | 'EXPENSE',
+      subcategoryNames
     })
 
     if (!result.ok) {
@@ -155,8 +158,18 @@ export default async function CategoriesPage ({
       )
     }
 
+    const subcategoryCount = subcategoryNames.filter(
+      name => name.trim().length > 0
+    ).length
+    const successMessage =
+      subcategoryCount > 1
+        ? 'Category and subcategories created.'
+        : subcategoryCount === 1
+          ? 'Category and subcategory created.'
+          : 'Category created.'
+
     redirect(
-      buildPathWithSearchParams('/categories', { success: 'Category created.' })
+      buildPathWithSearchParams('/categories', { success: successMessage })
     )
   }
 
@@ -287,13 +300,11 @@ export default async function CategoriesPage ({
   const sections = [
     {
       title: 'Income',
-      description: 'Categories for money coming in.',
       active: incomeCategories.filter(category => !category.isArchived),
       archived: incomeCategories.filter(category => category.isArchived)
     },
     {
       title: 'Expense',
-      description: 'Categories for money going out.',
       active: expenseCategories.filter(category => !category.isArchived),
       archived: expenseCategories.filter(category => category.isArchived)
     }
@@ -301,46 +312,6 @@ export default async function CategoriesPage ({
 
   return (
     <div className='flex flex-col gap-5'>
-      <PageHeader
-        eyebrow='Structure'
-        title='Categories'
-        description='Keep income and expense labels tidy, rename them when your tracking style changes, and archive anything you no longer need in the default picker.'
-      />
-
-      <section className='grid gap-4 md:grid-cols-3'>
-        <Card>
-          <CardContent className='flex flex-col gap-1 p-4'>
-            <p className='text-sm font-medium text-muted-foreground'>
-              Total categories
-            </p>
-            <p className='text-xl font-semibold tracking-tight text-foreground'>
-              {categories.length}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className='flex flex-col gap-1 p-4'>
-            <p className='text-sm font-medium text-muted-foreground'>Active</p>
-            <p className='text-xl font-semibold tracking-tight text-foreground'>
-              {categories.filter(category => !category.isArchived).length}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className='flex flex-col gap-1 p-4'>
-            <p className='text-sm font-medium text-muted-foreground'>
-              Total subcategories
-            </p>
-            <p className='text-xl font-semibold tracking-tight text-foreground'>
-              {categories.reduce(
-                (sum, category) => sum + category.subcategories.length,
-                0
-              )}
-            </p>
-          </CardContent>
-        </Card>
-      </section>
-
       {errorMessage ? (
         <PageNotice variant='error' title='Something needs attention'>
           {errorMessage}
@@ -353,55 +324,26 @@ export default async function CategoriesPage ({
         </PageNotice>
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Add category</CardTitle>
-          <CardDescription>
-            New categories become available for transactions immediately.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form
-            action={createCategoryAction}
-            className='grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_auto]'
-          >
-            <Input
-              type='text'
-              name='name'
-              placeholder='Category name'
-              required
-              maxLength={50}
-            />
-            <Select name='type' defaultValue='EXPENSE'>
-              <option value='INCOME'>Income</option>
-              <option value='EXPENSE'>Expense</option>
-            </Select>
-            <Button type='submit'>
-              <Plus />
-              Add category
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+      <section className='grid items-start gap-4 xl:grid-cols-3'>
+        <Card>
+          <CardHeader>
+            <CardTitle>Add category</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form action={createCategoryAction} className='flex flex-col gap-4'>
+              <CategoryCreateFields />
+              <Button type='submit' className='w-full'>
+                <Plus />
+                Save category
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
-      <section className='grid gap-4 xl:grid-cols-2'>
         {sections.map(section => (
           <Card key={section.title} className='overflow-hidden'>
             <CardHeader className='border-b border-border/70 pb-4'>
-              <div className='flex flex-wrap items-start justify-between gap-3'>
-                <div className='space-y-1.5'>
-                  <CardTitle>{section.title}</CardTitle>
-                  <CardDescription>{section.description}</CardDescription>
-                </div>
-                <div className='flex gap-2'>
-                  <Badge variant='outline'>
-                    {section.active.length} active
-                  </Badge>
-                  <Badge variant='outline'>
-                    {section.archived.length} archived
-                  </Badge>
-                </div>
-              </div>
+              <CardTitle>{section.title}</CardTitle>
             </CardHeader>
             <CardContent className='grid gap-4 p-4'>
               <div className='space-y-3'>

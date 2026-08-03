@@ -75,12 +75,36 @@ export async function createCategory(
     return actionError(parsed.error.issues[0]?.message ?? "Invalid category input.");
   }
 
+  const subcategoryNames = parsed.data.subcategoryNames ?? [];
+  const duplicateCategory = await db.category.findFirst({
+    where: {
+      userId,
+      type: parsed.data.type as TransactionType,
+      name: {
+        equals: parsed.data.name,
+        mode: "insensitive",
+      },
+    },
+    select: { id: true },
+  });
+
+  if (duplicateCategory) {
+    return actionError(duplicateCategoryError);
+  }
+
   try {
     await db.category.create({
       data: {
         userId,
         name: parsed.data.name,
         type: parsed.data.type as TransactionType,
+        ...(subcategoryNames.length > 0
+          ? {
+              subcategories: {
+                create: subcategoryNames.map((name) => ({ name })),
+              },
+            }
+          : {}),
       },
     });
   } catch (error) {
@@ -106,11 +130,28 @@ export async function renameCategory(
       id: parsed.data.id,
       userId,
     },
-    select: { id: true },
+    select: { id: true, type: true },
   });
 
   if (!existingCategory) {
     return actionError("Category not found.");
+  }
+
+  const duplicateCategory = await db.category.findFirst({
+    where: {
+      userId,
+      type: existingCategory.type,
+      name: {
+        equals: parsed.data.name,
+        mode: "insensitive",
+      },
+      NOT: { id: existingCategory.id },
+    },
+    select: { id: true },
+  });
+
+  if (duplicateCategory) {
+    return actionError(duplicateCategoryError);
   }
 
   try {
@@ -200,6 +241,24 @@ export async function createSubcategory(input: CreateSubcategoryInput): Promise<
     return actionError("Category not found.");
   }
 
+  const duplicateSubcategory = await db.subcategory.findFirst({
+    where: {
+      categoryId: category.id,
+      name: {
+        equals: parsed.data.name,
+        mode: "insensitive",
+      },
+      category: {
+        userId,
+      },
+    },
+    select: { id: true },
+  });
+
+  if (duplicateSubcategory) {
+    return actionError(duplicateSubcategoryError);
+  }
+
   try {
     await db.subcategory.create({
       data: {
@@ -230,11 +289,30 @@ export async function renameSubcategory(input: RenameSubcategoryInput): Promise<
         userId,
       },
     },
-    select: { id: true },
+    select: { id: true, categoryId: true },
   });
 
   if (!existingSubcategory) {
     return actionError("Subcategory not found.");
+  }
+
+  const duplicateSubcategory = await db.subcategory.findFirst({
+    where: {
+      categoryId: existingSubcategory.categoryId,
+      name: {
+        equals: parsed.data.name,
+        mode: "insensitive",
+      },
+      NOT: { id: existingSubcategory.id },
+      category: {
+        userId,
+      },
+    },
+    select: { id: true },
+  });
+
+  if (duplicateSubcategory) {
+    return actionError(duplicateSubcategoryError);
   }
 
   try {

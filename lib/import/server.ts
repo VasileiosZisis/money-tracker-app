@@ -7,6 +7,7 @@ import {
   getActionErrorMessage,
   type ActionResultWithData,
 } from "@/lib/actions/result";
+import { normalizeImportedClassificationName } from "@/lib/categories/name-normalization";
 import { db } from "@/lib/db";
 import { buildImportPreview, createImportPreviewToken, type ImportPreviewResult } from "@/lib/import";
 import {
@@ -26,20 +27,14 @@ export type ConfirmImportResult = ActionResultWithData<{
   createdSubcategoryCount: number;
 }>;
 
-function normalizeCategoryName(value: string) {
-  return value.trim().replace(/\s+/g, " ");
-}
-
 function buildCategoryLookupKey(type: TransactionType, categoryName: string) {
-  return `${type}:${normalizeCategoryName(categoryName).toLowerCase()}`;
-}
-
-function normalizeSubcategoryName(value: string) {
-  return value.trim().replace(/\s+/g, " ");
+  const normalizedName = normalizeImportedClassificationName(categoryName);
+  return `${type}:${normalizedName.toLowerCase()}`;
 }
 
 function buildSubcategoryLookupKey(categoryId: string, subcategoryName: string) {
-  return `${categoryId}:${normalizeSubcategoryName(subcategoryName).toLowerCase()}`;
+  const normalizedName = normalizeImportedClassificationName(subcategoryName);
+  return `${categoryId}:${normalizedName.toLowerCase()}`;
 }
 
 function buildDuplicateRowKey(row: {
@@ -301,7 +296,9 @@ export async function confirmImportForUser(
           continue;
         }
 
-        const categoryName = resolution.createName ?? requiredResolution.sourceName;
+        const categoryName = normalizeImportedClassificationName(
+          resolution.createName ?? requiredResolution.sourceName,
+        );
         const lookupKey = buildCategoryLookupKey(requiredResolution.type, categoryName);
         const existingCategory = categoriesByLookupKey.get(lookupKey);
 
@@ -373,7 +370,9 @@ export async function confirmImportForUser(
         let subcategoryId: string | null = null;
 
         if (row.subcategoryName) {
-          const normalizedSubcategoryName = normalizeSubcategoryName(row.subcategoryName);
+          const normalizedSubcategoryName = normalizeImportedClassificationName(
+            row.subcategoryName,
+          );
           const subcategoryLookupKey = buildSubcategoryLookupKey(categoryId, normalizedSubcategoryName);
           const existingSubcategory = subcategoriesByLookupKey.get(subcategoryLookupKey);
 

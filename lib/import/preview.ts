@@ -1,6 +1,7 @@
 import { ZodError } from "zod";
 
 import { TransactionType } from "@/generated/prisma/enums";
+import { normalizeImportedClassificationName } from "@/lib/categories/name-normalization";
 import { detectImportColumnMapping } from "@/lib/import/columns";
 import { parseCsvText } from "@/lib/import/csv";
 import {
@@ -89,26 +90,19 @@ export type ImportPreviewResult = {
   rowsForConfirmation: ImportPreviewConfirmationRow[];
 };
 
-function normalizeCategoryName(value: string) {
-  return value.trim().replace(/\s+/g, " ");
-}
-
-function normalizeSubcategoryName(value: string) {
-  return value.trim().replace(/\s+/g, " ");
-}
-
 function buildCategoryLookupKey(type: TransactionType, categoryName: string) {
-  return `${type}:${normalizeCategoryName(categoryName).toLowerCase()}`;
+  const normalizedName = normalizeImportedClassificationName(categoryName);
+  return `${type}:${normalizedName.toLowerCase()}`;
 }
 
 function normalizeRawField(field: ImportPreviewFieldName, value: string) {
   if (field === "category") {
-    const normalized = normalizeCategoryName(value);
+    const normalized = normalizeImportedClassificationName(value);
     return normalized.length > 0 ? normalized : null;
   }
 
   if (field === "subcategory") {
-    const normalized = normalizeSubcategoryName(value);
+    const normalized = normalizeImportedClassificationName(value);
     return normalized.length > 0 ? normalized : null;
   }
 
@@ -244,7 +238,9 @@ export function buildImportPreview(input: {
       continue;
     }
 
-    const normalizedCategory = normalizeCategoryName(parsedRow.data.category);
+    const normalizedCategory = normalizeImportedClassificationName(
+      parsedRow.data.category,
+    );
     const categoryLookupKey = buildCategoryLookupKey(
       parsedRow.data.type,
       normalizedCategory,
@@ -257,7 +253,9 @@ export function buildImportPreview(input: {
       localDate: parsedRow.data.localDate,
       type: parsedRow.data.type,
       categoryName: normalizedCategory,
-      subcategoryName: parsedRow.data.subcategory ? normalizeSubcategoryName(parsedRow.data.subcategory) : undefined,
+      subcategoryName: parsedRow.data.subcategory
+        ? normalizeImportedClassificationName(parsedRow.data.subcategory)
+        : undefined,
       amount: parsedRow.data.amount.toFixed(2),
       source: parsedRow.data.source,
       note: parsedRow.data.note,
@@ -290,7 +288,9 @@ export function buildImportPreview(input: {
         localDate: parsedRow.data.localDate,
         type: parsedRow.data.type,
         category: normalizedCategory,
-        subcategory: parsedRow.data.subcategory ? normalizeSubcategoryName(parsedRow.data.subcategory) : null,
+        subcategory: parsedRow.data.subcategory
+          ? normalizeImportedClassificationName(parsedRow.data.subcategory)
+          : null,
         amount: parsedRow.data.amount.toFixed(2),
         source: parsedRow.data.source ?? null,
         note: parsedRow.data.note ?? null,

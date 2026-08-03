@@ -73,6 +73,10 @@ simpler than a full accounting or budgeting suite.
   new-entry forms by default.
 - Subcategories belong to one category and provide optional finer classification.
 - A transaction or planned item can only use a subcategory from its selected category.
+- Newly created, renamed, or imported category and subcategory names use sentence
+  case while preserving whitespace-delimited all-caps words.
+- Category and subcategory duplicate checks ignore case within their existing
+  uniqueness scopes. Existing stored names are not rewritten automatically.
 
 ### Transactions
 

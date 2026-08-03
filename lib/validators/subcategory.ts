@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { normalizeClassificationName } from "@/lib/categories/name-normalization";
 import { categoryIdSchema } from "@/lib/validators/category";
 
 export const subcategoryIdSchema = z.string().cuid("Invalid subcategory id.");
@@ -7,8 +8,13 @@ export const subcategoryIdSchema = z.string().cuid("Invalid subcategory id.");
 export const subcategoryNameSchema = z
   .string()
   .trim()
-  .min(1, "Subcategory name must be between 1 and 50 characters.")
-  .max(50, "Subcategory name must be between 1 and 50 characters.");
+  .transform(normalizeClassificationName)
+  .pipe(
+    z
+      .string()
+      .min(1, "Subcategory name must be between 1 and 50 characters.")
+      .max(50, "Subcategory name must be between 1 and 50 characters."),
+  );
 
 export const optionalSubcategoryIdSchema = z.preprocess((value) => {
   if (typeof value !== "string") {
