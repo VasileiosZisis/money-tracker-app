@@ -77,6 +77,16 @@ simpler than a full accounting or budgeting suite.
   case while preserving whitespace-delimited all-caps words.
 - Category and subcategory duplicate checks ignore case within their existing
   uniqueness scopes. Existing stored names are not rewritten automatically.
+- The Categories page keeps category creation in a left workspace column and
+  shows one unified category list in the right column.
+- The list defaults to all active categories, can be filtered by Income or
+  Expense type, and can switch between Active and Inactive status.
+- Category rows use the same income/expense icon language as transactions and
+  show subcategory names on a secondary line separated by ` / `.
+- A collapsed category exposes `View/Edit`. Its expanded editor stages category
+  and subcategory renames, additions, and removals for one atomic save.
+- Active categories expose Archive in the editor; inactive categories expose
+  Restore. Category type cannot be changed during editing.
 
 ### Transactions
 

@@ -10,7 +10,12 @@ import {
   categoryNameSchema,
   createCategorySchema
 } from '@/lib/validators/category'
+import { updateCategoryDetailsSchema } from '@/lib/validators/category-details'
 import { subcategoryNameSchema } from '@/lib/validators/subcategory'
+
+const CATEGORY_ID = 'ck9isq7b50000v74pkdjx0i6h'
+const SUBCATEGORY_ID = 'ck9isq7b50001v74pkdjx0i6h'
+const SECOND_SUBCATEGORY_ID = 'ck9isq7b50002v74pkdjx0i6h'
 
 test('normalizes category-style names to sentence case', () => {
   assert.equal(normalizeClassificationName('gROCERIES'), 'Groceries')
@@ -69,5 +74,61 @@ test('rejects case-insensitive initial subcategory duplicates', () => {
   assert.equal(
     result.error.issues[0]?.message,
     'Subcategory names must be unique.'
+  )
+})
+
+test('normalizes staged category edits and ignores blank new subcategories', () => {
+  const result = updateCategoryDetailsSchema.parse({
+    id: CATEGORY_ID,
+    name: 'hOME ATM fees',
+    existingSubcategories: [
+      { id: SUBCATEGORY_ID, name: 'mAIN account' }
+    ],
+    newSubcategoryNames: ['', '  ', 'cASH ATM'],
+    deletedSubcategoryIds: []
+  })
+
+  assert.equal(result.name, 'Home ATM fees')
+  assert.equal(result.existingSubcategories[0]?.name, 'Main account')
+  assert.deepEqual(result.newSubcategoryNames, ['Cash ATM'])
+})
+
+test('rejects duplicates across retained and new subcategories', () => {
+  const result = updateCategoryDetailsSchema.safeParse({
+    id: CATEGORY_ID,
+    name: 'Cash',
+    existingSubcategories: [{ id: SUBCATEGORY_ID, name: 'ATM' }],
+    newSubcategoryNames: ['atm'],
+    deletedSubcategoryIds: []
+  })
+
+  assert.equal(result.success, false)
+  if (result.success) {
+    assert.fail('Expected duplicate staged subcategories to fail validation.')
+  }
+
+  assert.equal(
+    result.error.issues[0]?.message,
+    'Subcategory names must be unique.'
+  )
+})
+
+test('rejects retained and deleted references to the same subcategory', () => {
+  const result = updateCategoryDetailsSchema.safeParse({
+    id: CATEGORY_ID,
+    name: 'Cash',
+    existingSubcategories: [{ id: SUBCATEGORY_ID, name: 'ATM' }],
+    newSubcategoryNames: [],
+    deletedSubcategoryIds: [SUBCATEGORY_ID, SECOND_SUBCATEGORY_ID]
+  })
+
+  assert.equal(result.success, false)
+  if (result.success) {
+    assert.fail('Expected conflicting subcategory references to fail validation.')
+  }
+
+  assert.equal(
+    result.error.issues[0]?.message,
+    'Each subcategory can only be submitted once.'
   )
 })

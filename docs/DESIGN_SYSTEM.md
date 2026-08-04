@@ -202,6 +202,9 @@ Rules:
 - The Transactions List card uses a title-only header. Transaction rows reuse the dashboard transaction language: semantic trending icons replace type badges, category labels use `text-sm`, and dates sit above `text-base` mono amounts colored with success or destructive tokens. List dates omit the year because the selected month already provides that context.
 - In transaction rows, subcategory is optional secondary text beneath the category. A note follows the subcategory with ` / ` only when both values exist; notes without a subcategory render without a separator, and empty secondary lines are omitted.
 - Collapsed transaction rows expose only a `View/Edit` action. The expanded editor contains `Close/Cancel`, Delete, and Save changes; Save changes remains disabled until the current form differs from the stored transaction.
+- The Categories workspace mirrors the Transactions layout: Add category stays at content height in the 300px left column, while type/status controls and one unified Categories list occupy the flexible right column. The compact type control offers All, Income, and Expense; the adjacent Filter disclosure offers Active or Inactive status, with Active as the default.
+- Category rows use the same semantic trending icons as transaction rows. The category name is the primary label, all subcategory names appear on the optional secondary line separated by ` / `, and collapsed rows expose only `View/Edit`.
+- An expanded category editor stages category and subcategory renames, additions, and removals until Save changes. It uses `Close/Cancel`, Archive for active categories or Restore for inactive categories, and keeps Save changes disabled until the staged values differ from the stored category.
 - Main content should use the full available width inside the shell, with individual pages deciding their own internal width constraints where needed.
 
 ### Mobile behavior

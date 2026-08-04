@@ -24,12 +24,18 @@ import {
   type CreateSubcategoryInput,
   type RenameSubcategoryInput,
 } from "@/lib/validators/subcategory";
+import {
+  updateCategoryDetailsSchema,
+  type UpdateCategoryDetailsInput,
+} from "@/lib/validators/category-details";
 
 type CategoryActionResult = ActionResult;
 
 const duplicateCategoryError =
   "A category with this name and type already exists.";
 const duplicateSubcategoryError = "A subcategory with this name already exists in this category.";
+
+class CategoryDetailsError extends Error {}
 
 function getMutationError(error: unknown, duplicateError: string) {
   if (
@@ -161,6 +167,188 @@ export async function renameCategory(
     });
   } catch (error) {
     return actionError(getMutationError(error, duplicateCategoryError));
+  }
+
+  revalidateCategoryPaths();
+  return actionSuccess();
+}
+
+export async function updateCategoryDetails(
+  input: UpdateCategoryDetailsInput,
+): Promise<CategoryActionResult> {
+  const userId = await getUserIdOrThrow();
+  const parsed = updateCategoryDetailsSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return actionError(
+      parsed.error.issues[0]?.message ?? "Invalid category input.",
+    );
+  }
+
+  const rawExistingNames = new Map(
+    input.existingSubcategories.map((subcategory) => [
+      subcategory.id,
+      subcategory.name,
+    ]),
+  );
+
+  try {
+    await db.$transaction(async (tx) => {
+      const category = await tx.category.findFirst({
+        where: {
+          id: parsed.data.id,
+          userId,
+        },
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          subcategories: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      if (!category) {
+        throw new CategoryDetailsError("Category not found.");
+      }
+
+      const submittedSubcategoryIds = new Set([
+        ...parsed.data.existingSubcategories.map(
+          (subcategory) => subcategory.id,
+        ),
+        ...parsed.data.deletedSubcategoryIds,
+      ]);
+      const submittedAllCurrentSubcategories =
+        submittedSubcategoryIds.size === category.subcategories.length &&
+        category.subcategories.every((subcategory) =>
+          submittedSubcategoryIds.has(subcategory.id),
+        );
+
+      if (!submittedAllCurrentSubcategories) {
+        throw new CategoryDetailsError(
+          "The category changed while you were editing it. Refresh and try again.",
+        );
+      }
+
+      const categoryName =
+        input.name === category.name ? category.name : parsed.data.name;
+      const duplicateCategory = await tx.category.findFirst({
+        where: {
+          userId,
+          type: category.type,
+          name: {
+            equals: categoryName,
+            mode: "insensitive",
+          },
+          NOT: { id: category.id },
+        },
+        select: { id: true },
+      });
+
+      if (duplicateCategory) {
+        throw new CategoryDetailsError(duplicateCategoryError);
+      }
+
+      const currentSubcategories = new Map(
+        category.subcategories.map((subcategory) => [
+          subcategory.id,
+          subcategory,
+        ]),
+      );
+      const renamedSubcategories = parsed.data.existingSubcategories.filter(
+        (subcategory) =>
+          rawExistingNames.get(subcategory.id) !==
+          currentSubcategories.get(subcategory.id)?.name,
+      );
+
+      if (parsed.data.deletedSubcategoryIds.length > 0) {
+        const deleted = await tx.subcategory.deleteMany({
+          where: {
+            id: { in: parsed.data.deletedSubcategoryIds },
+            categoryId: category.id,
+            category: { userId },
+          },
+        });
+
+        if (deleted.count !== parsed.data.deletedSubcategoryIds.length) {
+          throw new CategoryDetailsError(
+            "The category changed while you were editing it. Refresh and try again.",
+          );
+        }
+      }
+
+      for (const subcategory of renamedSubcategories) {
+        const temporarilyRenamed = await tx.subcategory.updateMany({
+          where: {
+            id: subcategory.id,
+            categoryId: category.id,
+            category: { userId },
+          },
+          data: {
+            name: `__category_edit_${crypto.randomUUID()}`,
+          },
+        });
+
+        if (temporarilyRenamed.count !== 1) {
+          throw new CategoryDetailsError(
+            "The category changed while you were editing it. Refresh and try again.",
+          );
+        }
+      }
+
+      const updatedCategory = await tx.category.updateMany({
+        where: {
+          id: category.id,
+          userId,
+        },
+        data: { name: categoryName },
+      });
+
+      if (updatedCategory.count !== 1) {
+        throw new CategoryDetailsError("Category not found.");
+      }
+
+      for (const subcategory of renamedSubcategories) {
+        const renamed = await tx.subcategory.updateMany({
+          where: {
+            id: subcategory.id,
+            categoryId: category.id,
+            category: { userId },
+          },
+          data: { name: subcategory.name },
+        });
+
+        if (renamed.count !== 1) {
+          throw new CategoryDetailsError(
+            "The category changed while you were editing it. Refresh and try again.",
+          );
+        }
+      }
+
+      for (const name of parsed.data.newSubcategoryNames) {
+        await tx.subcategory.create({
+          data: {
+            categoryId: category.id,
+            name,
+          },
+        });
+      }
+    });
+  } catch (error) {
+    if (error instanceof CategoryDetailsError) {
+      return actionError(error.message);
+    }
+
+    return actionError(
+      getMutationError(
+        error,
+        "A category or subcategory with that name already exists.",
+      ),
+    );
   }
 
   revalidateCategoryPaths();
