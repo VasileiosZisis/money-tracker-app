@@ -1053,7 +1053,7 @@ export default async function DashboardPage ({
           Transactions &amp; Plans
         </h2>
 
-        <div className='grid items-start gap-4 xl:grid-cols-3'>
+        <div className='grid items-start gap-4 min-[1280px]:grid-cols-2 min-[1480px]:grid-cols-3'>
         <Card className='overflow-hidden'>
           <CardHeader className='flex flex-row items-end justify-between gap-4 pb-0'>
             <CardTitle>Recent transactions</CardTitle>
