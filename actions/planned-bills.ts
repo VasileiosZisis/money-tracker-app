@@ -14,6 +14,7 @@ import {
 
 import { getUserIdOrThrow } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import { getGeneratedTransactionMetadata } from "@/lib/planned-items";
 import {
   linkExistingTransactionToPlannedBillSchema,
   markPlannedBillPaidSchema,
@@ -138,6 +139,8 @@ export async function listPlannedBills() {
     id: plannedBill.id,
     userId: plannedBill.userId,
     name: plannedBill.name,
+    source: plannedBill.source,
+    note: plannedBill.note,
     amount: plannedBill.amount.toString(),
     dueDayOfMonth: plannedBill.dueDayOfMonth,
     categoryId: plannedBill.categoryId,
@@ -183,6 +186,8 @@ export async function createPlannedBill(
       data: {
         userId,
         name: parsed.data.name,
+        source: parsed.data.source ?? null,
+        note: parsed.data.note ?? null,
         amount: parsed.data.amount,
         dueDayOfMonth: parsed.data.dueDayOfMonth,
         categoryId: parsed.data.categoryId,
@@ -238,6 +243,8 @@ export async function updatePlannedBill(
       where: { id: existing.id },
       data: {
         name: parsed.data.name,
+        source: parsed.data.source ?? null,
+        note: parsed.data.note ?? null,
         amount: parsed.data.amount,
         dueDayOfMonth: parsed.data.dueDayOfMonth,
         categoryId: parsed.data.categoryId,
@@ -395,8 +402,10 @@ export async function markPlannedBillPaid(
           localDate: parsed.data.localDate,
           categoryId: plannedBill.categoryId,
           subcategoryId: plannedBill.subcategoryId,
-          source: plannedBill.name,
-          note: parsed.data.note ?? null,
+          ...getGeneratedTransactionMetadata(
+            plannedBill,
+            parsed.data.note,
+          ),
         },
         select: { id: true },
       });

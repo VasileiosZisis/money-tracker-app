@@ -1,4 +1,11 @@
-import { FolderOpen, PencilLine, Plus, Power, ScrollText, Trash2 } from "lucide-react";
+import {
+  FolderOpen,
+  PencilLine,
+  Power,
+  Trash2,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -10,13 +17,28 @@ import {
   togglePlannedBillActive,
   updatePlannedBill,
 } from "@/actions/planned-bills";
-import { PageHeader } from "@/components/app-shell/page-header";
-import { Badge } from "@/components/ui/badge";
+import {
+  createPlannedIncome,
+  deletePlannedIncome,
+  listPlannedIncomes,
+  togglePlannedIncomeActive,
+  updatePlannedIncome,
+} from "@/actions/planned-income";
+import {
+  PlannedItemCreateTabs,
+  type PlannedCreateTab,
+} from "@/app/(app)/planned/planned-item-create-tabs";
+import {
+  PlannedItemFiltersDisclosure,
+  type PlannedItemStatusFilter,
+  type PlannedItemTypeFilter,
+} from "@/app/(app)/planned/planned-item-filters-disclosure";
+import { PlannedBillFormFields } from "@/app/(app)/planned/planned-bill-form-fields";
+import { PlannedIncomeFormFields } from "@/app/(app)/planned-income/planned-income-form-fields";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -31,17 +53,68 @@ import {
   type PageSearchParams,
 } from "@/lib/routes/search-params";
 import { cn } from "@/lib/utils";
-import { PlannedBillFormFields } from "./planned-bill-form-fields";
 
 type CategoryRow = Awaited<ReturnType<typeof listCategories>>[number];
-type ExpenseCategoryRow = CategoryRow;
+type PlannedBillRow = Awaited<ReturnType<typeof listPlannedBills>>[number];
+type PlannedIncomeRow = Awaited<ReturnType<typeof listPlannedIncomes>>[number];
+
+type PlannedFormCategory = {
+  id: string;
+  isArchived: boolean;
+  name: string;
+  subcategories: Array<{
+    id: string;
+    name: string;
+  }>;
+};
+
+type PlannedItem =
+  | { kind: "BILL"; item: PlannedBillRow }
+  | { kind: "INCOME"; item: PlannedIncomeRow };
+
+function normalizeTypeFilter(value: string | undefined): PlannedItemTypeFilter {
+  return value === "BILL" || value === "INCOME" ? value : "ALL";
+}
+
+function normalizeStatusFilter(
+  value: string | undefined,
+): PlannedItemStatusFilter {
+  return value === "inactive" ? "inactive" : "active";
+}
+
+function normalizeCreateTab(value: string | undefined): PlannedCreateTab {
+  return value === "INCOME" ? "INCOME" : "BILL";
+}
 
 function buildPlannedPageUrl(params: {
-  error?: string;
-  success?: string;
+  add?: PlannedCreateTab;
   edit?: string;
+  error?: string;
+  status?: PlannedItemStatusFilter;
+  success?: string;
+  type?: PlannedItemTypeFilter;
 }) {
-  return buildPathWithSearchParams("/planned", params);
+  return buildPathWithSearchParams("/planned", {
+    type: params.type && params.type !== "ALL" ? params.type : undefined,
+    status: params.status === "inactive" ? "inactive" : undefined,
+    add: params.add === "INCOME" ? "INCOME" : undefined,
+    edit: params.edit,
+    error: params.error,
+    success: params.success,
+  });
+}
+
+function buildPlannedViewUrl(
+  type: PlannedItemTypeFilter,
+  status: PlannedItemStatusFilter,
+  params: {
+    add?: PlannedCreateTab;
+    edit?: string;
+    error?: string;
+    success?: string;
+  },
+) {
+  return buildPlannedPageUrl({ type, status, ...params });
 }
 
 function parseBooleanField(value: FormDataEntryValue | null) {
@@ -52,8 +125,20 @@ function formatMoney(formatter: Intl.NumberFormat, amount: string) {
   return formatter.format(Number(amount));
 }
 
-function getAvailableExpenseCategories(
-  categories: ExpenseCategoryRow[],
+function toFormCategories(categories: CategoryRow[]): PlannedFormCategory[] {
+  return categories.map((category) => ({
+    id: category.id,
+    isArchived: category.isArchived,
+    name: category.name,
+    subcategories: category.subcategories.map((subcategory) => ({
+      id: subcategory.id,
+      name: subcategory.name,
+    })),
+  }));
+}
+
+function getAvailableCategories(
+  categories: PlannedFormCategory[],
   selectedCategoryId?: string,
 ) {
   return categories.filter(
@@ -61,34 +146,83 @@ function getAvailableExpenseCategories(
   );
 }
 
-export default async function PlannedBillsPage({
+export default async function PlannedPage({
   searchParams,
 }: {
   searchParams?: PageSearchParams;
 }) {
   const resolvedParams = await resolveSearchParams(searchParams);
-
+  const selectedType = normalizeTypeFilter(
+    firstSearchParamValue(resolvedParams.type),
+  );
+  const selectedStatus = normalizeStatusFilter(
+    firstSearchParamValue(resolvedParams.status),
+  );
+  const initialCreateTab = normalizeCreateTab(
+    firstSearchParamValue(resolvedParams.add),
+  );
+  const editParam = firstSearchParamValue(resolvedParams.edit);
   const errorMessage = firstSearchParamValue(resolvedParams.error);
   const successMessage = firstSearchParamValue(resolvedParams.success);
-  const editId = firstSearchParamValue(resolvedParams.edit);
 
   async function createPlannedBillAction(formData: FormData) {
     "use server";
 
     const result = await createPlannedBill({
       name: String(formData.get("name") ?? ""),
+      source: String(formData.get("source") ?? ""),
+      note: String(formData.get("note") ?? ""),
       amount: String(formData.get("amount") ?? ""),
       categoryId: String(formData.get("categoryId") ?? ""),
       subcategoryId: String(formData.get("subcategoryId") ?? ""),
       dueDayOfMonth: String(formData.get("dueDayOfMonth") ?? ""),
-      isActive: parseBooleanField(formData.get("isActive")),
+      isActive: true,
     });
 
     if (!result.ok) {
-      redirect(buildPlannedPageUrl({ error: result.error }));
+      redirect(
+        buildPlannedViewUrl(selectedType, selectedStatus, {
+          add: "BILL",
+          error: result.error,
+        }),
+      );
     }
 
-    redirect(buildPlannedPageUrl({ success: "Planned bill created." }));
+    redirect(
+      buildPlannedViewUrl(selectedType, selectedStatus, {
+        success: "Planned bill created.",
+      }),
+    );
+  }
+
+  async function createPlannedIncomeAction(formData: FormData) {
+    "use server";
+
+    const result = await createPlannedIncome({
+      name: String(formData.get("name") ?? ""),
+      source: String(formData.get("source") ?? ""),
+      note: String(formData.get("note") ?? ""),
+      amount: String(formData.get("amount") ?? ""),
+      categoryId: String(formData.get("categoryId") ?? ""),
+      subcategoryId: String(formData.get("subcategoryId") ?? ""),
+      expectedDayOfMonth: String(formData.get("expectedDayOfMonth") ?? ""),
+      isActive: true,
+    });
+
+    if (!result.ok) {
+      redirect(
+        buildPlannedViewUrl(selectedType, selectedStatus, {
+          add: "INCOME",
+          error: result.error,
+        }),
+      );
+    }
+
+    redirect(
+      buildPlannedViewUrl(selectedType, selectedStatus, {
+        success: "Planned income created.",
+      }),
+    );
   }
 
   async function updatePlannedBillAction(formData: FormData) {
@@ -98,6 +232,8 @@ export default async function PlannedBillsPage({
     const result = await updatePlannedBill({
       id,
       name: String(formData.get("name") ?? ""),
+      source: String(formData.get("source") ?? ""),
+      note: String(formData.get("note") ?? ""),
       amount: String(formData.get("amount") ?? ""),
       categoryId: String(formData.get("categoryId") ?? ""),
       subcategoryId: String(formData.get("subcategoryId") ?? ""),
@@ -106,29 +242,101 @@ export default async function PlannedBillsPage({
     });
 
     if (!result.ok) {
-      redirect(buildPlannedPageUrl({ error: result.error, edit: id }));
+      redirect(
+        buildPlannedViewUrl(selectedType, selectedStatus, {
+          edit: `bill:${id}`,
+          error: result.error,
+        }),
+      );
     }
 
-    redirect(buildPlannedPageUrl({ success: "Planned bill updated." }));
+    redirect(
+      buildPlannedViewUrl(selectedType, selectedStatus, {
+        success: "Planned bill updated.",
+      }),
+    );
+  }
+
+  async function updatePlannedIncomeAction(formData: FormData) {
+    "use server";
+
+    const id = String(formData.get("id") ?? "");
+    const result = await updatePlannedIncome({
+      id,
+      name: String(formData.get("name") ?? ""),
+      source: String(formData.get("source") ?? ""),
+      note: String(formData.get("note") ?? ""),
+      amount: String(formData.get("amount") ?? ""),
+      categoryId: String(formData.get("categoryId") ?? ""),
+      subcategoryId: String(formData.get("subcategoryId") ?? ""),
+      expectedDayOfMonth: String(formData.get("expectedDayOfMonth") ?? ""),
+      isActive: parseBooleanField(formData.get("isActive")),
+    });
+
+    if (!result.ok) {
+      redirect(
+        buildPlannedViewUrl(selectedType, selectedStatus, {
+          edit: `income:${id}`,
+          error: result.error,
+        }),
+      );
+    }
+
+    redirect(
+      buildPlannedViewUrl(selectedType, selectedStatus, {
+        success: "Planned income updated.",
+      }),
+    );
   }
 
   async function togglePlannedBillAction(formData: FormData) {
     "use server";
 
-    const id = String(formData.get("id") ?? "");
-    const nextIsActive = parseBooleanField(formData.get("isActive"));
+    const nextIsActive = parseBooleanField(formData.get("nextIsActive"));
     const result = await togglePlannedBillActive({
-      id,
+      id: String(formData.get("id") ?? ""),
       isActive: nextIsActive,
     });
 
     if (!result.ok) {
-      redirect(buildPlannedPageUrl({ error: result.error }));
+      redirect(
+        buildPlannedViewUrl(selectedType, selectedStatus, {
+          error: result.error,
+        }),
+      );
     }
 
     redirect(
-      buildPlannedPageUrl({
-        success: nextIsActive ? "Planned bill activated." : "Planned bill deactivated.",
+      buildPlannedViewUrl(selectedType, selectedStatus, {
+        success: nextIsActive
+          ? "Planned bill activated."
+          : "Planned bill deactivated.",
+      }),
+    );
+  }
+
+  async function togglePlannedIncomeAction(formData: FormData) {
+    "use server";
+
+    const nextIsActive = parseBooleanField(formData.get("nextIsActive"));
+    const result = await togglePlannedIncomeActive({
+      id: String(formData.get("id") ?? ""),
+      isActive: nextIsActive,
+    });
+
+    if (!result.ok) {
+      redirect(
+        buildPlannedViewUrl(selectedType, selectedStatus, {
+          error: result.error,
+        }),
+      );
+    }
+
+    redirect(
+      buildPlannedViewUrl(selectedType, selectedStatus, {
+        success: nextIsActive
+          ? "Planned income activated."
+          : "Planned income deactivated.",
       }),
     );
   }
@@ -139,16 +347,46 @@ export default async function PlannedBillsPage({
     const result = await deletePlannedBill(String(formData.get("id") ?? ""));
 
     if (!result.ok) {
-      redirect(buildPlannedPageUrl({ error: result.error }));
+      redirect(
+        buildPlannedViewUrl(selectedType, selectedStatus, {
+          error: result.error,
+        }),
+      );
     }
 
-    redirect(buildPlannedPageUrl({ success: "Planned bill deleted." }));
+    redirect(
+      buildPlannedViewUrl(selectedType, selectedStatus, {
+        success: "Planned bill deleted.",
+      }),
+    );
+  }
+
+  async function deletePlannedIncomeAction(formData: FormData) {
+    "use server";
+
+    const result = await deletePlannedIncome(
+      String(formData.get("id") ?? ""),
+    );
+
+    if (!result.ok) {
+      redirect(
+        buildPlannedViewUrl(selectedType, selectedStatus, {
+          error: result.error,
+        }),
+      );
+    }
+
+    redirect(
+      buildPlannedViewUrl(selectedType, selectedStatus, {
+        success: "Planned income deleted.",
+      }),
+    );
   }
 
   const userId = await getUserIdOrThrow();
-
-  const [plannedBills, categories, user] = await Promise.all([
+  const [plannedBills, plannedIncomes, categories, user] = await Promise.all([
     listPlannedBills(),
+    listPlannedIncomes(),
     listCategories(),
     db.user.findUnique({
       where: { id: userId },
@@ -161,79 +399,34 @@ export default async function PlannedBillsPage({
     style: "currency",
     currency,
   });
-
-  const expenseCategories = categories.filter((category) => category.type === "EXPENSE");
+  const expenseCategories = toFormCategories(
+    categories.filter((category) => category.type === "EXPENSE"),
+  );
+  const incomeCategories = toFormCategories(
+    categories.filter((category) => category.type === "INCOME"),
+  );
   const creatableExpenseCategories = expenseCategories.filter(
     (category) => !category.isArchived,
   );
-  const hasExpenseCategoryOptions = creatableExpenseCategories.length > 0;
-
-  const activeBills = plannedBills.filter((plannedBill) => plannedBill.isActive);
-  const inactiveBills = plannedBills.filter((plannedBill) => !plannedBill.isActive);
-
-  const sections = [
-    {
-      title: "Active planned bills",
-      description: "Expected monthly expenses currently included in planning.",
-      bills: activeBills,
-      emptyTitle: "No active planned bills",
-      emptyDescription:
-        "Create a bill above or reactivate an inactive one when it should count toward planning again.",
-    },
-    {
-      title: "Inactive planned bills",
-      description: "Stored templates you are not currently using in planning.",
-      bills: inactiveBills,
-      emptyTitle: "No inactive planned bills",
-      emptyDescription:
-        "Bills you pause will stay here until you reactivate them.",
-    },
+  const creatableIncomeCategories = incomeCategories.filter(
+    (category) => !category.isArchived,
+  );
+  const showActive = selectedStatus === "active";
+  const visibleItems: PlannedItem[] = [
+    ...(selectedType === "INCOME"
+      ? []
+      : plannedBills
+          .filter((plannedBill) => plannedBill.isActive === showActive)
+          .map((item) => ({ kind: "BILL" as const, item }))),
+    ...(selectedType === "BILL"
+      ? []
+      : plannedIncomes
+          .filter((plannedIncome) => plannedIncome.isActive === showActive)
+          .map((item) => ({ kind: "INCOME" as const, item }))),
   ];
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader
-        eyebrow="Planning"
-        title="Planned Bills"
-        description="Track expected monthly expenses separately from actual transactions so your next planning features have a clean, explainable input."
-        actions={
-          <Link
-            href="#planned-bill-form"
-            className={cn(buttonVariants(), "rounded-lg")}
-          >
-            <Plus />
-            Add planned bill
-          </Link>
-        }
-      />
-
-      <section className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardContent className="flex flex-col gap-1 p-4">
-            <p className="text-sm font-medium text-muted-foreground">Total planned bills</p>
-            <p className="text-xl font-semibold tracking-tight text-foreground">
-              {plannedBills.length}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex flex-col gap-1 p-4">
-            <p className="text-sm font-medium text-muted-foreground">Active</p>
-            <p className="text-xl font-semibold tracking-tight text-foreground">
-              {activeBills.length}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex flex-col gap-1 p-4">
-            <p className="text-sm font-medium text-muted-foreground">Inactive</p>
-            <p className="text-xl font-semibold tracking-tight text-foreground">
-              {inactiveBills.length}
-            </p>
-          </CardContent>
-        </Card>
-      </section>
-
       {errorMessage ? (
         <PageNotice variant="error" title="Something needs attention">
           {errorMessage}
@@ -246,240 +439,323 @@ export default async function PlannedBillsPage({
         </PageNotice>
       ) : null}
 
-      <Card id="planned-bill-form">
-        <CardHeader>
-          <CardTitle>Add planned bill</CardTitle>
-          <CardDescription>
-            Planned bills stay separate from actual transactions and represent expected
-            monthly expenses used for forecasting. Use a positive amount and a due day
-            between 1 and 28.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          {!hasExpenseCategoryOptions ? (
-            <div className="rounded-xl border border-border/80 bg-background/60 p-4">
-              <p className="text-sm leading-6 text-muted-foreground">
-                You need at least one active expense category before you can add a planned
-                bill.
-              </p>
-              <div className="mt-3">
-                <Link
-                  href="/categories"
-                  className={cn(
-                    buttonVariants({ variant: "outline", size: "sm" }),
-                    "rounded-xl",
-                  )}
-                >
-                  Create expense category
-                </Link>
-              </div>
-            </div>
-          ) : null}
+      <section className="flex flex-col gap-4">
+        <div className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
+          <Card className="h-fit">
+            <CardHeader>
+              <CardTitle>Add planned item</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <PlannedItemCreateTabs
+                key={initialCreateTab}
+                createBillAction={createPlannedBillAction}
+                createIncomeAction={createPlannedIncomeAction}
+                currency={currency}
+                expenseCategories={creatableExpenseCategories}
+                incomeCategories={creatableIncomeCategories}
+                initialTab={initialCreateTab}
+              />
+            </CardContent>
+          </Card>
 
-          <form action={createPlannedBillAction} className="grid gap-4">
-            <PlannedBillFormFields
-              idPrefix="create-planned-bill"
-              currency={currency}
-              categories={creatableExpenseCategories}
-              defaultValues={{
-                name: "",
-                amount: "",
-                categoryId: creatableExpenseCategories[0]?.id ?? "",
-                subcategoryId: "",
-                dueDayOfMonth: 1,
-                isActive: true,
-              }}
-              includeStatusField
-              disableCategorySelection={!hasExpenseCategoryOptions}
+          <div className="flex min-w-0 flex-col gap-4">
+            <PlannedItemFiltersDisclosure
+              key={`${selectedType}:${selectedStatus}`}
+              resetHref={buildPlannedPageUrl({ type: selectedType })}
+              selectedStatus={selectedStatus}
+              selectedType={selectedType}
             />
 
-            <div className="flex flex-wrap justify-end gap-3 border-t border-border/70 pt-5">
-              <Button type="submit" disabled={!hasExpenseCategoryOptions}>
-                <Plus />
-                Save planned bill
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-
-      {plannedBills.length === 0 ? (
-        <EmptyState
-          icon={ScrollText}
-          title="No planned bills yet"
-          description="Planned bills are expected monthly expenses used for forecasting. Add recurring items like rent, internet, or utilities so the dashboard has clearer upcoming-bill input."
-          action={
-            <Link
-              href="#planned-bill-form"
-              className={cn(buttonVariants({ variant: "outline", size: "sm" }), "rounded-xl")}
-            >
-              <Plus />
-              Add first planned bill
-            </Link>
-          }
-        />
-      ) : (
-        <section className="grid gap-4 xl:grid-cols-2">
-          {sections.map((section) => (
-            <Card key={section.title} className="overflow-hidden">
+            <Card className="overflow-hidden">
               <CardHeader className="border-b border-border/70 pb-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="space-y-1.5">
-                    <CardTitle>{section.title}</CardTitle>
-                    <CardDescription>{section.description}</CardDescription>
-                  </div>
-                  <Badge variant="outline">{section.bills.length}</Badge>
-                </div>
+                <CardTitle>Planned items list</CardTitle>
               </CardHeader>
-
               <CardContent className="grid gap-4 p-4">
-                {section.bills.length === 0 ? (
-                  <EmptyState
-                    icon={FolderOpen}
-                    title={section.emptyTitle}
-                    description={section.emptyDescription}
-                  />
+                {visibleItems.length === 0 ? (
+                  <EmptyState icon={FolderOpen} title="No planned items" />
                 ) : (
-                  section.bills.map((plannedBill) => {
-                    const isEditing = editId === plannedBill.id;
-                    const editCategories = getAvailableExpenseCategories(
-                      expenseCategories,
-                      plannedBill.categoryId,
-                    );
+                  visibleItems.map((plannedItem) => {
+                    if (plannedItem.kind === "BILL") {
+                      const plannedBill = plannedItem.item;
+                      const editorValue = `bill:${plannedBill.id}`;
+                      const isEditing = editParam === editorValue;
+                      const editCategories = getAvailableCategories(
+                        expenseCategories,
+                        plannedBill.categoryId,
+                      );
 
-                    return (
-                      <div
-                        key={plannedBill.id}
-                        className="rounded-xl border border-border/80 bg-background/60 p-4"
-                      >
-                        <div className="space-y-4">
-                          <div className="flex flex-col gap-4">
-                            <div className="space-y-3">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <h3 className="text-base font-semibold tracking-tight text-foreground">
-                                  {plannedBill.name}
-                                </h3>
-                                <Badge
-                                  variant={plannedBill.isActive ? "success" : "outline"}
-                                >
-                                  {plannedBill.isActive ? "Active" : "Inactive"}
-                                </Badge>
-                                <Badge variant="outline">
-                                  Due day {plannedBill.dueDayOfMonth}
-                                </Badge>
-                                {plannedBill.subcategory ? (
-                                  <Badge variant="outline">{plannedBill.subcategory.name}</Badge>
-                                ) : null}
-                                {plannedBill.category.isArchived ? (
-                                  <Badge variant="outline">Archived category</Badge>
-                                ) : null}
-                              </div>
-
-                              <div className="grid gap-3 sm:grid-cols-3">
-                                <div className="rounded-xl border border-border/70 bg-card/70 p-3">
-                                  <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                                    Category
-                                  </p>
-                                  <p className="mt-2 text-sm font-semibold text-foreground">
+                      return (
+                        <div
+                          key={editorValue}
+                          className="rounded-xl border border-border/80 bg-background/60 p-4"
+                        >
+                          <div className="space-y-4">
+                            <div className="flex min-w-0 items-center justify-between gap-4">
+                              <div className="flex min-w-0 items-center gap-3">
+                                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+                                  <TrendingDown className="size-4.5" />
+                                </div>
+                                <div className="flex min-w-0 flex-col">
+                                  <h3 className="text-sm font-semibold tracking-tight text-foreground">
                                     {plannedBill.category.name}
-                                  </p>
+                                  </h3>
                                   {plannedBill.subcategory ? (
-                                    <p className="mt-1 text-xs font-medium text-muted-foreground">
+                                    <p className="text-sm leading-6 text-muted-foreground">
                                       {plannedBill.subcategory.name}
                                     </p>
                                   ) : null}
                                 </div>
-                                <div className="rounded-xl border border-border/70 bg-card/70 p-3">
-                                  <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                                    Status
-                                  </p>
-                                  <p className="mt-2 text-sm font-semibold text-foreground">
-                                    {plannedBill.isActive ? "Included in planning" : "Paused"}
-                                  </p>
-                                </div>
-                                <div className="rounded-xl border border-border/70 bg-card/70 p-3">
-                                  <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                                    Amount
-                                  </p>
-                                  <p className="mt-2 font-mono text-lg font-semibold tracking-tight text-foreground">
-                                    {formatMoney(formatter, plannedBill.amount)}
-                                  </p>
-                                </div>
+                              </div>
+
+                              <div className="flex shrink-0 flex-col items-end">
+                                <p className="text-sm font-medium text-muted-foreground">
+                                  Due day {plannedBill.dueDayOfMonth}
+                                </p>
+                                <p className="font-mono text-base font-semibold tracking-tight text-destructive">
+                                  {formatMoney(formatter, plannedBill.amount)}
+                                </p>
                               </div>
                             </div>
 
+                            {!isEditing ? (
+                              <div className="flex flex-wrap gap-2">
+                                <Link
+                                  href={buildPlannedViewUrl(
+                                    selectedType,
+                                    selectedStatus,
+                                    { edit: editorValue },
+                                  )}
+                                  className={cn(
+                                    buttonVariants({
+                                      variant: "outline",
+                                      size: "sm",
+                                    }),
+                                    "rounded-xl",
+                                  )}
+                                >
+                                  <PencilLine />
+                                  View/Edit
+                                </Link>
+                              </div>
+                            ) : null}
+
+                            {isEditing ? (
+                              <form
+                                action={updatePlannedBillAction}
+                                className="grid gap-4 border-t border-border/70 pt-4"
+                              >
+                                <input
+                                  type="hidden"
+                                  name="id"
+                                  value={plannedBill.id}
+                                />
+                                <input
+                                  type="hidden"
+                                  name="isActive"
+                                  value={String(plannedBill.isActive)}
+                                />
+
+                                <PlannedBillFormFields
+                                  idPrefix={`edit-${plannedBill.id}`}
+                                  currency={currency}
+                                  categories={editCategories}
+                                  defaultValues={{
+                                    name: plannedBill.name,
+                                    source: plannedBill.source ?? "",
+                                    note: plannedBill.note ?? "",
+                                    amount: plannedBill.amount,
+                                    categoryId: plannedBill.categoryId,
+                                    subcategoryId:
+                                      plannedBill.subcategoryId ?? "",
+                                    dueDayOfMonth:
+                                      plannedBill.dueDayOfMonth,
+                                    isActive: plannedBill.isActive,
+                                  }}
+                                  includeStatusField={false}
+                                />
+
+                                <div className="flex flex-wrap justify-end gap-3 border-t border-border/70 pt-5">
+                                  <Link
+                                    href={buildPlannedViewUrl(
+                                      selectedType,
+                                      selectedStatus,
+                                      {},
+                                    )}
+                                    className={cn(
+                                      buttonVariants({ variant: "outline" }),
+                                      "rounded-xl",
+                                    )}
+                                  >
+                                    Close/Cancel
+                                  </Link>
+                                  <Button
+                                    type="submit"
+                                    formAction={deletePlannedBillAction}
+                                    formNoValidate
+                                    variant="destructive"
+                                  >
+                                    <Trash2 />
+                                    Delete bill
+                                  </Button>
+                                  <Button
+                                    type="submit"
+                                    name="nextIsActive"
+                                    value={String(!plannedBill.isActive)}
+                                    formAction={togglePlannedBillAction}
+                                    formNoValidate
+                                    variant="outline"
+                                    className="rounded-xl"
+                                  >
+                                    <Power />
+                                    {plannedBill.isActive
+                                      ? "Deactivate"
+                                      : "Activate"}
+                                  </Button>
+                                  <Button type="submit">Save changes</Button>
+                                </div>
+                              </form>
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    const plannedIncome = plannedItem.item;
+                    const editorValue = `income:${plannedIncome.id}`;
+                    const isEditing = editParam === editorValue;
+                    const editCategories = getAvailableCategories(
+                      incomeCategories,
+                      plannedIncome.categoryId,
+                    );
+
+                    return (
+                      <div
+                        key={editorValue}
+                        className="rounded-xl border border-border/80 bg-background/60 p-4"
+                      >
+                        <div className="space-y-4">
+                          <div className="flex min-w-0 items-center justify-between gap-4">
+                            <div className="flex min-w-0 items-center gap-3">
+                              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-success/10 text-success">
+                                <TrendingUp className="size-4.5" />
+                              </div>
+                              <div className="flex min-w-0 flex-col">
+                                <h3 className="text-sm font-semibold tracking-tight text-foreground">
+                                  {plannedIncome.category.name}
+                                </h3>
+                                {plannedIncome.subcategory ? (
+                                  <p className="text-sm leading-6 text-muted-foreground">
+                                    {plannedIncome.subcategory.name}
+                                  </p>
+                                ) : null}
+                              </div>
+                            </div>
+
+                            <div className="flex shrink-0 flex-col items-end">
+                              <p className="text-sm font-medium text-muted-foreground">
+                                Expected day {plannedIncome.expectedDayOfMonth}
+                              </p>
+                              <p className="font-mono text-base font-semibold tracking-tight text-success">
+                                {formatMoney(formatter, plannedIncome.amount)}
+                              </p>
+                            </div>
+                          </div>
+
+                          {!isEditing ? (
                             <div className="flex flex-wrap gap-2">
                               <Link
-                                href={isEditing ? "/planned" : buildPlannedPageUrl({ edit: plannedBill.id })}
+                                href={buildPlannedViewUrl(
+                                  selectedType,
+                                  selectedStatus,
+                                  { edit: editorValue },
+                                )}
                                 className={cn(
-                                  buttonVariants({ variant: "outline", size: "sm" }),
+                                  buttonVariants({
+                                    variant: "outline",
+                                    size: "sm",
+                                  }),
                                   "rounded-xl",
                                 )}
                               >
                                 <PencilLine />
-                                {isEditing ? "Close edit" : "Edit"}
+                                View/Edit
                               </Link>
-
-                              <form action={togglePlannedBillAction}>
-                                <input type="hidden" name="id" value={plannedBill.id} />
-                                <input
-                                  type="hidden"
-                                  name="isActive"
-                                  value={String(!plannedBill.isActive)}
-                                />
-                                <Button type="submit" variant="outline" size="sm" className="rounded-xl">
-                                  <Power />
-                                  {plannedBill.isActive ? "Deactivate" : "Activate"}
-                                </Button>
-                              </form>
                             </div>
-                          </div>
+                          ) : null}
 
                           {isEditing ? (
-                            <form action={updatePlannedBillAction} className="grid gap-4 border-t border-border/70 pt-4">
-                              <input type="hidden" name="id" value={plannedBill.id} />
+                            <form
+                              action={updatePlannedIncomeAction}
+                              className="grid gap-4 border-t border-border/70 pt-4"
+                            >
+                              <input
+                                type="hidden"
+                                name="id"
+                                value={plannedIncome.id}
+                              />
                               <input
                                 type="hidden"
                                 name="isActive"
-                                value={String(plannedBill.isActive)}
+                                value={String(plannedIncome.isActive)}
                               />
 
-                              <PlannedBillFormFields
-                                idPrefix={`edit-${plannedBill.id}`}
+                              <PlannedIncomeFormFields
+                                idPrefix={`edit-${plannedIncome.id}`}
                                 currency={currency}
                                 categories={editCategories}
                                 defaultValues={{
-                                  name: plannedBill.name,
-                                  amount: plannedBill.amount,
-                                  categoryId: plannedBill.categoryId,
-                                  subcategoryId: plannedBill.subcategoryId ?? "",
-                                  dueDayOfMonth: plannedBill.dueDayOfMonth,
-                                  isActive: plannedBill.isActive,
+                                  name: plannedIncome.name,
+                                  source: plannedIncome.source ?? "",
+                                  note: plannedIncome.note ?? "",
+                                  amount: plannedIncome.amount,
+                                  categoryId: plannedIncome.categoryId,
+                                  subcategoryId:
+                                    plannedIncome.subcategoryId ?? "",
+                                  expectedDayOfMonth:
+                                    plannedIncome.expectedDayOfMonth,
+                                  isActive: plannedIncome.isActive,
                                 }}
                                 includeStatusField={false}
                               />
 
                               <div className="flex flex-wrap justify-end gap-3 border-t border-border/70 pt-5">
                                 <Link
-                                  href="/planned"
+                                  href={buildPlannedViewUrl(
+                                    selectedType,
+                                    selectedStatus,
+                                    {},
+                                  )}
                                   className={cn(
                                     buttonVariants({ variant: "outline" }),
                                     "rounded-xl",
                                   )}
                                 >
-                                  Cancel
+                                  Close/Cancel
                                 </Link>
                                 <Button
                                   type="submit"
-                                  formAction={deletePlannedBillAction}
+                                  formAction={deletePlannedIncomeAction}
+                                  formNoValidate
                                   variant="destructive"
                                 >
                                   <Trash2 />
-                                  Delete bill
+                                  Delete income
                                 </Button>
-                                <Button type="submit">
-                                  Save changes
+                                <Button
+                                  type="submit"
+                                  name="nextIsActive"
+                                  value={String(!plannedIncome.isActive)}
+                                  formAction={togglePlannedIncomeAction}
+                                  formNoValidate
+                                  variant="outline"
+                                  className="rounded-xl"
+                                >
+                                  <Power />
+                                  {plannedIncome.isActive
+                                    ? "Deactivate"
+                                    : "Activate"}
                                 </Button>
+                                <Button type="submit">Save changes</Button>
                               </div>
                             </form>
                           ) : null}
@@ -490,9 +766,9 @@ export default async function PlannedBillsPage({
                 )}
               </CardContent>
             </Card>
-          ))}
-        </section>
-      )}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

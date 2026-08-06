@@ -56,8 +56,10 @@ Implemented through the current planning polish work:
   - planned income for the selected month
   - planned bills for the selected month
   - recent monthly transactions
-- `/planned` manages reusable monthly planned-bill templates.
-- `/planned-income` manages reusable monthly planned-income templates.
+- `/planned` is the unified workspace for monthly planned bills and planned
+  income, with tabbed creation and URL-backed type/status filters.
+- `/planned-income` is a protected compatibility redirect to
+  `/planned?type=INCOME`, including legacy income edit links.
 - `/import` supports CSV upload, preview, validation, category/subcategory resolution, and explicit confirm.
 - `/export` downloads a CSV for the selected month via `/export/download`.
 
@@ -103,9 +105,11 @@ Implemented through the current planning polish work:
   - `/transactions`
   - `/categories`
   - `/planned`
-  - `/planned-income`
   - `/import`
   - `/export`
+
+`/planned-income` remains under the authenticated app route group as a
+compatibility redirect rather than a separate workspace.
 
 ## Tech Stack
 

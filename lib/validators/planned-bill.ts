@@ -3,7 +3,11 @@ import { z } from "zod";
 
 import { categoryIdSchema } from "@/lib/validators/category";
 import { optionalSubcategoryIdSchema } from "@/lib/validators/subcategory";
-import { localDateSchema } from "@/lib/validators/transaction";
+import {
+  localDateSchema,
+  transactionNoteSchema,
+  transactionSourceSchema,
+} from "@/lib/validators/transaction";
 
 export const plannedBillIdSchema = z.string().cuid("Invalid planned bill id.");
 export const plannedBillOccurrenceMonthSchema = z
@@ -38,6 +42,8 @@ export const plannedBillNameSchema = z
 
 export const plannedBillInputSchema = z.object({
   name: plannedBillNameSchema,
+  source: transactionSourceSchema,
+  note: transactionNoteSchema,
   amount: plannedBillAmountSchema,
   dueDayOfMonth: z.coerce.number().pipe(plannedBillDueDaySchema),
   categoryId: categoryIdSchema,
@@ -66,12 +72,7 @@ export const markPlannedBillPaidSchema = z
     month: plannedBillOccurrenceMonthSchema,
     amount: plannedBillAmountSchema,
     localDate: localDateSchema,
-    note: z
-      .string()
-      .trim()
-      .max(500, "Note must be 500 characters or fewer.")
-      .optional()
-      .transform((value) => (value && value.length > 0 ? value : undefined)),
+    note: transactionNoteSchema,
   })
   .refine((value) => value.localDate.startsWith(`${value.month}-`), {
     message: "Payment date must be inside the selected month.",
@@ -96,6 +97,8 @@ export const linkExistingTransactionToPlannedBillSchema = z.object({
 
 export type PlannedBillInput = {
   name: string;
+  source?: string;
+  note?: string;
   amount: string | number;
   dueDayOfMonth: string | number;
   categoryId: string;

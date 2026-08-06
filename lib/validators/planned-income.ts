@@ -3,7 +3,11 @@ import { z } from "zod";
 
 import { categoryIdSchema } from "@/lib/validators/category";
 import { optionalSubcategoryIdSchema } from "@/lib/validators/subcategory";
-import { localDateSchema } from "@/lib/validators/transaction";
+import {
+  localDateSchema,
+  transactionNoteSchema,
+  transactionSourceSchema,
+} from "@/lib/validators/transaction";
 
 export const plannedIncomeIdSchema = z.string().cuid("Invalid planned income id.");
 export const plannedIncomeOccurrenceMonthSchema = z
@@ -38,6 +42,8 @@ export const plannedIncomeNameSchema = z
 
 export const plannedIncomeInputSchema = z.object({
   name: plannedIncomeNameSchema,
+  source: transactionSourceSchema,
+  note: transactionNoteSchema,
   amount: plannedIncomeAmountSchema,
   expectedDayOfMonth: z.coerce.number().pipe(plannedIncomeExpectedDaySchema),
   categoryId: categoryIdSchema,
@@ -66,12 +72,7 @@ export const markPlannedIncomeReceivedSchema = z
     month: plannedIncomeOccurrenceMonthSchema,
     amount: plannedIncomeAmountSchema,
     localDate: localDateSchema,
-    note: z
-      .string()
-      .trim()
-      .max(500, "Note must be 500 characters or fewer.")
-      .optional()
-      .transform((value) => (value && value.length > 0 ? value : undefined)),
+    note: transactionNoteSchema,
   })
   .refine((value) => value.localDate.startsWith(`${value.month}-`), {
     message: "Received date must be inside the selected month.",
@@ -96,6 +97,8 @@ export const linkExistingTransactionToPlannedIncomeSchema = z.object({
 
 export type PlannedIncomeInput = {
   name: string;
+  source?: string;
+  note?: string;
   amount: string | number;
   expectedDayOfMonth: string | number;
   categoryId: string;

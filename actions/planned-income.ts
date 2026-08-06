@@ -14,6 +14,7 @@ import {
 } from "@/lib/actions/result";
 import { getUserIdOrThrow } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import { getGeneratedTransactionMetadata } from "@/lib/planned-items";
 import {
   linkExistingTransactionToPlannedIncomeSchema,
   markPlannedIncomeReceivedSchema,
@@ -95,7 +96,7 @@ async function getValidatedPlannedIncomeCategoryAndSubcategory(
 }
 
 function revalidatePlannedIncomePaths() {
-  revalidatePath("/planned-income");
+  revalidatePath("/planned");
   revalidatePath("/dashboard");
 }
 
@@ -103,7 +104,7 @@ function revalidatePlannedIncomeOccurrencePaths() {
   revalidatePath("/dashboard");
   revalidatePath("/transactions");
   revalidatePath("/export");
-  revalidatePath("/planned-income");
+  revalidatePath("/planned");
 }
 
 export async function listPlannedIncomes() {
@@ -138,6 +139,8 @@ export async function listPlannedIncomes() {
     id: plannedIncome.id,
     userId: plannedIncome.userId,
     name: plannedIncome.name,
+    source: plannedIncome.source,
+    note: plannedIncome.note,
     amount: plannedIncome.amount.toString(),
     expectedDayOfMonth: plannedIncome.expectedDayOfMonth,
     categoryId: plannedIncome.categoryId,
@@ -183,6 +186,8 @@ export async function createPlannedIncome(
       data: {
         userId,
         name: parsed.data.name,
+        source: parsed.data.source ?? null,
+        note: parsed.data.note ?? null,
         amount: parsed.data.amount,
         expectedDayOfMonth: parsed.data.expectedDayOfMonth,
         categoryId: parsed.data.categoryId,
@@ -238,6 +243,8 @@ export async function updatePlannedIncome(
       where: { id: existing.id },
       data: {
         name: parsed.data.name,
+        source: parsed.data.source ?? null,
+        note: parsed.data.note ?? null,
         amount: parsed.data.amount,
         expectedDayOfMonth: parsed.data.expectedDayOfMonth,
         categoryId: parsed.data.categoryId,
@@ -392,8 +399,10 @@ export async function markPlannedIncomeReceived(
           localDate: parsed.data.localDate,
           categoryId: plannedIncome.categoryId,
           subcategoryId: plannedIncome.subcategoryId,
-          source: plannedIncome.name,
-          note: parsed.data.note ?? null,
+          ...getGeneratedTransactionMetadata(
+            plannedIncome,
+            parsed.data.note,
+          ),
         },
         select: { id: true },
       });

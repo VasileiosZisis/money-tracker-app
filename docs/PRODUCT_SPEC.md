@@ -165,6 +165,24 @@ Rules:
 - Exported transaction data includes date, type, category, amount, source, and
   note, with additional supported classification fields where applicable.
 
+### Planned Items Workspace
+
+`/planned` is the canonical workspace for both planned bills and planned income.
+It uses a 300px creation column beside one filterable planned-items list. The
+creation card has Add bill and Add income tabs, with Add bill selected by
+default. New templates are always active.
+
+The list supports All, Bill, and Income type views plus Active or Inactive
+status. All active items are shown by default; bills appear before income while
+each type retains its own day/name ordering. Only one item editor can be open at
+a time. Rows show the category and optional subcategory beside a red bill or
+green income icon, with the due or expected day above the amount at the far
+right. Planned-item names and active/inactive labels are omitted from collapsed
+rows. Collapsed rows expose only View/Edit; expanded editors keep Name editable
+and provide Delete plus Activate or Deactivate. `/planned-income` remains a
+protected compatibility route and redirects to `/planned?type=INCOME`,
+including translation of legacy edit links.
+
 ### Planned Bills
 
 A planned bill is a reusable monthly expense template.
@@ -172,13 +190,16 @@ A planned bill is a reusable monthly expense template.
 Template fields:
 
 - name
+- optional source for generated transactions
+- optional note for generated transactions
 - positive decimal amount
 - expense category
 - optional subcategory from that category
 - due day from 1 through 28
 - active state
 
-Users can create, edit, activate/deactivate, and delete templates on `/planned`.
+Users can create, edit, activate/deactivate, and delete templates in the unified
+`/planned` workspace.
 
 Monthly state belongs to `PlannedBillOccurrence`:
 
@@ -199,7 +220,9 @@ Rules:
 - Undo linked payment keeps the existing transaction and removes only the
   occurrence.
 - Deleting a linked transaction makes the planned bill unhandled again.
-- Generated transactions inherit the planned bill category and optional subcategory.
+- Generated transactions inherit the planned bill category, optional subcategory,
+  Source, and Note. The planned bill name remains the template identity and is
+  not copied into transaction Source.
 - No automatic transaction matching is performed.
 
 ### Planned Income
@@ -209,14 +232,16 @@ Planned income is a reusable monthly expected-income template.
 Template fields:
 
 - name
+- optional source for generated transactions
+- optional note for generated transactions
 - positive decimal amount
 - income category
 - optional subcategory from that category
 - expected day from 1 through 28
 - active state
 
-Users can create, edit, activate/deactivate, and delete templates on
-`/planned-income`.
+Users can create, edit, activate/deactivate, and delete templates in the unified
+`/planned` workspace. `/planned?type=INCOME` opens the income-only list view.
 
 Monthly state belongs to `PlannedIncomeOccurrence`:
 
@@ -236,7 +261,9 @@ Rules:
 - Undo linked receipt keeps the existing transaction and removes only the
   occurrence.
 - Deleting a linked transaction makes the planned income unhandled again.
-- Generated transactions inherit the planned income category and optional subcategory.
+- Generated transactions inherit the planned income category, optional
+  subcategory, Source, and Note. The planned income name remains the template
+  identity and is not copied into transaction Source.
 - No automatic transaction matching is performed.
 
 ### Forecast
@@ -324,7 +351,7 @@ skipped occurrences remain available on `/planned` and are omitted from the
 dashboard list.
 
 The dashboard Planned Income card lists only active, unhandled income. Received
-and skipped occurrences remain available on `/planned-income` and are omitted
+and skipped occurrences remain available on `/planned?type=INCOME` and are omitted
 from the dashboard list and card summary. When active income exists but every
 item is handled, the card shows an `All planned income handled` empty state.
 
@@ -371,9 +398,11 @@ The panel does not perform automatic corrections or matching.
 - `/transactions`
 - `/categories`
 - `/planned`
-- `/planned-income`
 - `/import`
 - `/export`
+
+`/planned-income` remains an authenticated compatibility redirect to the income
+view of `/planned`; it is not a separate workspace.
 
 All authenticated routes require login and completed setup, except `/setup`
 during onboarding.

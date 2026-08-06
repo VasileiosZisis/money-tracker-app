@@ -53,7 +53,6 @@ function revalidateCategoryPaths() {
   revalidatePath("/transactions");
   revalidatePath("/export");
   revalidatePath("/planned");
-  revalidatePath("/planned-income");
   revalidatePath("/dashboard");
 }
 

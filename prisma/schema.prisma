@@ -166,6 +166,8 @@ model PlannedBill {
   id            String                  @id @default(cuid())
   userId        String
   name          String
+  source        String?
+  note          String?
   amount        Decimal                 @db.Decimal(14, 2)
   dueDayOfMonth Int
   categoryId    String
@@ -207,6 +209,8 @@ model PlannedIncome {
   id                 String                    @id @default(cuid())
   userId             String
   name               String
+  source             String?
+  note               String?
   amount             Decimal                   @db.Decimal(14, 2)
   expectedDayOfMonth Int
   categoryId         String

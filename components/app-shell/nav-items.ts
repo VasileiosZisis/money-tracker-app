@@ -5,7 +5,6 @@ import {
   FileDown,
   FileUp,
   ReceiptText,
-  TrendingUp,
   WalletCards,
 } from "lucide-react";
 
@@ -37,15 +36,9 @@ export const appNavItems: AppNavItem[] = [
   },
   {
     href: "/planned",
-    label: "Planned Bills",
+    label: "Planned",
     icon: WalletCards,
-    description: "Expected monthly expenses",
-  },
-  {
-    href: "/planned-income",
-    label: "Planned Income",
-    icon: TrendingUp,
-    description: "Expected monthly income",
+    description: "Expected monthly bills and income",
   },
   {
     href: "/import",

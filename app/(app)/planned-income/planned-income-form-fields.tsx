@@ -6,6 +6,8 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 type PlannedIncomeFormCategory = {
   id: string;
@@ -19,6 +21,8 @@ type PlannedIncomeFormCategory = {
 
 type PlannedIncomeFormDefaultValues = {
   name: string;
+  source: string;
+  note: string;
   amount: string;
   categoryId: string;
   subcategoryId: string;
@@ -37,6 +41,7 @@ export function PlannedIncomeFormFields({
   defaultValues,
   includeStatusField,
   disableCategorySelection = false,
+  singleColumn = false,
 }: {
   idPrefix: string;
   currency: string;
@@ -44,6 +49,7 @@ export function PlannedIncomeFormFields({
   defaultValues: PlannedIncomeFormDefaultValues;
   includeStatusField: boolean;
   disableCategorySelection?: boolean;
+  singleColumn?: boolean;
 }) {
   const [selectedCategoryId, setSelectedCategoryId] = useState(defaultValues.categoryId);
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState(defaultValues.subcategoryId);
@@ -60,7 +66,7 @@ export function PlannedIncomeFormFields({
 
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className={cn("grid gap-4", !singleColumn && "md:grid-cols-2")}>
         <FormField htmlFor={`${idPrefix}-name`} label="Name">
           <Input
             id={`${idPrefix}-name`}
@@ -85,7 +91,7 @@ export function PlannedIncomeFormFields({
         </FormField>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className={cn("grid gap-4", !singleColumn && "md:grid-cols-2")}>
         <FormField htmlFor={`${idPrefix}-category`} label="Income category">
           <Select
             id={`${idPrefix}-category`}
@@ -142,7 +148,31 @@ export function PlannedIncomeFormFields({
         </FormField>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className={cn("grid gap-4", !singleColumn && "md:grid-cols-2")}>
+        <FormField htmlFor={`${idPrefix}-source`} label="Source">
+          <Input
+            id={`${idPrefix}-source`}
+            name="source"
+            type="text"
+            defaultValue={defaultValues.source}
+            placeholder="Employer, bank transfer, cash..."
+            maxLength={120}
+          />
+        </FormField>
+
+        <FormField htmlFor={`${idPrefix}-note`} label="Note">
+          <Textarea
+            id={`${idPrefix}-note`}
+            name="note"
+            defaultValue={defaultValues.note}
+            placeholder="Optional context for generated transactions"
+            maxLength={500}
+            rows={4}
+          />
+        </FormField>
+      </div>
+
+      <div className={cn("grid gap-4", !singleColumn && "md:grid-cols-2")}>
         <FormField htmlFor={`${idPrefix}-expected-day`} label="Expected day of month">
           <Input
             id={`${idPrefix}-expected-day`}

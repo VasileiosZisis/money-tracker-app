@@ -50,14 +50,17 @@ export const localDateSchema = z
   .string()
   .refine(isValidLocalDate, "Date must be in YYYY-MM-DD format.");
 
+export const transactionSourceSchema = optionalString(120);
+export const transactionNoteSchema = optionalString(500);
+
 export const transactionInputSchema = z.object({
   type: transactionTypeSchema,
   amount: amountSchema,
   localDate: localDateSchema,
   categoryId: categoryIdSchema,
   subcategoryId: optionalSubcategoryIdSchema,
-  source: optionalString(120),
-  note: optionalString(500),
+  source: transactionSourceSchema,
+  note: transactionNoteSchema,
 });
 
 export type TransactionInput = z.infer<typeof transactionInputSchema>;

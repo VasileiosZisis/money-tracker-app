@@ -1151,7 +1151,7 @@ export default async function DashboardPage ({
               <div className='flex items-center justify-between gap-3'>
                 <CardTitle>Planned income</CardTitle>
                 <Link
-                  href='/planned-income'
+                  href='/planned?type=INCOME'
                   className={cn(
                     buttonVariants({ variant: 'ghost', size: 'sm' }),
                     'rounded-xl px-0 text-primary hover:bg-transparent'
@@ -1188,7 +1188,7 @@ export default async function DashboardPage ({
                 action={
                   hasActivePlannedIncomes ? undefined : (
                     <Link
-                      href='/planned-income'
+                      href='/planned?type=INCOME'
                       className={cn(
                         buttonVariants({ variant: 'outline', size: 'sm' }),
                         'rounded-xl'
@@ -1406,7 +1406,7 @@ export default async function DashboardPage ({
               <div className='flex items-center justify-between gap-3'>
                 <CardTitle>Planned bills</CardTitle>
                 <Link
-                  href='/planned'
+                  href='/planned?type=BILL'
                   className={cn(
                     buttonVariants({ variant: 'ghost', size: 'sm' }),
                     'rounded-xl px-0 text-primary hover:bg-transparent'
@@ -1443,7 +1443,7 @@ export default async function DashboardPage ({
                 action={
                   hasActivePlannedBills ? undefined : (
                     <Link
-                      href='/planned'
+                      href='/planned?type=BILL'
                       className={cn(
                         buttonVariants({ variant: 'outline', size: 'sm' }),
                         'rounded-xl'

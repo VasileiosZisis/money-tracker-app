@@ -181,6 +181,8 @@ Implement/support:
    - monthly-only pattern for now
    - fields:
      - `name`
+     - optional `source`
+     - optional `note`
      - `amount`
      - `categoryId`
      - optional `subcategoryId`
@@ -215,6 +217,8 @@ Implement/support:
    - monthly-only pattern for now
    - fields:
      - `name`
+     - optional `source`
+     - optional `note`
      - `amount`
      - `categoryId`
      - optional `subcategoryId`
@@ -284,6 +288,7 @@ Do NOT implement unless explicitly requested later:
 - Planned bills are used for planning/forecast logic only in this phase
 - Active planned bills reserve forecasted spend until the selected-month occurrence is marked paid or skipped
 - Linked existing transactions and generated transactions must be distinguished for undo behavior
+- Generated expense transactions copy optional Source and Note metadata from the planned bill; the planned bill name remains template identity only
 
 ### Planned income
 
@@ -295,6 +300,7 @@ Do NOT implement unless explicitly requested later:
 - Pending planned income affects projected month-end net
 - Pending planned income does not affect conservative safe-to-spend or daily safe spend
 - Linked existing transactions and generated transactions must be distinguished for undo behavior
+- Generated income transactions copy optional Source and Note metadata from planned income; the planned income name remains template identity only
 
 ### Forecast
 
@@ -341,8 +347,8 @@ app/
 (app)/dashboard/page.tsx
 (app)/transactions/page.tsx
 (app)/categories/page.tsx
-(app)/planned/page.tsx
-(app)/planned-income/page.tsx
+(app)/planned/page.tsx # unified planned bills and income workspace
+(app)/planned-income/page.tsx # compatibility redirect to /planned?type=INCOME
 (app)/import/page.tsx
 (app)/export/page.tsx
 api/auth/[...nextauth]/route.ts
@@ -460,7 +466,8 @@ Legacy CSV headers `tag` and `tags` remain accepted as aliases for `subcategory`
 - In `app/(app)/layout.tsx` (server component), enforce setup:
   - if `user.hasCompletedSetup` is false and route is not `/setup`, redirect to `/setup`
   - after setup completion, redirect `/setup` -> `/dashboard`
-- New authenticated routes such as `/planned`, `/planned-income`, and `/import` must also be protected
+- New authenticated routes such as `/planned` and `/import` must also be protected
+- `/planned-income` remains protected as a compatibility redirect to `/planned?type=INCOME`
 
 ---
 
