@@ -1053,7 +1053,7 @@ export default async function DashboardPage ({
           Transactions &amp; Plans
         </h2>
 
-        <div className='grid items-start gap-4 min-[1280px]:grid-cols-2 min-[1480px]:grid-cols-3'>
+        <div className='grid items-start gap-4 min-[1280px]:grid-cols-3'>
         <Card className='overflow-hidden'>
           <CardHeader className='flex flex-row items-end justify-between gap-4 pb-0'>
             <CardTitle>Recent transactions</CardTitle>
@@ -1145,22 +1145,27 @@ export default async function DashboardPage ({
           </CardContent>
         </Card>
 
-        <Card className='order-3 overflow-hidden'>
-          <CardHeader className='border-b border-border/70 pb-4'>
-            <div>
-              <div className='flex items-center justify-between gap-3'>
-                <CardTitle>Planned income</CardTitle>
-                <Link
-                  href='/planned?type=INCOME'
-                  className={cn(
-                    buttonVariants({ variant: 'ghost', size: 'sm' }),
-                    'rounded-xl px-0 text-primary hover:bg-transparent'
-                  )}
-                >
-                  View all
-                  <ArrowRight />
-                </Link>
-              </div>
+        <Card className='overflow-hidden min-[1280px]:col-span-2'>
+          <CardHeader className='flex flex-row items-end justify-between gap-4 border-b border-border/70 pb-4'>
+            <CardTitle>Planned items</CardTitle>
+            <Link
+              href='/planned'
+              className={cn(
+                buttonVariants({ variant: 'ghost', size: 'sm' }),
+                'rounded-xl px-0 text-primary hover:bg-transparent'
+              )}
+            >
+              View all
+              <ArrowRight />
+            </Link>
+          </CardHeader>
+          <CardContent className='grid p-0 min-[868px]:grid-cols-2'>
+            <section
+              aria-labelledby='planned-income-heading'
+              className='order-2 flex min-w-0 flex-col border-t border-border/70 min-[868px]:border-l min-[868px]:border-t-0'
+            >
+              <div className='p-4'>
+                <CardTitle id='planned-income-heading'>Planned income</CardTitle>
               <div className='flex flex-wrap gap-2'>
                 <Badge variant='outline' className='text-base'>
                   {displayedPlannedIncomes.length}
@@ -1169,9 +1174,8 @@ export default async function DashboardPage ({
                   Pending {formatMoney(formatter, plannedIncomeSummary.pendingTotal)}
                 </Badge>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent className='grid gap-4 p-3'>
+              </div>
+              <div className='grid gap-4 p-3'>
             {displayedPlannedIncomes.length === 0 ? (
               <EmptyState
                 icon={TrendingUp}
@@ -1282,7 +1286,7 @@ export default async function DashboardPage ({
                       <div className='grid gap-3 border-t border-border/70'>
                         <form
                           action={markIncomeReceivedAction}
-                          className='grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]'
+                          className='grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] min-[1280px]:max-[1479px]:grid-cols-2!'
                         >
                           <input
                             type='hidden'
@@ -1324,7 +1328,7 @@ export default async function DashboardPage ({
                           <button
                             className={cn(
                               buttonVariants({ size: 'default' }),
-                              'self-end'
+                              'self-end min-[1280px]:max-[1479px]:col-span-2!'
                             )}
                             type='submit'
                           >
@@ -1397,25 +1401,15 @@ export default async function DashboardPage ({
                 )
               })
               )}
-          </CardContent>
-        </Card>
-
-        <Card className='order-2 overflow-hidden'>
-          <CardHeader className='border-b border-border/70 pb-4'>
-            <div>
-              <div className='flex items-center justify-between gap-3'>
-                <CardTitle>Planned bills</CardTitle>
-                <Link
-                  href='/planned?type=BILL'
-                  className={cn(
-                    buttonVariants({ variant: 'ghost', size: 'sm' }),
-                    'rounded-xl px-0 text-primary hover:bg-transparent'
-                  )}
-                >
-                  View all
-                  <ArrowRight />
-                </Link>
               </div>
+            </section>
+
+            <section
+              aria-labelledby='planned-bills-heading'
+              className='order-1 flex min-w-0 flex-col'
+            >
+              <div className='p-4'>
+                <CardTitle id='planned-bills-heading'>Planned bills</CardTitle>
               <div className='flex flex-wrap gap-2'>
                 <Badge variant='outline' className='text-base'>
                   {displayedPlannedBills.length}
@@ -1424,9 +1418,8 @@ export default async function DashboardPage ({
                   Reserved {formatMoney(formatter, displayedPlannedBillsTotal)}
                 </Badge>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent className='grid gap-4 p-3'>
+              </div>
+              <div className='grid gap-4 p-3'>
             {displayedPlannedBills.length === 0 ? (
               <EmptyState
                 icon={CalendarClock}
@@ -1542,7 +1535,7 @@ export default async function DashboardPage ({
                       <div className='grid gap-3 border-t border-border/70 pt-4'>
                         <form
                           action={markPaidAction}
-                          className='grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]'
+                           className='grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] min-[1280px]:max-[1479px]:grid-cols-2!'
                         >
                           <input
                             type='hidden'
@@ -1584,7 +1577,7 @@ export default async function DashboardPage ({
                           <button
                             className={cn(
                               buttonVariants({ size: 'default' }),
-                              'self-end'
+                               'self-end min-[1280px]:max-[1479px]:col-span-2!'
                             )}
                             type='submit'
                           >
@@ -1662,6 +1655,8 @@ export default async function DashboardPage ({
               })
             )}
 
+              </div>
+            </section>
           </CardContent>
         </Card>
         </div>

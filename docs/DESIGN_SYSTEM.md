@@ -223,10 +223,10 @@ Rules:
 
 - Lead with the selected month and the net result.
 - In Monthly Snapshot, place Income total, Expense total, and Projected net left—in that order—in one secondary metric row below Net left now and before the cash-flow chart. Mirror the Total Balance primary/secondary metric structure, use `gap-6` between secondary metrics, and render secondary values at `text-xl` so both lead cards align visually.
-- Dashboard composition uses five distinct responsive rows: Total Balance with Monthly Snapshot (`md` two-column), Spending by category at full width, the three forecast metrics (`md` three-column), Needs Attention at full width, and Recent Transactions with Planned Bills and Planned Income (`xl` two-column, three-column from `1480px`). All rows stack on smaller screens while preserving that content order. The wider three-column breakpoint keeps planned-item date inputs wide enough for their value and native calendar control.
+- Dashboard composition uses five distinct responsive rows: Total Balance with Monthly Snapshot (`md` two-column), Spending by category at full width, the three forecast metrics (`md` three-column), Needs Attention at full width, and Transactions & Plans. In Transactions & Plans, Recent Transactions occupies one column and a unified Planned Items card occupies two columns from `1280px`; below that breakpoint, both cards use separate full-width rows with Planned Items below Recent Transactions.
 - Safe to spend, Daily safe spend, and Forecast remaining spend use compact metric cards without descriptive text beneath their values.
 - Use a `Planning & Forecast` section heading above the three forecast metric cards and Needs Attention to distinguish planning-oriented information from Total Balance and Monthly Snapshot.
-- Use a `Transactions & Plans` section heading above Recent Transactions, Planned Bills, and Planned Income to separate activity and scheduled-item cards from Planning & Forecast.
+- Use a `Transactions & Plans` section heading above Recent Transactions and the unified Planned Items card to separate activity and scheduled items from Planning & Forecast. The Planned Items card has one `/planned` View all action and keeps Planned Bills on the left and Planned Income on the right from `868px`; through `867px`, the sections stack with bills first. The two inner section headers have no bottom border. Between `1280px` and `1479px`, planned-item action forms keep the date and amount fields in two columns and move the submit action below them so native date controls remain readable; from `1480px`, all three controls share one row.
 - The Needs Attention card uses a title-only header without supporting copy or a numeric count badge, and uses compact `p-3` content padding.
 - Support the main number with income, expense, and ratio-based context derived from existing data.
 - Vertically center summary-card icons against their paired label and value block.
@@ -235,8 +235,8 @@ Rules:
 - In light mode, chart grid lines should read slightly darker than default border treatments so quantitative guides remain legible against bright card surfaces.
 - Keep recent transactions visible and legible.
 - Recent transaction rows use semantic icon and amount color as the income/expense indicator, omit the redundant type badge, and show the subcategory as the optional secondary line. If no subcategory exists, render no secondary text.
-- Dashboard item containers inside Needs Attention, Recent Transactions, Planned Bills, and Planned Income use compact `p-3` padding.
-- In Recent Transactions, Planned Bills, and Planned Income rows, primary/secondary text and date-or-day/amount stacks use no internal vertical gap.
+- Dashboard item containers inside Needs Attention, Recent Transactions, and both Planned Items sections use compact `p-3` padding.
+- In Recent Transactions and both Planned Items sections, primary/secondary text and date-or-day/amount stacks use no internal vertical gap.
 - Planned Bills list-item action areas and their internal separators add no top padding.
 - Do not invent analytics or charts that are not backed by real data.
 
@@ -281,7 +281,7 @@ Rules:
   - one sentence of context when the title does not fully communicate the state
   - an action when the next step is obvious
 - The dashboard Planned Bills handled state uses only the `All planned bills handled` title without supporting description text.
-- The dashboard Planned Income card omits received and skipped items and summary badges; when every active item is handled, it shows only the `All planned income handled` title.
+- The dashboard Planned Income section omits received and skipped items and summary badges; when every active item is handled, it shows only the `All planned income handled` title.
 
 ### Tables and lists
 

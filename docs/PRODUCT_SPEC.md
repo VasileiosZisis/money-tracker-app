@@ -346,14 +346,18 @@ Monthly Snapshot supports a selected month and includes:
 The spending breakdown uses actual expense transactions only. Planned bills
 appear in the breakdown only after they are represented by a normal transaction.
 
-The dashboard Planned Bills card lists only active, unhandled bills. Paid and
-skipped occurrences remain available on `/planned` and are omitted from the
-dashboard list.
+The dashboard uses one Planned Items card with Planned Bills on the left and
+Planned Income on the right, plus one View all action linking to `/planned`. At
+widths below 1280px, the card moves below Recent Transactions and takes the full
+row; its two sections stack with bills first on small screens.
 
-The dashboard Planned Income card lists only active, unhandled income. Received
-and skipped occurrences remain available on `/planned?type=INCOME` and are omitted
-from the dashboard list and card summary. When active income exists but every
-item is handled, the card shows an `All planned income handled` empty state.
+The Planned Bills section lists only active, unhandled bills. Paid and skipped
+occurrences remain available on `/planned` and are omitted from the dashboard
+list. The Planned Income section lists only active, unhandled income. Received
+and skipped occurrences remain available on `/planned?type=INCOME` and are
+omitted from the dashboard list and section summary. When active income exists
+but every item is handled, the section shows an `All planned income handled`
+empty state.
 
 Planned item statuses include applicable states such as:
 
