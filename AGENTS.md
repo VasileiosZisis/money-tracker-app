@@ -199,6 +199,8 @@ Implement/support:
    - `projectedEndOfMonthNet`
    - `pendingPlannedIncome`
    - `dailySafeSpend`
+   - `weeklySafeSpend`
+   - `spendingPace`
 
 4. Safe-to-spend indicator
 
@@ -298,7 +300,7 @@ Do NOT implement unless explicitly requested later:
 - `expectedDayOfMonth` must be an integer from `1` to `28`
 - Planned income does not affect actual totals directly
 - Pending planned income affects projected month-end net
-- Pending planned income does not affect conservative safe-to-spend or daily safe spend
+- Pending planned income does not affect conservative safe-to-spend, daily safe spend, or weekly safe spend
 - Linked existing transactions and generated transactions must be distinguished for undo behavior
 - Generated income transactions copy optional Source and Note metadata from planned income; the planned income name remains template identity only
 
@@ -415,18 +417,42 @@ Baseline formulas:
 - `forecastRemainingSpend = unpaidPlannedBills + variableCategoryForecast`
 - `safeToSpend = netLeftNow - forecastRemainingSpend`
 - `dailySafeSpend = safeToSpend / remainingDaysIncludingToday`
+- `weeklySafeSpendDays = min(7, remainingDaysIncludingToday)`
+- `weeklySafeSpend = safeToSpend / remainingDaysIncludingToday * weeklySafeSpendDays`
 - `projectedEndOfMonthNet = netLeftNow + pendingPlannedIncome - forecastRemainingSpend`
+
+Dashboard presentation:
+
+- show `forecastRemainingSpend` as one combined amount
+- do not display reserved planned bills or variable spending as a breakdown
+  beneath the forecast metric
+
+Spending pace:
+
+- compare selected-month actual variable expense per elapsed day with eligible
+  variable expense per calendar day across up to 6 trailing full usable months
+- exclude active planned-bill categories from both current and historical pace
+- calculate pace for current and completed past months; future months and months
+  without a historical baseline are unavailable
+- classify above, below, or on pace from the percentage difference rounded to
+  one decimal place
+- keep the Spending pace metric card compact; only an above-usual current-month
+  pace creates a warning in Needs Attention with its historical-baseline context
 
 Recommended approach for variable forecast:
 
-- use trailing 3 full months where available
+- use up to 6 trailing full usable months where available
+- count a historical month as usable when it contains at least one eligible
+  variable expense transaction
 - compute average daily expense for variable categories
 - multiply by remaining days in selected month
+- label confidence as Low for 0-2 usable months, Medium for 3-5 usable months,
+  and High for 6 or more usable months
 
 Fallback behavior:
 
 - if limited history exists, use fewer months or current-month run rate
-- UI should indicate lower-confidence estimates when appropriate
+- current-month run rate and no-data fallbacks have Low confidence
 
 Do not over-engineer the forecast in this phase.
 

@@ -7,6 +7,7 @@ import type { ForecastMonthContext } from "@/lib/forecast/month-context";
 import { getPlannedExpenseCategoryIds, type ForecastPlannedBillLike } from "@/lib/forecast/planned-bills";
 
 export type VariableForecastSource = "trailing-history" | "current-month-run-rate" | "none";
+export type ForecastConfidence = "low" | "medium" | "high";
 
 export type VariableCategoryForecastResult = {
   amount: Prisma.Decimal;
@@ -33,6 +34,18 @@ function filterVariableExpenseTransactions(
       transaction.type === TransactionType.EXPENSE &&
       !excludedCategoryIdSet.has(transaction.categoryId),
   );
+}
+
+export function calculateForecastConfidence(monthsUsed: number): ForecastConfidence {
+  if (monthsUsed >= 6) {
+    return "high";
+  }
+
+  if (monthsUsed >= 3) {
+    return "medium";
+  }
+
+  return "low";
 }
 
 export function calculateVariableCategoryForecast(

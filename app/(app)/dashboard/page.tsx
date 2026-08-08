@@ -2,10 +2,12 @@ import { Prisma } from '@/generated/prisma/client'
 import {
   ArrowRight,
   CalendarClock,
+  CalendarRange,
   ChartNoAxesCombined,
   CircleAlert,
   CircleCheckBig,
   FolderClock,
+  Gauge,
   Plus,
   RotateCcw,
   ShieldAlert,
@@ -328,6 +330,68 @@ function getForecastState (forecast: ForecastData) {
   }
 }
 
+function getForecastConfidenceMeta (
+  confidence: ForecastData['forecastConfidence']
+) {
+  if (confidence === 'high') {
+    return {
+      label: 'High confidence',
+      badgeVariant: 'success' as const
+    }
+  }
+
+  if (confidence === 'medium') {
+    return {
+      label: 'Medium confidence',
+      badgeVariant: 'warning' as const
+    }
+  }
+
+  return {
+    label: 'Low confidence',
+    badgeVariant: 'destructive' as const
+  }
+}
+
+function getSpendingPaceMeta (forecast: ForecastData) {
+  const pace = forecast.spendingPace
+
+  if (pace.direction === 'unavailable') {
+    return {
+      label:
+        forecast.monthContext.monthRelation === 'future'
+          ? 'Unavailable'
+          : 'No baseline',
+      badgeVariant: 'outline' as const,
+      tone: 'default' as MetricTone
+    }
+  }
+
+  const percentage = pace.percentageDifference?.abs().toFixed(1) ?? '0.0'
+
+  if (pace.direction === 'above') {
+    return {
+      label: `${percentage}% above usual`,
+      badgeVariant: 'warning' as const,
+      tone: 'warning' as MetricTone
+    }
+  }
+
+  if (pace.direction === 'below') {
+    return {
+      label: `${percentage}% below usual`,
+      badgeVariant: 'success' as const,
+      tone: 'success' as MetricTone
+    }
+  }
+
+  return {
+    label: 'On usual pace',
+    badgeVariant: 'accent' as const,
+    tone: 'default' as MetricTone
+  }
+}
+
 function getPlannedBillStatusMeta (status: DashboardPlannedBillStatus) {
   switch (status) {
     case 'paid':
@@ -461,52 +525,77 @@ function getAttentionToneStyles (tone: AttentionTone) {
 function MetricCard ({
   title,
   value,
-  helper,
   tone = 'default',
   icon,
   badgeLabel,
-  badgeVariant = 'outline'
+  badgeVariant = 'outline',
+  badgePlacement = 'below',
+  className
 }: {
   title: string
   value: string
-  helper?: React.ReactNode
   tone?: MetricTone
   icon: React.ReactNode
   badgeLabel?: string
   badgeVariant?: 'accent' | 'success' | 'warning' | 'destructive' | 'outline'
+  badgePlacement?: 'below' | 'title'
+  className?: string
 }) {
   const toneStyles = getToneStyles(tone)
+  const valueElement = (
+    <p
+      className={cn(
+        'font-mono text-2xl font-semibold tracking-tight',
+        toneStyles.textClassName
+      )}
+    >
+      {value}
+    </p>
+  )
+  const iconElement = (
+    <div
+      className={cn(
+        'flex size-10 shrink-0 items-center justify-center rounded-lg',
+        toneStyles.iconClassName
+      )}
+    >
+      {icon}
+    </div>
+  )
+  const badgeElement = badgeLabel ? (
+    <Badge
+      variant={badgeVariant}
+      className={cn(
+        badgePlacement === 'title' &&
+          'shrink-0 whitespace-nowrap px-1.5'
+      )}
+    >
+      {badgeLabel}
+    </Badge>
+  ) : null
 
   return (
-    <Card className='h-full'>
+    <Card className={cn('h-full', className)}>
       <CardContent className='flex h-full flex-col gap-4 p-4'>
         <div className='flex items-center justify-between gap-3'>
-          <div className='space-y-1.5'>
-            <p className='text-sm font-medium text-muted-foreground'>{title}</p>
-            <p
-              className={cn(
-                'font-mono text-2xl font-semibold tracking-tight',
-                toneStyles.textClassName
-              )}
-            >
-              {value}
-            </p>
-          </div>
-          <div
-            className={cn(
-              'flex size-10 items-center justify-center rounded-lg',
-              toneStyles.iconClassName
+          <div className='min-w-0 space-y-1.5'>
+            {badgePlacement === 'title' ? (
+              <div className='flex min-w-0 items-center gap-1.5 whitespace-nowrap'>
+                <p className='shrink-0 text-sm font-medium text-muted-foreground'>
+                  {title}
+                </p>
+                {badgeElement}
+              </div>
+            ) : (
+              <p className='text-sm font-medium text-muted-foreground'>
+                {title}
+              </p>
             )}
-          >
-            {icon}
+            {valueElement}
           </div>
+          {iconElement}
         </div>
-        {badgeLabel ? <Badge variant={badgeVariant}>{badgeLabel}</Badge> : null}
-        {helper ? (
-          <div className='mt-auto text-sm leading-6 text-muted-foreground'>
-            {helper}
-          </div>
-        ) : null}
+        {badgePlacement === 'below' ? badgeElement : null}
       </CardContent>
     </Card>
   )
@@ -526,12 +615,13 @@ function NeedsAttentionSection ({
           </div>
         </div>
       </CardHeader>
-      <CardContent className='grid gap-4 p-3'>
+      <CardContent className='grid gap-4 p-3 md:grid-cols-2'>
         {items.length === 0 ? (
           <EmptyState
+            className='md:col-span-2'
             icon={CircleCheckBig}
             title='Nothing needs attention'
-            description='No overdue bills or forecast warnings for this month.'
+            description='Your planned items and forecast are currently up to date.'
           />
         ) : (
           items.map((item, index) => {
@@ -834,6 +924,10 @@ export default async function DashboardPage ({
   })
 
   const forecastState = getForecastState(data.forecast)
+  const forecastConfidenceMeta = getForecastConfidenceMeta(
+    data.forecast.forecastConfidence
+  )
+  const spendingPaceMeta = getSpendingPaceMeta(data.forecast)
   const netTone = getNetTone(data.netLeft)
   const projectedNetTone = getNetTone(data.forecast.projectedEndOfMonthNet)
   const displayedPlannedBills = data.plannedBills.filter(
@@ -1004,7 +1098,22 @@ export default async function DashboardPage ({
           Planning &amp; Forecast
         </h2>
 
-        <div className='grid gap-4 md:grid-cols-3'>
+        <div className='grid gap-4 min-[1280px]:grid-cols-2'>
+          <MetricCard
+            title='Forecast remaining spend'
+            value={formatMoney(formatter, data.forecast.forecastRemainingSpend)}
+            tone={
+              data.forecast.forecastRemainingSpend.gt(0) ? 'warning' : 'default'
+            }
+            badgeLabel={
+              data.forecast.monthContext.monthRelation === 'current'
+                ? forecastConfidenceMeta.label
+                : undefined
+            }
+            badgeVariant={forecastConfidenceMeta.badgeVariant}
+            badgePlacement='title'
+            icon={<TrendingDown className='size-5' />}
+          />
           <MetricCard
             title='Safe to spend'
             value={formatMoney(formatter, data.forecast.safeToSpend)}
@@ -1030,12 +1139,35 @@ export default async function DashboardPage ({
             icon={<TimerReset className='size-5' />}
           />
           <MetricCard
-            title='Forecast remaining spend'
-            value={formatMoney(formatter, data.forecast.forecastRemainingSpend)}
-            tone={
-              data.forecast.forecastRemainingSpend.gt(0) ? 'warning' : 'default'
+            title='Weekly safe spend'
+            value={formatMoney(formatter, data.forecast.weeklySafeSpend)}
+            tone={forecastState.tone}
+            badgeLabel={
+              data.forecast.monthContext.monthRelation === 'past'
+                ? 'Month complete'
+                : data.forecast.weeklySafeSpendDays < 7
+                  ? 'Rest of month'
+                  : undefined
             }
-            icon={<TrendingDown className='size-5' />}
+            badgeVariant='outline'
+            badgePlacement='title'
+            icon={<CalendarRange className='size-5' />}
+          />
+          <MetricCard
+            title='Spending pace'
+            value={
+              data.forecast.monthContext.monthRelation === 'future'
+                ? 'Unavailable'
+                : formatDailyMoney(
+                    formatter,
+                    data.forecast.spendingPace.currentDailyExpense
+                  )
+            }
+            tone={spendingPaceMeta.tone}
+            badgeLabel={spendingPaceMeta.label}
+            badgeVariant={spendingPaceMeta.badgeVariant}
+            badgePlacement='title'
+            icon={<Gauge className='size-5' />}
           />
         </div>
 

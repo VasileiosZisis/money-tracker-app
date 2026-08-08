@@ -22,9 +22,15 @@ import {
   type ForecastPlannedIncomeLike,
 } from "@/lib/forecast/planned-income";
 import {
+  calculateForecastConfidence,
   calculateVariableCategoryForecast,
+  type ForecastConfidence,
   type VariableForecastSource,
 } from "@/lib/forecast/variable-forecast";
+import {
+  calculateSpendingPace,
+  type SpendingPaceResult,
+} from "@/lib/forecast/spending-pace";
 
 export type ForecastInputTransaction = ForecastTransactionLike;
 export type ForecastInputPlannedBill = ForecastPlannedBillLike;
@@ -43,6 +49,10 @@ export type ForecastSummary = {
   safeToSpend: Prisma.Decimal;
   dailySafeSpend: Prisma.Decimal;
   dailySafeSpendDays: number;
+  weeklySafeSpend: Prisma.Decimal;
+  weeklySafeSpendDays: number;
+  spendingPace: SpendingPaceResult;
+  forecastConfidence: ForecastConfidence;
   variableForecastSource: VariableForecastSource;
   variableForecastMonthsUsed: string[];
   variableForecastAverageDailyExpense: Prisma.Decimal;
@@ -91,6 +101,27 @@ export function calculateDailySafeSpend(safeToSpend: Prisma.Decimal, days: numbe
   return roundMoney(safeToSpend.div(days));
 }
 
+export function calculateWeeklySafeSpendDays(remainingDaysIncludingToday: number) {
+  return Math.min(7, Math.max(remainingDaysIncludingToday, 0));
+}
+
+export function calculateWeeklySafeSpend(
+  safeToSpend: Prisma.Decimal,
+  remainingDaysIncludingToday: number,
+) {
+  if (remainingDaysIncludingToday <= 0) {
+    return ZERO_DECIMAL;
+  }
+
+  const weeklySafeSpendDays = calculateWeeklySafeSpendDays(
+    remainingDaysIncludingToday,
+  );
+
+  return roundMoney(
+    safeToSpend.div(remainingDaysIncludingToday).mul(weeklySafeSpendDays),
+  );
+}
+
 export function computeForecastSummary(params: {
   selectedMonth: string;
   referenceDate?: string;
@@ -127,6 +158,13 @@ export function computeForecastSummary(params: {
   const safeToSpend = calculateSafeToSpend(netLeftNow, forecastRemainingSpend);
   const dailySafeSpendDays = calculateDailySafeSpendDays(monthContext);
   const dailySafeSpend = calculateDailySafeSpend(safeToSpend, dailySafeSpendDays);
+  const weeklySafeSpendDays = calculateWeeklySafeSpendDays(dailySafeSpendDays);
+  const weeklySafeSpend = calculateWeeklySafeSpend(safeToSpend, dailySafeSpendDays);
+  const spendingPace = calculateSpendingPace(
+    params.transactions,
+    params.plannedBills,
+    monthContext,
+  );
 
   return {
     monthContext,
@@ -141,6 +179,10 @@ export function computeForecastSummary(params: {
     safeToSpend,
     dailySafeSpend,
     dailySafeSpendDays,
+    weeklySafeSpend,
+    weeklySafeSpendDays,
+    spendingPace,
+    forecastConfidence: calculateForecastConfidence(variableForecast.monthsUsed.length),
     variableForecastSource: variableForecast.source,
     variableForecastMonthsUsed: variableForecast.monthsUsed,
     variableForecastAverageDailyExpense: variableForecast.averageDailyExpense,

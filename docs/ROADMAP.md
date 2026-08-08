@@ -4,7 +4,7 @@
 
 The app goal is to help users understand their financial situation well enough to make better daily spending decisions.
 
-The current dashboard shows actual income, actual expenses, net left, safe to spend, daily safe spend, forecast remaining spend, planned bills, planned income, and needs-attention signals.
+The current dashboard shows actual income, actual expenses, net left, safe to spend, daily and weekly safe spend, spending pace, forecast remaining spend, planned bills, planned income, and needs-attention signals.
 
 This document records the daily-decision improvements that guided the current dashboard and the next ideas that remain open.
 
@@ -25,7 +25,7 @@ The labels are different:
 - `Safe to spend` is a daily decision number.
 - `Projected end-of-month net` is framed as the likely month-end result.
 
-Under that older forecast model, showing both as top-level cards was redundant. The dashboard now keeps `Safe to spend` as the conservative decision metric and shows `Projected month-end net` in the forecast breakdown because pending planned income makes it meaningfully different.
+Under that older forecast model, showing both as top-level cards was redundant. The dashboard now keeps `Safe to spend` as the conservative decision metric and shows `Projected net left` as secondary Monthly Snapshot context because pending planned income makes it meaningfully different.
 
 ## Highest-Value Dashboard Updates
 
@@ -44,7 +44,7 @@ Daily safe spend
 Forecast remaining spend
 ```
 
-`Forecast remaining spend` should show `Reserved planned bills` and `Variable spend estimate` as supporting breakdown values rather than separate top-level cards.
+`Forecast remaining spend` is shown as one combined amount with current-month confidence. Its reserved-bill and variable-spending component amounts are not displayed beneath the metric.
 
 ### 2. Add daily safe spend
 
@@ -70,19 +70,11 @@ Rules:
 - show negative values when safe-to-spend is negative
 - show non-actionable completed-month copy for past months
 
-### 3. Add a forecast breakdown
+### 3. Keep forecast remaining spend compact
 
-Make `Forecast remaining spend` explainable.
-
-Show:
-
-```text
-Forecast remaining spend: €844.12
-- Reserved planned bills: €143.99
-- Estimated variable spending: €700.13
-```
-
-This helps the user understand whether the pressure comes from known upcoming bills or everyday variable spending.
+Decision changed: show `Forecast remaining spend` as one combined estimate with
+its confidence badge. Do not display reserved planned bills or estimated
+variable spending as supporting breakdown amounts beneath the metric.
 
 ### 4. Add a needs-attention section
 
@@ -98,15 +90,20 @@ Add a compact daily decision panel with items like:
 This should be more useful than adding more metric cards.
 
 Decision: V1 is a read-only dashboard panel placed after the planning metric
-cards. It shows up to five deterministic signals in urgency order:
+cards. It shows up to six deterministic signals in urgency order:
 
 - overdue planned bills
 - planned bills due today
 - negative safe-to-spend
+- current-month spending pace above its historical baseline
 - stale transaction entry history
-- lower forecast confidence
+- low forecast confidence
 
 Planned-bill actions stay in the existing planned bills panel for now.
+
+Forecast confidence is deterministic and based on the usable full months that
+feed the variable-spending estimate: Low for 0-2 months, Medium for 3-5, and
+High for 6 or more. Only Low confidence creates a Needs Attention signal.
 
 ### 5. Improve planned bill handling further
 
@@ -216,10 +213,12 @@ This helps prevent the user from over-trusting stale data.
 Implemented:
 
 1. Replace duplicate `Projected end-of-month net` card with `Daily safe spend`.
-2. Add forecast breakdown to `Forecast remaining spend`.
+2. Keep `Forecast remaining spend` as a compact combined estimate with confidence.
 3. Add needs-attention panel.
 4. Add link-existing-transaction for planned bills.
 5. Add planned income templates and dashboard polish.
+6. Add weekly safe-to-spend for the next seven days or the rest of the month.
+7. Add overall spending pace against up to six usable historical months.
 
 Still open:
 

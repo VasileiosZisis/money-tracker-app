@@ -55,12 +55,23 @@ export default function DashboardLoading() {
 
       <section className="flex flex-col gap-4" aria-label="Loading Planning and Forecast">
         <Skeleton className="h-10 w-64" />
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 min-[1280px]:grid-cols-2">
+          <Skeleton className="h-36 w-full rounded-2xl" />
+          <Skeleton className="h-36 w-full rounded-2xl" />
           <Skeleton className="h-36 w-full rounded-2xl" />
           <Skeleton className="h-36 w-full rounded-2xl" />
           <Skeleton className="h-36 w-full rounded-2xl" />
         </div>
-        <Skeleton className="h-32 w-full rounded-2xl" aria-label="Loading needs attention" />
+        <Card aria-label="Loading needs attention">
+          <CardHeader className="border-b border-border/70 pb-4">
+            <Skeleton className="h-6 w-40" />
+          </CardHeader>
+          <CardContent className="grid gap-4 p-3 md:grid-cols-2">
+            {Array.from({ length: 6 }, (_, index) => (
+              <Skeleton key={index} className="h-24 w-full rounded-xl" />
+            ))}
+          </CardContent>
+        </Card>
       </section>
 
       <section className="grid gap-4 xl:grid-cols-3" aria-label="Loading dashboard activity">

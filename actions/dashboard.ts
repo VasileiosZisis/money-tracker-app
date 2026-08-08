@@ -14,6 +14,10 @@ import {
   buildSpendingByCategory,
   type DashboardSpendingCategory,
 } from "@/lib/dashboard/spending-by-category";
+import {
+  buildDashboardAttentionItems,
+  type DashboardAttentionItem,
+} from "@/lib/dashboard/attention";
 import { db } from "@/lib/db";
 import {
   buildForecastMonthContext,
@@ -46,24 +50,11 @@ export type DashboardPlannedIncomeStatus =
   | "overdue"
   | "passed";
 
-export type DashboardAttentionItemType =
-  | "OVERDUE_PLANNED_BILL"
-  | "OVERDUE_PLANNED_INCOME"
-  | "DUE_TODAY_PLANNED_BILL"
-  | "DUE_TODAY_PLANNED_INCOME"
-  | "NEGATIVE_SAFE_TO_SPEND"
-  | "NEGATIVE_SAFE_TO_SPEND_WITH_PENDING_INCOME"
-  | "STALE_TRANSACTIONS"
-  | "LOW_FORECAST_CONFIDENCE";
-
-export type DashboardAttentionItemTone = "danger" | "warning" | "info" | "success";
-
-export type DashboardAttentionItem = {
-  type: DashboardAttentionItemType;
-  title: string;
-  description: string;
-  tone: DashboardAttentionItemTone;
-};
+export type {
+  DashboardAttentionItem,
+  DashboardAttentionItemTone,
+  DashboardAttentionItemType,
+} from "@/lib/dashboard/attention";
 
 type DashboardPlannedBill = {
   id: string;
@@ -72,6 +63,7 @@ type DashboardPlannedBill = {
   categoryId: string;
   subcategoryId: string | null;
   dueDayOfMonth: number;
+  isActive: boolean;
   status: DashboardPlannedBillStatus;
   defaultPaymentLocalDate: string;
   occurrence: {
@@ -115,6 +107,7 @@ type DashboardPlannedIncome = {
   categoryId: string;
   subcategoryId: string | null;
   expectedDayOfMonth: number;
+  isActive: boolean;
   status: DashboardPlannedIncomeStatus;
   defaultReceivedLocalDate: string;
   occurrence: {
@@ -238,10 +231,6 @@ export type DashboardData = {
   totalBalance: DashboardTotalBalanceData;
 };
 
-const ATTENTION_ITEM_LIMIT = 5;
-const STALE_TRANSACTION_DAYS = 3;
-const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
-
 function getPlannedBillStatus(
   monthRelation: ForecastMonthRelation,
   currentDayOfMonth: number | null,
@@ -336,157 +325,6 @@ function getDefaultReceivedLocalDate(params: {
   return `${params.selectedMonth}-${params.expectedDayOfMonth
     .toString()
     .padStart(2, "0")}`;
-}
-
-function formatDashboardMoney(currency: string, amount: Prisma.Decimal) {
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency,
-  }).format(Number(amount.toString()));
-}
-
-function getDaysSinceDate(date: Date, now = new Date()) {
-  return Math.floor((now.getTime() - date.getTime()) / ONE_DAY_IN_MS);
-}
-
-function buildAttentionItems(params: {
-  currency: string;
-  forecast: ForecastSummary;
-  plannedBills: DashboardPlannedBill[];
-  plannedIncomes: DashboardPlannedIncome[];
-  latestTransactionEntry: { createdAt: Date } | null;
-}): DashboardAttentionItem[] {
-  const attentionItems: DashboardAttentionItem[] = [];
-  const isCurrentMonth = params.forecast.monthContext.monthRelation === "current";
-
-  for (const plannedBill of params.plannedBills) {
-    if (plannedBill.status !== "overdue") {
-      continue;
-    }
-
-    attentionItems.push({
-      type: "OVERDUE_PLANNED_BILL",
-      title: `${plannedBill.name} is overdue`,
-      description: `Due day ${plannedBill.dueDayOfMonth} · ${formatDashboardMoney(
-        params.currency,
-        plannedBill.amount,
-      )} still reserved`,
-      tone: "danger",
-    });
-  }
-
-  if (isCurrentMonth) {
-    for (const plannedIncome of params.plannedIncomes) {
-      if (plannedIncome.status !== "overdue") {
-        continue;
-      }
-
-      attentionItems.push({
-        type: "OVERDUE_PLANNED_INCOME",
-        title: `${plannedIncome.name} is overdue`,
-        description: `Expected day ${plannedIncome.expectedDayOfMonth} · ${formatDashboardMoney(
-          params.currency,
-          plannedIncome.amount,
-        )} still pending`,
-        tone: "danger",
-      });
-    }
-  }
-
-  for (const plannedBill of params.plannedBills) {
-    if (plannedBill.status !== "due-today") {
-      continue;
-    }
-
-    attentionItems.push({
-      type: "DUE_TODAY_PLANNED_BILL",
-      title: `${plannedBill.name} is due today`,
-      description: `${formatDashboardMoney(params.currency, plannedBill.amount)} reserved`,
-      tone: "warning",
-    });
-  }
-
-  if (isCurrentMonth) {
-    for (const plannedIncome of params.plannedIncomes) {
-      if (plannedIncome.status !== "due-today") {
-        continue;
-      }
-
-      attentionItems.push({
-        type: "DUE_TODAY_PLANNED_INCOME",
-        title: `${plannedIncome.name} is expected today`,
-        description: `${formatDashboardMoney(params.currency, plannedIncome.amount)} pending`,
-        tone: "warning",
-      });
-    }
-  }
-
-  if (isCurrentMonth && params.forecast.safeToSpend.lt(0)) {
-    attentionItems.push({
-      type: "NEGATIVE_SAFE_TO_SPEND",
-      title: "Safe to spend is negative",
-      description: `Forecast is ${formatDashboardMoney(
-        params.currency,
-        params.forecast.safeToSpend.abs(),
-      )} above current recorded income.`,
-      tone: "danger",
-    });
-  }
-
-  if (
-    isCurrentMonth &&
-    params.forecast.safeToSpend.lt(0) &&
-    params.forecast.pendingPlannedIncome.gt(0)
-  ) {
-    attentionItems.push({
-      type: "NEGATIVE_SAFE_TO_SPEND_WITH_PENDING_INCOME",
-      title: "Safe to spend is negative before pending income",
-      description: `${formatDashboardMoney(
-        params.currency,
-        params.forecast.pendingPlannedIncome,
-      )} is still expected, but not counted as safe to spend until received.`,
-      tone: "warning",
-    });
-  }
-
-  if (isCurrentMonth) {
-    if (!params.latestTransactionEntry) {
-      attentionItems.push({
-        type: "STALE_TRANSACTIONS",
-        title: "No transactions entered yet",
-        description:
-          "Manual data may be incomplete until current income or expenses are recorded.",
-        tone: "warning",
-      });
-    } else {
-      const daysSinceLatestEntry = getDaysSinceDate(params.latestTransactionEntry.createdAt);
-
-      if (daysSinceLatestEntry >= STALE_TRANSACTION_DAYS) {
-        attentionItems.push({
-          type: "STALE_TRANSACTIONS",
-          title: `No transactions entered in ${daysSinceLatestEntry} days`,
-          description:
-            "Forecast may be less accurate if recent manual spending is missing.",
-          tone: "warning",
-        });
-      }
-    }
-  }
-
-  if (
-    isCurrentMonth &&
-    params.forecast.variableForecastSource !== "trailing-history"
-  ) {
-    attentionItems.push({
-      type: "LOW_FORECAST_CONFIDENCE",
-      title: "Forecast confidence is lower",
-      description:
-        "There is limited recent history, so variable spend uses a fallback.",
-      tone: "warning",
-    });
-  }
-
-  return attentionItems.slice(0, ATTENTION_ITEM_LIMIT);
 }
 
 function sumDashboardAmounts<T extends { amount: Prisma.Decimal }>(items: readonly T[]) {
@@ -1150,6 +988,7 @@ async function loadDashboardMonthData(
     categoryId: plannedBill.categoryId,
     subcategoryId: plannedBill.subcategoryId,
     dueDayOfMonth: plannedBill.dueDayOfMonth,
+    isActive: plannedBill.isActive,
     status: getPlannedBillStatus(
       forecast.monthContext.monthRelation,
       forecast.monthContext.currentDayOfMonth,
@@ -1185,6 +1024,7 @@ async function loadDashboardMonthData(
     categoryId: plannedIncome.categoryId,
     subcategoryId: plannedIncome.subcategoryId,
     expectedDayOfMonth: plannedIncome.expectedDayOfMonth,
+    isActive: plannedIncome.isActive,
     status: getPlannedIncomeStatus(
       forecast.monthContext.monthRelation,
       forecast.monthContext.currentDayOfMonth,
@@ -1225,7 +1065,7 @@ async function loadDashboardMonthData(
     chartYAxisMax,
     spendingByCategory,
     forecast,
-    attentionItems: buildAttentionItems({
+    attentionItems: buildDashboardAttentionItems({
       currency,
       forecast,
       plannedBills: dashboardPlannedBills,

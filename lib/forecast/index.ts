@@ -27,14 +27,25 @@ export {
   type ForecastPlannedIncomeLike,
 } from "@/lib/forecast/planned-income";
 export {
+  calculateForecastConfidence,
   calculateVariableCategoryForecast,
+  type ForecastConfidence,
   type VariableCategoryForecastResult,
   type VariableForecastSource,
 } from "@/lib/forecast/variable-forecast";
 export {
+  calculateSpendingPace,
+  type SpendingPaceDirection,
+  type SpendingPaceResult,
+} from "@/lib/forecast/spending-pace";
+export {
+  calculateDailySafeSpend,
+  calculateDailySafeSpendDays,
   calculateForecastRemainingSpend,
   calculateProjectedEndOfMonthNet,
   calculateSafeToSpend,
+  calculateWeeklySafeSpend,
+  calculateWeeklySafeSpendDays,
   computeForecastSummary,
   type ForecastInputPlannedBill,
   type ForecastInputPlannedIncome,

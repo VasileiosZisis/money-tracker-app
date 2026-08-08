@@ -77,7 +77,7 @@ export function buildForecastMonthContext(params: {
   referenceDate: string;
   trailingMonthCount?: number;
 }): ForecastMonthContext {
-  const trailingMonthCount = params.trailingMonthCount ?? 3;
+  const trailingMonthCount = params.trailingMonthCount ?? 6;
 
   parseMonthKey(params.selectedMonth);
   const referenceDate = parseLocalDate(params.referenceDate);

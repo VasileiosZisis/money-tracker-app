@@ -277,20 +277,37 @@ netLeftNow = incomeSoFar - expenseSoFar
 forecastRemainingSpend = unpaidPlannedBills + variableCategoryForecast
 safeToSpend = netLeftNow - forecastRemainingSpend
 dailySafeSpend = safeToSpend / remainingDaysIncludingToday
+weeklySafeSpendDays = min(7, remainingDaysIncludingToday)
+weeklySafeSpend = safeToSpend / remainingDaysIncludingToday * weeklySafeSpendDays
 projectedEndOfMonthNet = netLeftNow + pendingPlannedIncome - forecastRemainingSpend
+currentDailyPace = selectedMonthVariableExpensesSoFar / elapsedDays
+historicalDailyPace = trailingUsableMonthVariableExpenses / trailingUsableMonthCalendarDays
+spendingPacePercentage = (currentDailyPace - historicalDailyPace) / historicalDailyPace * 100
 ```
 
 Rules:
 
 - Safe to spend excludes pending planned income.
 - Projected month-end net includes pending planned income.
-- Variable spending uses recent history where available.
+- Variable spending uses up to six recent full usable months where available.
+- A historical month is usable when it contains at least one eligible variable
+  expense transaction.
 - Planned-bill categories are excluded from variable forecasting to avoid
   category-level double counting.
-- Limited history uses a deterministic fallback and lower-confidence messaging.
+- Forecast confidence is Low for 0-2 usable months, Medium for 3-5, and High for
+  6 or more; current-month run rate and no-data fallbacks are Low.
 - Past months use completed-month behavior.
 - Current month is the primary planning context.
 - Negative safe-to-spend and daily-safe-spend values remain visible.
+- Weekly safe-to-spend uses up to the next seven remaining days, preserves
+  negative values, and returns zero after a month is complete.
+- Spending pace compares actual variable expense per elapsed day with actual
+  variable expense per calendar day across up to six usable trailing full
+  months. Active planned-bill categories are excluded from both inputs.
+- Spending pace is available for current and completed past months. Future
+  months and months without a usable historical baseline are unavailable.
+- Spending pace direction is above, below, or on pace after rounding the
+  percentage difference to one decimal place.
 
 ### Total Balance
 
@@ -331,12 +348,10 @@ Monthly Snapshot supports a selected month and includes:
 - net left now
 - safe to spend
 - daily safe spend
+- weekly safe spend
+- spending pace amount and direction
 - forecast remaining spend
-- forecast breakdown:
-  - reserved planned bills
-  - variable spend estimate
-  - pending planned income
-  - projected month-end net
+- current-month forecast confidence
 - planned income status and actions
 - planned bill status and actions
 - recent transactions
@@ -370,7 +385,7 @@ Planned item statuses include applicable states such as:
 
 ### Needs Attention
 
-The dashboard includes a read-only Needs Attention panel. It shows up to five
+The dashboard includes a read-only Needs Attention panel. It shows up to six
 deterministic signals ordered by urgency.
 
 Implemented signals include:
@@ -378,11 +393,14 @@ Implemented signals include:
 - overdue planned bills
 - overdue planned income
 - planned bills due today
+- active, unhandled planned bills due within the next three days of the selected
+  current month
 - planned income expected today
 - negative safe to spend
 - negative safe to spend while income remains pending
+- current-month spending pace above its usable historical baseline
 - stale transaction entry
-- lower forecast confidence
+- low forecast confidence
 
 The panel does not perform automatic corrections or matching.
 

@@ -37,8 +37,10 @@ The project now has two layers:
    - planned bills
    - planned income
    - basic current-month forecast
-   - safe-to-spend
-   - daily safe spend
+- safe-to-spend
+- daily safe spend
+- weekly safe spend
+- spending pace
    - needs-attention dashboard signals
 
 Technical decisions in this file apply across both layers unless explicitly stated otherwise.
@@ -392,6 +394,8 @@ Required derived metrics:
 - `projectedEndOfMonthNet`
 - `safeToSpend`
 - `dailySafeSpend`
+- `weeklySafeSpend`
+- `spendingPace`
 - `pendingPlannedIncome`
 
 Locked formulas:
@@ -401,13 +405,31 @@ Locked formulas:
 - `projectedEndOfMonthNet = netLeftNow + pendingPlannedIncome - forecastRemainingSpend`
 - `safeToSpend = netLeftNow - forecastRemainingSpend`
 - `dailySafeSpend = safeToSpend / remainingDaysIncludingToday`
+- `weeklySafeSpendDays = min(7, remainingDaysIncludingToday)`
+- `weeklySafeSpend = safeToSpend / remainingDaysIncludingToday * weeklySafeSpendDays`
+- `currentDailyPace = selectedMonthVariableExpensesSoFar / elapsedDays`
+- `historicalDailyPace = trailingUsableMonthVariableExpenses / trailingUsableMonthCalendarDays`
+- `spendingPacePercentage = (currentDailyPace - historicalDailyPace) / historicalDailyPace * 100`
 
 Forecast rules:
 
 - forecast targets the selected month, with current month as the priority
 - forecast must stay deterministic and explainable
-- use trailing recent history for variable spend where possible
-- if there is limited history, use a simpler fallback rather than inventing confidence
+- use up to six trailing full usable months for variable spend where possible
+- a usable history month contains at least one eligible variable expense
+- confidence is deterministic: Low for 0-2 usable months, Medium for 3-5, and
+  High for 6 or more
+- current-month run rate and no-data fallbacks have Low confidence
+- weekly safe spend preserves negative values and returns zero for completed months
+- spending pace uses actual variable expenses only and excludes every active
+  planned-bill category from both current and historical inputs
+- spending pace uses elapsed days for the current month, the full selected-month
+  calendar for a completed past month, and up to six usable trailing full months
+  for its historical baseline
+- spending pace is unavailable for future months and when no usable historical
+  baseline exists; direction is based on the percentage rounded to one decimal
+- the Spending pace metric stays compact; only an above-usual current-month pace
+  creates a warning attention signal, ordered after due-soon planned bills
 
 Do not introduce:
 
@@ -610,6 +632,8 @@ Forecast UI rules:
 
 - clearly label forecast metrics as estimates
 - safe-to-spend must not be shown as an account balance
+- show Forecast remaining spend as one combined amount without displaying its
+  reserved-bill and variable-spending component amounts beneath the metric
 - explainability matters more than cleverness
 
 ---
