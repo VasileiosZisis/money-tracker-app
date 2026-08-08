@@ -1,6 +1,5 @@
 import { Download, FileSpreadsheet, ShieldCheck } from "lucide-react";
 
-import { PageHeader } from "@/components/app-shell/page-header";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -23,28 +22,21 @@ export default function ExportPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader
-        eyebrow="Records"
-        title="Export"
-        description="Download a clean CSV for any month already tracked in the app."
-      />
-
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(300px,0.7fr)]">
+      <section className="grid gap-4 xl:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle>CSV export</CardTitle>
-            <CardDescription>
-              Generate a file from the selected month using the current transaction records.
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <form action="/export/download" method="get" className="grid gap-4">
-              <div className="space-y-2">
-                <label htmlFor="month" className="text-sm font-medium text-foreground">
-                  Month
-                </label>
-                <Input id="month" type="month" name="month" defaultValue={defaultMonth} />
-              </div>
+              <Input
+                id="month"
+                aria-label="Month"
+                type="month"
+                name="month"
+                defaultValue={defaultMonth}
+                className="relative pr-10 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:top-1/2 [&::-webkit-calendar-picker-indicator]:m-0 [&::-webkit-calendar-picker-indicator]:-translate-y-1/2"
+              />
 
               <Button type="submit" className="w-full sm:w-fit">
                 <Download />
@@ -64,10 +56,10 @@ export default function ExportPage() {
           <CardContent className="space-y-4">
             <div className="rounded-xl border border-border/80 bg-background/60 p-4">
               <div className="flex items-center gap-3">
-                <div className="flex size-9 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
                   <FileSpreadsheet className="size-4.5" />
                 </div>
-                <div>
+                <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-foreground">Columns</p>
                   <p className="text-sm text-muted-foreground">
                     `localDate`, `type`, `category`, `subcategory`, `amount`, `source`, `note`
@@ -78,10 +70,10 @@ export default function ExportPage() {
 
             <div className="rounded-xl border border-border/80 bg-background/60 p-4">
               <div className="flex items-center gap-3">
-                <div className="flex size-9 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
                   <ShieldCheck className="size-4.5" />
                 </div>
-                <div>
+                <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-foreground">Scope</p>
                   <p className="text-sm text-muted-foreground">
                     Export is generated only from your authenticated account and the month you

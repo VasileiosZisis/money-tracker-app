@@ -329,18 +329,15 @@ export function ImportWorkspace() {
       <section className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(300px,0.75fr)]">
         <Card>
           <CardHeader>
-            <CardTitle>Upload CSV</CardTitle>
-            <CardDescription>
-              Import is manual and explicit. Upload a CSV, preview the rows, resolve any issues,
-              then confirm before anything is written to the database.
-            </CardDescription>
+            <CardTitle>Upload CSV file</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <form onSubmit={handleFileSubmit} className="grid gap-4">
               <div className="space-y-2">
-                <Label htmlFor="import-file">CSV file</Label>
                 <Input
                   id="import-file"
+                  aria-label="CSV file"
+                  className="[&::file-selector-button]:mr-6"
                   ref={fileInputRef}
                   type="file"
                   accept=".csv,text/csv"
@@ -420,7 +417,6 @@ export function ImportWorkspace() {
         <EmptyState
           icon={FileSpreadsheet}
           title="No import data yet"
-          description="Upload a CSV with headers for localDate, type, category, and amount to review row-level validation and category mapping before anything is written."
         />
       ) : null}
 
