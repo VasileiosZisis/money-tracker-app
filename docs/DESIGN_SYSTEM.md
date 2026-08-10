@@ -196,7 +196,7 @@ Rules:
 - The contextual bar uses three aligned regions: current page at the left edge, the user's local current date centered, and days remaining before month end at the right edge.
 - The contextual bar uses the sidebar background token and extends its bottom border through the main-content gutters, from the sidebar edge to the right viewport edge.
 - Current-page labels reuse the app navigation labels; all three contextual-bar items use `text-xl`, foreground color, and semibold weight.
-- The Transactions page relies on the contextual bar for its page title and begins directly with notices and working controls; do not repeat an `Entries` eyebrow, `Transactions` heading, introductory description, or summary cards for Selected Month, Visible Entries, and Current Filter.
+- The Transactions page relies on the contextual bar for its page title and begins directly with working controls; transient action feedback uses the global toaster and does not reserve page layout space. Do not repeat an `Entries` eyebrow, `Transactions` heading, introductory description, or summary cards for Selected Month, Visible Entries, and Current Filter.
 - The Transactions workspace keeps Add Transaction in the left column and places the transaction-view controls directly above the Transactions List in the right column. The month input and primary Apply action match the compact Monthly Snapshot controls. An adjacent outline Filter action opens an inline card containing type, category, and subcategory controls with Apply and Reset actions. Advanced-filter choices cascade so type limits categories and category limits subcategories; resetting advanced filters preserves the selected month.
 - The Add Transaction card stays at content height, uses a title-only header, and presents one full-width field per row in this order: Date, Type, Amount, Category, Subcategory, Source, and Note.
 - The Transactions List card uses a title-only header. Transaction rows reuse the dashboard transaction language: semantic trending icons replace type badges, category labels use `text-sm`, and dates sit above `text-base` mono amounts colored with success or destructive tokens. List dates omit the year because the selected month already provides that context.
@@ -296,6 +296,13 @@ Rules:
   - bordered card or panel
   - rounded corners
   - soft elevation
+
+### Feedback
+
+- Transient create, update, delete, link, skip, undo, and import outcomes use the global Sonner toaster.
+- Success and error toasts appear at the top right below the contextual bar, use semantic theme tokens, and dismiss automatically while remaining manually dismissible.
+- Persistent validation, setup errors, import mapping guidance, and workflow blockers remain inline near the controls they explain.
+- Redirect-carried `success` and `error` parameters are temporary transport values and should be removed after their toast is shown without clearing unrelated view state.
 
 ## shadcn/ui usage guidelines
 

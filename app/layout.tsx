@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+
+import { Toaster } from "@/components/ui/sonner";
+
 import "./globals.css";
 
 const inter = Inter({
@@ -44,6 +47,15 @@ export default function RootLayout({
       >
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         {children}
+        <Toaster
+          closeButton
+          duration={4000}
+          mobileOffset={{ top: "5.5rem", right: "1rem" }}
+          offset={{ top: "5.5rem", right: "1rem" }}
+          position="top-right"
+          richColors
+          visibleToasts={3}
+        />
       </body>
     </html>
   );

@@ -43,7 +43,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageNotice } from "@/components/ui/page-notice";
+import { ToastFeedback } from "@/components/ui/toast-feedback";
 import { getUserIdOrThrow } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import {
@@ -427,17 +427,7 @@ export default async function PlannedPage({
 
   return (
     <div className="flex flex-col gap-5">
-      {errorMessage ? (
-        <PageNotice variant="error" title="Something needs attention">
-          {errorMessage}
-        </PageNotice>
-      ) : null}
-
-      {!errorMessage && successMessage ? (
-        <PageNotice variant="success" title="Saved">
-          {successMessage}
-        </PageNotice>
-      ) : null}
+      <ToastFeedback error={errorMessage} success={successMessage} />
 
       <section className="flex flex-col gap-4">
         <div className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">

@@ -58,8 +58,8 @@ import {
 } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
-import { PageNotice } from '@/components/ui/page-notice'
 import { Select } from '@/components/ui/select'
+import { ToastFeedback } from '@/components/ui/toast-feedback'
 import { cn } from '@/lib/utils'
 
 type DashboardPageProps = {
@@ -945,17 +945,7 @@ export default async function DashboardPage ({
 
   return (
     <div className='flex flex-col gap-5'>
-      {errorMessage ? (
-        <PageNotice variant='error' title='Something needs attention'>
-          {errorMessage}
-        </PageNotice>
-      ) : null}
-
-      {!errorMessage && successMessage ? (
-        <PageNotice variant='success' title='Saved'>
-          {successMessage}
-        </PageNotice>
-      ) : null}
+      <ToastFeedback error={errorMessage} success={successMessage} />
 
       <div className='grid items-start gap-4 md:grid-cols-2'>
         <div className='min-w-0'>

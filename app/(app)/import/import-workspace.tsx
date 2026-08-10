@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -171,7 +172,6 @@ export function ImportWorkspace() {
   const [columnMapping, setColumnMapping] = useState<ImportColumnMapping>({});
   const [resolutionState, setResolutionState] = useState<Record<string, ResolutionState>>({});
   const [error, setError] = useState<string>("");
-  const [success, setSuccess] = useState<string>("");
   const [isPreviewPending, startPreviewTransition] = useTransition();
   const [isConfirmPending, startConfirmTransition] = useTransition();
 
@@ -195,7 +195,6 @@ export function ImportWorkspace() {
     }
 
     setError("");
-    setSuccess("");
 
     startPreviewTransition(() => {
       void (async () => {
@@ -210,7 +209,7 @@ export function ImportWorkspace() {
 
         if (!result.ok) {
           setPreview(null);
-          setError(result.error);
+          toast.error(result.error, { duration: 6000 });
           return;
         }
 
@@ -250,6 +249,8 @@ export function ImportWorkspace() {
       return;
     }
 
+    setError("");
+
     startConfirmTransition(() => {
       void (async () => {
         const categoryResolutions = preview.categoryResolutions.map((resolution) => {
@@ -280,7 +281,7 @@ export function ImportWorkspace() {
         });
 
         if (!result.ok) {
-          setError(result.error);
+          toast.error(result.error, { duration: 6000 });
           return;
         }
 
@@ -297,7 +298,7 @@ export function ImportWorkspace() {
           return;
         }
 
-        setSuccess(successMessage);
+        toast.success(successMessage, { duration: 4000 });
         setError("");
       })();
     });
@@ -320,12 +321,6 @@ export function ImportWorkspace() {
         </PageNotice>
       ) : null}
 
-      {!error && success ? (
-        <PageNotice variant="success" title="Import complete">
-          {success}
-        </PageNotice>
-      ) : null}
-
       <section className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(300px,0.75fr)]">
         <Card>
           <CardHeader>
@@ -343,7 +338,6 @@ export function ImportWorkspace() {
                   accept=".csv,text/csv"
                   onChange={() => {
                     setError("");
-                    setSuccess("");
                     resetPreviewState();
                     setSelectedFile(fileInputRef.current?.files?.[0] ?? null);
                   }}
