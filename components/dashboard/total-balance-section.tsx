@@ -9,7 +9,6 @@ import { BalanceAdjustmentCreateDisclosure } from '@/components/dashboard/balanc
 import { BalanceAdjustmentFormFields } from '@/components/dashboard/balance-adjustment-form-fields'
 import { TotalBalanceChart } from '@/components/dashboard/total-balance-chart'
 import { TotalBalancePeriodControls } from '@/components/dashboard/total-balance-period-controls'
-import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -197,6 +196,10 @@ export function TotalBalanceSection ({
             month={month}
             latestCompletedMonth={data.latestCompletedMonth}
             initialOpen={adjustmentState === 'add'}
+            managementOpen={Boolean(
+              adjustmentState && adjustmentState !== 'add'
+            )}
+            closeManagementHref={closeAdjustmentHref}
             manageHref={manageAdjustmentsHref}
             createAdjustmentAction={createAdjustmentAction}
           >
@@ -206,27 +209,21 @@ export function TotalBalanceSection ({
                 <Separator />
 
                 <div className='flex flex-col gap-4'>
-                <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
-                  <div className='flex flex-col gap-1.5'>
+                  <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
                     <h3 className='text-base font-semibold text-foreground'>
                       Balance adjustments
                     </h3>
-                    <p className='max-w-2xl text-sm leading-6 text-muted-foreground'>
-                      Review money added directly to historical balance. These
-                      entries never become income transactions.
-                    </p>
+                    <Link
+                      href={closeAdjustmentHref}
+                      className={buttonVariants({
+                        variant: 'ghost',
+                        size: 'sm'
+                      })}
+                    >
+                      <X data-icon='inline-start' />
+                      Close
+                    </Link>
                   </div>
-                  <Link
-                    href={closeAdjustmentHref}
-                    className={buttonVariants({
-                      variant: 'ghost',
-                      size: 'sm'
-                    })}
-                  >
-                    <X data-icon='inline-start' />
-                    Close
-                  </Link>
-                </div>
 
                   {adjustmentNotFound ? (
                     <PageNotice variant='error' title='Adjustment unavailable'>
@@ -251,40 +248,37 @@ export function TotalBalanceSection ({
                             key={adjustment.id}
                             className='flex flex-col gap-3 rounded-xl border border-border/70 bg-background/60 p-4'
                           >
-                            <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
+                            <div className='flex items-start justify-between gap-3'>
                               <div className='flex min-w-0 flex-col gap-1.5'>
-                                <div className='flex flex-wrap items-center gap-2'>
-                                  <p className='font-mono text-lg font-semibold text-foreground'>
-                                    {formatter.format(
-                                      Number(adjustment.amount)
-                                    )}
-                                  </p>
-                                  <Badge variant='outline'>
-                                    {formatMonthLabel(
-                                      adjustment.effectiveMonth
-                                    )}
-                                  </Badge>
-                                </div>
+                                <p className='font-mono text-lg font-semibold text-foreground'>
+                                  {formatter.format(Number(adjustment.amount))}
+                                </p>
                                 <p className='whitespace-pre-wrap wrap-break-word text-sm leading-6 text-muted-foreground'>
                                   {adjustment.note ?? 'No note'}
                                 </p>
+                                {isEditing ? null : (
+                                  <Link
+                                    href={buildDashboardHref({
+                                      month,
+                                      balanceQuery: data.queryParams,
+                                      balanceAdjustment: adjustment.id
+                                    })}
+                                    className={cn(
+                                      buttonVariants({
+                                        variant: 'outline',
+                                        size: 'sm'
+                                      }),
+                                      'mt-1 w-fit'
+                                    )}
+                                  >
+                                    <PencilLine data-icon='inline-start' />
+                                    Edit
+                                  </Link>
+                                )}
                               </div>
-                              <Link
-                                href={buildDashboardHref({
-                                  month,
-                                  balanceQuery: data.queryParams,
-                                  balanceAdjustment: isEditing
-                                    ? 'manage'
-                                    : adjustment.id
-                                })}
-                                className={buttonVariants({
-                                  variant: 'outline',
-                                  size: 'sm'
-                                })}
-                              >
-                                <PencilLine data-icon='inline-start' />
-                                {isEditing ? 'Close edit' : 'Edit'}
-                              </Link>
+                              <p className='shrink-0 text-sm font-medium text-muted-foreground'>
+                                {formatMonthLabel(adjustment.effectiveMonth)}
+                              </p>
                             </div>
 
                             {isEditing ? (
@@ -323,7 +317,7 @@ export function TotalBalanceSection ({
                                         variant: 'outline'
                                       })}
                                     >
-                                      Cancel
+                                      Close/Cancel
                                     </Link>
                                     <Button
                                       type='submit'

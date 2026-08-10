@@ -332,7 +332,8 @@ Users can add positive money adjustments for completed months, then review,
 edit, or delete them inline. Adjustments are useful for opening balances and
 previously untracked money. They affect Total Balance only and never increase
 transaction income or alter monthly totals, planned items, safe-to-spend, or
-forecast calculations.
+forecast calculations. Add money, adjustment management, and adjustment editing
+are mutually exclusive disclosures so only one workflow is open at a time.
 
 Empty states distinguish no completed history from a current-year range with no
 completed month. A selected period with no new activity still shows carried

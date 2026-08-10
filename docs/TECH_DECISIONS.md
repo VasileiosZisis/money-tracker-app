@@ -367,7 +367,7 @@ Dashboard rules:
   `month` parameter and are preserved across dashboard mutations
 - Total Balance defaults to all time
 - invalid balance ranges normalize to all time and return an actionable error
-- Add Money opens its inline form immediately with local client state; its query parameter remains available for validation-error recovery, while adjustment management stays query-parameter-driven
+- Add Money opens its inline form immediately with local client state; its query parameter remains available for validation-error recovery, while adjustment management stays query-parameter-driven. Add, manage, and edit disclosures are mutually exclusive: opening Add clears manage/edit URL state, and opening Manage closes Add.
 - calculations stay Decimal-safe on the server; chart numbers are display-only
 
 ---

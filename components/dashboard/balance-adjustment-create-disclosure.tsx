@@ -2,6 +2,7 @@
 
 import { ListRestart, Plus, X } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import * as React from "react";
 
 import { BalanceAdjustmentFormFields } from "@/components/dashboard/balance-adjustment-form-fields";
@@ -14,6 +15,8 @@ type BalanceAdjustmentCreateDisclosureProps = {
   month: string;
   latestCompletedMonth: string;
   initialOpen: boolean;
+  managementOpen: boolean;
+  closeManagementHref: string;
   manageHref: string;
   createAdjustmentAction: (formData: FormData) => Promise<void>;
 };
@@ -24,10 +27,21 @@ export function BalanceAdjustmentCreateDisclosure({
   month,
   latestCompletedMonth,
   initialOpen,
+  managementOpen,
+  closeManagementHref,
   manageHref,
   createAdjustmentAction,
 }: BalanceAdjustmentCreateDisclosureProps) {
+  const router = useRouter();
   const [isOpen, setIsOpen] = React.useState(initialOpen);
+
+  function openAddMoney() {
+    setIsOpen(true);
+
+    if (managementOpen) {
+      router.replace(closeManagementHref, { scroll: false });
+    }
+  }
 
   return (
     <>
@@ -37,13 +51,14 @@ export function BalanceAdjustmentCreateDisclosure({
           size="sm"
           aria-expanded={isOpen}
           aria-controls="add-balance-adjustment-form"
-          onClick={() => setIsOpen(true)}
+          onClick={openAddMoney}
         >
           <Plus data-icon="inline-start" />
           Add money
         </Button>
         <Link
           href={manageHref}
+          onClick={() => setIsOpen(false)}
           className={buttonVariants({ variant: "outline", size: "sm" })}
         >
           <ListRestart data-icon="inline-start" />

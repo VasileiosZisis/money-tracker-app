@@ -50,11 +50,9 @@ export function BalanceAdjustmentFormFields({
           type="month"
           max={latestCompletedMonth}
           defaultValue={defaultValues.effectiveMonth}
+          className="relative pr-10 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:top-1/2 [&::-webkit-calendar-picker-indicator]:m-0 [&::-webkit-calendar-picker-indicator]:-translate-y-1/2"
           required
         />
-        <FieldDescription>
-          Only completed months can affect historical balance.
-        </FieldDescription>
       </Field>
 
       <Field className="md:col-span-2">
