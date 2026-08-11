@@ -74,6 +74,9 @@ Locked decisions:
 - Session must include `session.user.id`
   - use NextAuth callbacks to attach `user.id` to session
   - add TypeScript module augmentation in `types/next-auth.d.ts`
+- Session resolution is memoized with React `cache()` for the lifetime of each
+  server request so layouts, pages, and nested data loaders share one result.
+  It must not use persistent or cross-request caching.
 
 Do not introduce:
 
