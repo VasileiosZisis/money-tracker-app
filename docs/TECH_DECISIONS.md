@@ -403,6 +403,7 @@ Required derived metrics:
 - `dailySafeSpend`
 - `weeklySafeSpend`
 - `spendingPace`
+- `plannedIncomeRealization`
 - `pendingPlannedIncome`
 
 Locked formulas:
@@ -417,6 +418,7 @@ Locked formulas:
 - `currentDailyPace = selectedMonthVariableExpensesSoFar / elapsedDays`
 - `historicalDailyPace = trailingUsableMonthVariableExpenses / trailingUsableMonthCalendarDays`
 - `spendingPacePercentage = (currentDailyPace - historicalDailyPace) / historicalDailyPace * 100`
+- `plannedIncomeRealization = actualReceivedPlannedIncome / totalActivePlannedIncome * 100`
 
 Forecast rules:
 
@@ -437,6 +439,11 @@ Forecast rules:
   baseline exists; direction is based on the percentage rounded to one decimal
 - the Spending pace metric stays compact; only an above-usual current-month pace
   creates a warning attention signal, ordered after due-soon planned bills
+- planned-income realization uses the linked/generated transaction amount for
+  received occurrences and includes pending and skipped active templates in its
+  denominator; results may exceed 100% and are rounded to one decimal
+- realization is available for current and completed past months, uses a
+  Not-started state for future months, and is unavailable without active plans
 
 Do not introduce:
 

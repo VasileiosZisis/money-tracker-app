@@ -182,6 +182,8 @@ V1b dashboard polish:
 - planned income summary shows pending total, received total, skipped count, and next pending income
 - link transaction options show deterministic hints such as exact amount, same category, and same subcategory
 - link hints are labels only; they do not auto-match or auto-link transactions
+- the dashboard shows planned-income realization using actual received
+  transaction amounts against all active planned income for the selected month
 
 ### 9. Month-end review
 
@@ -219,6 +221,7 @@ Implemented:
 5. Add planned income templates and dashboard polish.
 6. Add weekly safe-to-spend for the next seven days or the rest of the month.
 7. Add overall spending pace against up to six usable historical months.
+8. Add planned-income realization with actual-versus-planned amounts.
 
 Still open:
 

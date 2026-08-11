@@ -288,6 +288,7 @@ projectedEndOfMonthNet = netLeftNow + pendingPlannedIncome - forecastRemainingSp
 currentDailyPace = selectedMonthVariableExpensesSoFar / elapsedDays
 historicalDailyPace = trailingUsableMonthVariableExpenses / trailingUsableMonthCalendarDays
 spendingPacePercentage = (currentDailyPace - historicalDailyPace) / historicalDailyPace * 100
+plannedIncomeRealization = actualReceivedPlannedIncome / totalActivePlannedIncome * 100
 ```
 
 Rules:
@@ -313,6 +314,12 @@ Rules:
   months and months without a usable historical baseline are unavailable.
 - Spending pace direction is above, below, or on pace after rounding the
   percentage difference to one decimal place.
+- Planned-income realization uses actual transaction amounts from received
+  linked/generated occurrences over every active planned-income template amount
+  for the selected month. Pending and skipped templates remain in the denominator.
+- Realization can exceed 100% and is rounded to one decimal. It is shown for
+  current and completed past months; future months are Not started and months
+  without active planned income are Unavailable.
 
 ### Total Balance
 
@@ -358,6 +365,7 @@ Monthly Snapshot supports a selected month and includes:
 - daily safe spend
 - weekly safe spend
 - spending pace amount and direction
+- planned-income realization percentage with actual-versus-planned amounts
 - forecast remaining spend
 - current-month forecast confidence
 - planned income status and actions

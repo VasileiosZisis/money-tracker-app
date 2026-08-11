@@ -6,6 +6,7 @@ import {
   ChartNoAxesCombined,
   CircleAlert,
   CircleCheckBig,
+  CircleDollarSign,
   FolderClock,
   Gauge,
   Plus,
@@ -392,6 +393,36 @@ function getSpendingPaceMeta (forecast: ForecastData) {
   }
 }
 
+function getIncomeRealizationMeta (
+  realization: DashboardData['plannedIncomeRealization']
+) {
+  if (realization.status === 'complete') {
+    return {
+      tone: 'success' as MetricTone,
+      badgeVariant: 'success' as const
+    }
+  }
+
+  if (realization.status === 'under-realized') {
+    return {
+      tone: 'warning' as MetricTone,
+      badgeVariant: 'warning' as const
+    }
+  }
+
+  if (realization.status === 'in-progress') {
+    return {
+      tone: 'default' as MetricTone,
+      badgeVariant: 'accent' as const
+    }
+  }
+
+  return {
+    tone: 'default' as MetricTone,
+    badgeVariant: 'outline' as const
+  }
+}
+
 function getPlannedBillStatusMeta (status: DashboardPlannedBillStatus) {
   switch (status) {
     case 'paid':
@@ -566,6 +597,7 @@ function MetricCard ({
     <Badge
       variant={badgeVariant}
       className={cn(
+        badgePlacement === 'below' && 'self-start',
         badgePlacement === 'title' &&
           'shrink-0 whitespace-nowrap px-1.5'
       )}
@@ -912,6 +944,20 @@ export default async function DashboardPage ({
     data.forecast.forecastConfidence
   )
   const spendingPaceMeta = getSpendingPaceMeta(data.forecast)
+  const incomeRealization = data.plannedIncomeRealization
+  const incomeRealizationMeta = getIncomeRealizationMeta(incomeRealization)
+  const incomeRealizationValue =
+    incomeRealization.percentage !== null
+      ? `${incomeRealization.percentage.toFixed(1)}%`
+      : incomeRealization.status === 'not-started'
+        ? 'Not started'
+        : 'Unavailable'
+  const incomeRealizationBadge =
+    incomeRealization.status === 'unavailable'
+      ? 'No planned income'
+      : incomeRealization.status === 'not-started'
+        ? `${formatMoney(formatter, incomeRealization.totalPlannedAmount)} planned`
+        : `${formatMoney(formatter, incomeRealization.actualReceivedAmount)} of ${formatMoney(formatter, incomeRealization.totalPlannedAmount)} received`
   const netTone = getNetTone(data.netLeft)
   const projectedNetTone = getNetTone(data.forecast.projectedEndOfMonthNet)
   const displayedPlannedBills = data.plannedBills.filter(
@@ -1141,6 +1187,15 @@ export default async function DashboardPage ({
             badgeVariant={spendingPaceMeta.badgeVariant}
             badgePlacement='title'
             icon={<Gauge className='size-5' />}
+          />
+          <MetricCard
+            title='Income realization'
+            value={incomeRealizationValue}
+            tone={incomeRealizationMeta.tone}
+            badgeLabel={incomeRealizationBadge}
+            badgeVariant={incomeRealizationMeta.badgeVariant}
+            badgePlacement='title'
+            icon={<CircleDollarSign className='size-5' />}
           />
         </div>
 

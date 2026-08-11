@@ -15,6 +15,10 @@ import {
   type DashboardSpendingCategory,
 } from "@/lib/dashboard/spending-by-category";
 import {
+  calculatePlannedIncomeRealization,
+  type PlannedIncomeRealizationResult,
+} from "@/lib/dashboard/planned-income-realization";
+import {
   buildDashboardAttentionItems,
   type DashboardAttentionItem,
 } from "@/lib/dashboard/attention";
@@ -165,6 +169,7 @@ export type DashboardMonthData = {
   } | null;
   plannedBills: DashboardPlannedBill[];
   plannedIncomes: DashboardPlannedIncome[];
+  plannedIncomeRealization: PlannedIncomeRealizationResult;
   plannedIncomeSummary: {
     pendingTotal: Prisma.Decimal;
     receivedTotal: Prisma.Decimal;
@@ -795,6 +800,11 @@ async function loadDashboardMonthData(
             receivedAtLocalDate: true,
             transactionId: true,
             paymentSource: true,
+            transaction: {
+              select: {
+                amount: true,
+              },
+            },
           },
           take: 1,
         },
@@ -1054,6 +1064,16 @@ async function loadDashboardMonthData(
     linkCandidates: getLinkCandidatesForPlannedIncome(plannedIncome),
   }));
   const plannedIncomeSummary = buildPlannedIncomeSummary(dashboardPlannedIncomes);
+  const plannedIncomeRealization = calculatePlannedIncomeRealization({
+    monthRelation: forecast.monthContext.monthRelation,
+    plannedIncomes: plannedIncomes.map((plannedIncome) => ({
+      plannedAmount: plannedIncome.amount,
+      isActive: plannedIncome.isActive,
+      occurrenceStatus: plannedIncome.occurrences[0]?.status ?? null,
+      receivedTransactionAmount:
+        plannedIncome.occurrences[0]?.transaction?.amount ?? null,
+    })),
+  });
 
   return {
     month,
@@ -1075,6 +1095,7 @@ async function loadDashboardMonthData(
     latestTransactionEntry,
     plannedBills: dashboardPlannedBills,
     plannedIncomes: dashboardPlannedIncomes,
+    plannedIncomeRealization,
     plannedIncomeSummary,
     recentTransactions: recentTransactions.map((transaction) => ({
       id: transaction.id,

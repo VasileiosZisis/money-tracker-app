@@ -201,6 +201,7 @@ Implement/support:
    - `dailySafeSpend`
    - `weeklySafeSpend`
    - `spendingPace`
+   - `plannedIncomeRealization`
 
 4. Safe-to-spend indicator
 
@@ -303,6 +304,9 @@ Do NOT implement unless explicitly requested later:
 - Pending planned income does not affect conservative safe-to-spend, daily safe spend, or weekly safe spend
 - Linked existing transactions and generated transactions must be distinguished for undo behavior
 - Generated income transactions copy optional Source and Note metadata from planned income; the planned income name remains template identity only
+- Planned-income realization uses actual linked/generated transaction amounts
+  divided by all active planned-income template amounts for the selected month
+- Pending and skipped planned income remain in the realization denominator
 
 ### Forecast
 
@@ -438,6 +442,15 @@ Spending pace:
   one decimal place
 - keep the Spending pace metric card compact; only an above-usual current-month
   pace creates a warning in Needs Attention with its historical-baseline context
+
+Planned-income realization:
+
+- `plannedIncomeRealization = actualReceivedPlannedIncome / totalActivePlannedIncome * 100`
+- use actual linked/generated transaction amounts for received occurrences
+- include received, pending, and skipped active templates in the denominator
+- allow results above 100% and round the displayed percentage to one decimal
+- show current and completed past months; future months are Not started and
+  months without active planned income are Unavailable
 
 Recommended approach for variable forecast:
 

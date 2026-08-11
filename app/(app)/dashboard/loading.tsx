@@ -61,6 +61,7 @@ export default function DashboardLoading() {
           <Skeleton className="h-36 w-full rounded-2xl" />
           <Skeleton className="h-36 w-full rounded-2xl" />
           <Skeleton className="h-36 w-full rounded-2xl" />
+          <Skeleton className="h-36 w-full rounded-2xl" />
         </div>
         <Card aria-label="Loading needs attention">
           <CardHeader className="border-b border-border/70 pb-4">
