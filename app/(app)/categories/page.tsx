@@ -329,6 +329,7 @@ export default async function CategoriesPage({
                                   status: selectedStatus,
                                   edit: category.id,
                                 })}
+                                scroll={false}
                                 className={cn(
                                   buttonVariants({
                                     variant: "outline",

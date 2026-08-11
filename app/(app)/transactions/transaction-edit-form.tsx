@@ -73,6 +73,7 @@ export function TransactionEditForm({
       <div className="flex flex-wrap justify-end gap-3 border-t border-border/70 pt-5">
         <Link
           href={cancelHref}
+          scroll={false}
           className={cn(buttonVariants({ variant: "outline" }), "rounded-xl")}
         >
           Close/Cancel

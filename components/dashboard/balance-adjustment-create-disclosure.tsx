@@ -58,6 +58,7 @@ export function BalanceAdjustmentCreateDisclosure({
         </Button>
         <Link
           href={manageHref}
+          scroll={false}
           onClick={() => setIsOpen(false)}
           className={buttonVariants({ variant: "outline", size: "sm" })}
         >

@@ -515,6 +515,7 @@ export default async function PlannedPage({
                                     selectedStatus,
                                     { edit: editorValue },
                                   )}
+                                  scroll={false}
                                   className={cn(
                                     buttonVariants({
                                       variant: "outline",
@@ -571,6 +572,7 @@ export default async function PlannedPage({
                                       selectedStatus,
                                       {},
                                     )}
+                                    scroll={false}
                                     className={cn(
                                       buttonVariants({ variant: "outline" }),
                                       "rounded-xl",
@@ -659,6 +661,7 @@ export default async function PlannedPage({
                                   selectedStatus,
                                   { edit: editorValue },
                                 )}
+                                scroll={false}
                                 className={cn(
                                   buttonVariants({
                                     variant: "outline",
@@ -715,6 +718,7 @@ export default async function PlannedPage({
                                     selectedStatus,
                                     {},
                                   )}
+                                  scroll={false}
                                   className={cn(
                                     buttonVariants({ variant: "outline" }),
                                     "rounded-xl",

@@ -215,6 +215,7 @@ export function TotalBalanceSection ({
                     </h3>
                     <Link
                       href={closeAdjustmentHref}
+                      scroll={false}
                       className={buttonVariants({
                         variant: 'ghost',
                         size: 'sm'
@@ -263,6 +264,7 @@ export function TotalBalanceSection ({
                                       balanceQuery: data.queryParams,
                                       balanceAdjustment: adjustment.id
                                     })}
+                                    scroll={false}
                                     className={cn(
                                       buttonVariants({
                                         variant: 'outline',
@@ -313,6 +315,7 @@ export function TotalBalanceSection ({
                                   <div className='flex flex-wrap justify-end gap-3'>
                                     <Link
                                       href={manageAdjustmentsHref}
+                                      scroll={false}
                                       className={buttonVariants({
                                         variant: 'outline'
                                       })}

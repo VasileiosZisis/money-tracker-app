@@ -419,6 +419,7 @@ export default async function TransactionsPage({
                               subcategoryId: effectiveSubcategoryFilter,
                               edit: transaction.id,
                             })}
+                            scroll={false}
                             className={cn(
                               buttonVariants({ variant: "outline", size: "sm" }),
                               "rounded-xl",
