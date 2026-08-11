@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   FolderOpen,
@@ -27,6 +26,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import {
+  InlineEditorLink,
+  InlineEditorPanel,
+  InlineEditorProvider,
+} from "@/components/ui/inline-editor";
 import { ToastFeedback } from "@/components/ui/toast-feedback";
 import {
   buildPathWithSearchParams,
@@ -173,13 +177,6 @@ export default async function TransactionsPage({
 
   const editingTransaction =
     transactions.find((transaction) => transaction.id === editId) ?? null;
-  const editCategoryOptions = editingTransaction
-    ? meta.categories.filter(
-        (category) =>
-          category.type === editingTransaction.type &&
-          (!category.isArchived || category.id === editingTransaction.categoryId),
-      )
-    : [];
 
   async function createTransactionAction(formData: FormData) {
     "use server";
@@ -337,7 +334,8 @@ export default async function TransactionsPage({
               <CardHeader className="border-b border-border/70 pb-4">
                 <CardTitle>Transactions list</CardTitle>
               </CardHeader>
-              <CardContent className="grid gap-4 p-4">
+              <InlineEditorProvider initialEditorId={editingTransaction?.id}>
+                <CardContent className="grid gap-4 p-4">
             {transactions.length === 0 ? (
               <EmptyState
                 icon={FolderOpen}
@@ -346,7 +344,12 @@ export default async function TransactionsPage({
               />
             ) : (
               transactions.map((transaction) => {
-                const isEditing = editingTransaction?.id === transaction.id;
+                const editCategoryOptions = meta.categories.filter(
+                  (category) =>
+                    category.type === transaction.type &&
+                    (!category.isArchived ||
+                      category.id === transaction.categoryId),
+                );
                 const amountTone =
                   transaction.type === "INCOME"
                     ? "text-success"
@@ -409,9 +412,8 @@ export default async function TransactionsPage({
                         </div>
                       </div>
 
-                      {!isEditing ? (
-                        <div className="flex flex-wrap gap-2">
-                          <Link
+                      <div className="flex flex-wrap gap-2">
+                          <InlineEditorLink
                             href={buildTransactionsPageUrl({
                               month: selectedMonth,
                               type: selectedType,
@@ -419,7 +421,8 @@ export default async function TransactionsPage({
                               subcategoryId: effectiveSubcategoryFilter,
                               edit: transaction.id,
                             })}
-                            scroll={false}
+                            editorId={transaction.id}
+                            hideWhenActive
                             className={cn(
                               buttonVariants({ variant: "outline", size: "sm" }),
                               "rounded-xl",
@@ -427,11 +430,10 @@ export default async function TransactionsPage({
                             >
                               <PencilLine />
                               View/Edit
-                            </Link>
+                            </InlineEditorLink>
                         </div>
-                      ) : null}
 
-                      {isEditing ? (
+                      <InlineEditorPanel editorId={transaction.id}>
                         <TransactionEditForm
                           id={transaction.id}
                           categories={editCategoryOptions}
@@ -454,13 +456,14 @@ export default async function TransactionsPage({
                           deleteAction={deleteTransactionAction}
                           updateAction={updateTransactionAction}
                         />
-                      ) : null}
+                      </InlineEditorPanel>
                     </div>
                   </div>
                 );
               })
             )}
-              </CardContent>
+                </CardContent>
+              </InlineEditorProvider>
             </Card>
           </div>
         </div>

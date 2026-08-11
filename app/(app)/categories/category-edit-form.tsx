@@ -1,12 +1,12 @@
 "use client";
 
 import { Archive, ArchiveRestore, Plus, Trash2 } from "lucide-react";
-import Link from "next/link";
 import * as React from "react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
+import { InlineEditorLink } from "@/components/ui/inline-editor";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
@@ -253,13 +253,12 @@ export function CategoryEditForm({
       </div>
 
       <div className="flex flex-wrap justify-end gap-3 border-t border-border/70 pt-5">
-        <Link
+        <InlineEditorLink
           href={cancelHref}
-          scroll={false}
           className={cn(buttonVariants({ variant: "outline" }), "rounded-xl")}
         >
           Close/Cancel
-        </Link>
+        </InlineEditorLink>
         {category.isArchived ? (
           <Button
             type="submit"

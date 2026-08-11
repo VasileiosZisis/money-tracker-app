@@ -5,7 +5,6 @@ import {
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import {
@@ -30,6 +29,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import {
+  InlineEditorLink,
+  InlineEditorPanel,
+  InlineEditorProvider,
+} from "@/components/ui/inline-editor";
 import { ToastFeedback } from "@/components/ui/toast-feedback";
 import {
   buildPathWithSearchParams,
@@ -269,7 +273,8 @@ export default async function CategoriesPage({
               <CardHeader className="border-b border-border/70 pb-4">
                 <CardTitle>Categories list</CardTitle>
               </CardHeader>
-              <CardContent className="grid gap-4 p-4">
+              <InlineEditorProvider initialEditorId={editingCategory?.id}>
+                <CardContent className="grid gap-4 p-4">
                 {visibleCategories.length === 0 ? (
                   <EmptyState
                     icon={FolderOpen}
@@ -277,7 +282,6 @@ export default async function CategoriesPage({
                   />
                 ) : (
                   visibleCategories.map((category) => {
-                    const isEditing = editingCategory?.id === category.id;
                     const subcategoryNames = category.subcategories
                       .map((subcategory) => subcategory.name)
                       .join(" / ");
@@ -321,15 +325,15 @@ export default async function CategoriesPage({
                             </div>
                           </div>
 
-                          {!isEditing ? (
-                            <div className="flex flex-wrap gap-2">
-                              <Link
+                          <div className="flex flex-wrap gap-2">
+                              <InlineEditorLink
                                 href={buildCategoriesPageUrl({
                                   type: selectedType,
                                   status: selectedStatus,
                                   edit: category.id,
                                 })}
-                                scroll={false}
+                                editorId={category.id}
+                                hideWhenActive
                                 className={cn(
                                   buttonVariants({
                                     variant: "outline",
@@ -340,11 +344,10 @@ export default async function CategoriesPage({
                               >
                                 <PencilLine />
                                 View/Edit
-                              </Link>
+                              </InlineEditorLink>
                             </div>
-                          ) : null}
 
-                          {isEditing ? (
+                          <InlineEditorPanel editorId={category.id}>
                             <CategoryEditForm
                               category={{
                                 id: category.id,
@@ -366,13 +369,14 @@ export default async function CategoriesPage({
                               restoreAction={restoreCategoryAction}
                               updateAction={updateCategoryAction}
                             />
-                          ) : null}
+                          </InlineEditorPanel>
                         </div>
                       </div>
                     );
                   })
                 )}
-              </CardContent>
+                </CardContent>
+              </InlineEditorProvider>
             </Card>
           </div>
         </div>

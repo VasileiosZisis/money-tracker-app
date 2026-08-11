@@ -6,7 +6,6 @@ import {
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { listCategories } from "@/actions/categories";
@@ -43,6 +42,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import {
+  InlineEditorLink,
+  InlineEditorPanel,
+  InlineEditorProvider,
+} from "@/components/ui/inline-editor";
 import { ToastFeedback } from "@/components/ui/toast-feedback";
 import { getUserIdOrThrow } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -424,6 +428,15 @@ export default async function PlannedPage({
           .filter((plannedIncome) => plannedIncome.isActive === showActive)
           .map((item) => ({ kind: "INCOME" as const, item }))),
   ];
+  const initialEditorId = visibleItems.some((plannedItem) => {
+    const itemEditorId =
+      plannedItem.kind === "BILL"
+        ? `bill:${plannedItem.item.id}`
+        : `income:${plannedItem.item.id}`;
+    return itemEditorId === editParam;
+  })
+    ? editParam
+    : undefined;
 
   return (
     <div className="flex flex-col gap-5">
@@ -460,7 +473,8 @@ export default async function PlannedPage({
               <CardHeader className="border-b border-border/70 pb-4">
                 <CardTitle>Planned items list</CardTitle>
               </CardHeader>
-              <CardContent className="grid gap-4 p-4">
+              <InlineEditorProvider initialEditorId={initialEditorId}>
+                <CardContent className="grid gap-4 p-4">
                 {visibleItems.length === 0 ? (
                   <EmptyState icon={FolderOpen} title="No planned items" />
                 ) : (
@@ -468,7 +482,6 @@ export default async function PlannedPage({
                     if (plannedItem.kind === "BILL") {
                       const plannedBill = plannedItem.item;
                       const editorValue = `bill:${plannedBill.id}`;
-                      const isEditing = editParam === editorValue;
                       const editCategories = getAvailableCategories(
                         expenseCategories,
                         plannedBill.categoryId,
@@ -507,15 +520,15 @@ export default async function PlannedPage({
                               </div>
                             </div>
 
-                            {!isEditing ? (
-                              <div className="flex flex-wrap gap-2">
-                                <Link
+                            <div className="flex flex-wrap gap-2">
+                                <InlineEditorLink
                                   href={buildPlannedViewUrl(
                                     selectedType,
                                     selectedStatus,
                                     { edit: editorValue },
                                   )}
-                                  scroll={false}
+                                  editorId={editorValue}
+                                  hideWhenActive
                                   className={cn(
                                     buttonVariants({
                                       variant: "outline",
@@ -526,11 +539,10 @@ export default async function PlannedPage({
                                 >
                                   <PencilLine />
                                   View/Edit
-                                </Link>
+                                </InlineEditorLink>
                               </div>
-                            ) : null}
 
-                            {isEditing ? (
+                            <InlineEditorPanel editorId={editorValue}>
                               <form
                                 action={updatePlannedBillAction}
                                 className="grid gap-4 border-t border-border/70 pt-4"
@@ -566,20 +578,19 @@ export default async function PlannedPage({
                                 />
 
                                 <div className="flex flex-wrap justify-end gap-3 border-t border-border/70 pt-5">
-                                  <Link
+                                  <InlineEditorLink
                                     href={buildPlannedViewUrl(
                                       selectedType,
                                       selectedStatus,
                                       {},
                                     )}
-                                    scroll={false}
                                     className={cn(
                                       buttonVariants({ variant: "outline" }),
                                       "rounded-xl",
                                     )}
                                   >
                                     Close/Cancel
-                                  </Link>
+                                  </InlineEditorLink>
                                   <Button
                                     type="submit"
                                     formAction={deletePlannedBillAction}
@@ -606,7 +617,7 @@ export default async function PlannedPage({
                                   <Button type="submit">Save changes</Button>
                                 </div>
                               </form>
-                            ) : null}
+                            </InlineEditorPanel>
                           </div>
                         </div>
                       );
@@ -614,7 +625,6 @@ export default async function PlannedPage({
 
                     const plannedIncome = plannedItem.item;
                     const editorValue = `income:${plannedIncome.id}`;
-                    const isEditing = editParam === editorValue;
                     const editCategories = getAvailableCategories(
                       incomeCategories,
                       plannedIncome.categoryId,
@@ -653,15 +663,15 @@ export default async function PlannedPage({
                             </div>
                           </div>
 
-                          {!isEditing ? (
-                            <div className="flex flex-wrap gap-2">
-                              <Link
+                          <div className="flex flex-wrap gap-2">
+                              <InlineEditorLink
                                 href={buildPlannedViewUrl(
                                   selectedType,
                                   selectedStatus,
                                   { edit: editorValue },
                                 )}
-                                scroll={false}
+                                editorId={editorValue}
+                                hideWhenActive
                                 className={cn(
                                   buttonVariants({
                                     variant: "outline",
@@ -672,11 +682,10 @@ export default async function PlannedPage({
                               >
                                 <PencilLine />
                                 View/Edit
-                              </Link>
+                              </InlineEditorLink>
                             </div>
-                          ) : null}
 
-                          {isEditing ? (
+                          <InlineEditorPanel editorId={editorValue}>
                             <form
                               action={updatePlannedIncomeAction}
                               className="grid gap-4 border-t border-border/70 pt-4"
@@ -712,20 +721,19 @@ export default async function PlannedPage({
                               />
 
                               <div className="flex flex-wrap justify-end gap-3 border-t border-border/70 pt-5">
-                                <Link
+                                <InlineEditorLink
                                   href={buildPlannedViewUrl(
                                     selectedType,
                                     selectedStatus,
                                     {},
                                   )}
-                                  scroll={false}
                                   className={cn(
                                     buttonVariants({ variant: "outline" }),
                                     "rounded-xl",
                                   )}
                                 >
                                   Close/Cancel
-                                </Link>
+                                </InlineEditorLink>
                                 <Button
                                   type="submit"
                                   formAction={deletePlannedIncomeAction}
@@ -752,13 +760,14 @@ export default async function PlannedPage({
                                 <Button type="submit">Save changes</Button>
                               </div>
                             </form>
-                          ) : null}
+                          </InlineEditorPanel>
                         </div>
                       </div>
                     );
                   })
                 )}
-              </CardContent>
+                </CardContent>
+              </InlineEditorProvider>
             </Card>
           </div>
         </div>

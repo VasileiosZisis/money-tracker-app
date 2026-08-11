@@ -85,6 +85,8 @@ simpler than a full accounting or budgeting suite.
   show subcategory names on a secondary line separated by ` / `.
 - A collapsed category exposes `View/Edit`. Its expanded editor stages category
   and subcategory renames, additions, and removals for one atomic save.
+- Category editors open immediately in local client state, with only one editor
+  open at a time and shallow URL synchronization for deep-link compatibility.
 - Active categories expose Archive in the editor; inactive categories expose
   Restore. Category type cannot be changed during editing.
 
@@ -118,6 +120,8 @@ Transaction-page interaction rules:
   subcategories.
 - A collapsed transaction exposes a `View/Edit` action; deletion remains
   available inside the expanded editor.
+- Transaction editors open immediately in local client state, with only one
+  editor open at a time and shallow URL synchronization for deep links.
 - The expanded editor disables Save changes until at least one submitted field
   differs from the stored transaction.
 
@@ -175,7 +179,8 @@ default. New templates are always active.
 The list supports All, Bill, and Income type views plus Active or Inactive
 status. All active items are shown by default; bills appear before income while
 each type retains its own day/name ordering. Only one item editor can be open at
-a time. Rows show the category and optional subcategory beside a red bill or
+a time; it opens immediately in local client state and shallowly synchronizes
+its composite edit value to the URL. Rows show the category and optional subcategory beside a red bill or
 green income icon, with the due or expected day above the amount at the far
 right. Planned-item names and active/inactive labels are omitted from collapsed
 rows. Collapsed rows expose only View/Edit; expanded editors keep Name editable
@@ -329,7 +334,9 @@ are rejected. Total Balance selection remains independent from the Monthly
 Snapshot month.
 
 Users can add positive money adjustments for completed months, then review,
-edit, or delete them inline. Adjustments are useful for opening balances and
+edit, or delete them inline. Add, management, and edit disclosures switch
+immediately through one mutually exclusive local client state while shallowly
+synchronizing their URL value. Adjustments are useful for opening balances and
 previously untracked money. They affect Total Balance only and never increase
 transaction income or alter monthly totals, planned items, safe-to-spend, or
 forecast calculations. Add money, adjustment management, and adjustment editing

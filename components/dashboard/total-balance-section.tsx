@@ -1,19 +1,15 @@
-import { History, PencilLine, Trash2, X } from 'lucide-react'
-import Link from 'next/link'
+import { History } from 'lucide-react'
 
 import type {
   DashboardBalanceQueryParams,
   DashboardTotalBalanceData
 } from '@/actions/dashboard'
 import { BalanceAdjustmentCreateDisclosure } from '@/components/dashboard/balance-adjustment-create-disclosure'
-import { BalanceAdjustmentFormFields } from '@/components/dashboard/balance-adjustment-form-fields'
 import { TotalBalanceChart } from '@/components/dashboard/total-balance-chart'
 import { TotalBalancePeriodControls } from '@/components/dashboard/total-balance-period-controls'
-import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { PageNotice } from '@/components/ui/page-notice'
-import { Separator } from '@/components/ui/separator'
 import { formatMonthLabel } from '@/lib/dates/month'
 import { cn } from '@/lib/utils'
 
@@ -22,7 +18,6 @@ type TotalBalanceSectionProps = {
   month: string
   data: DashboardTotalBalanceData
   adjustmentState?: string
-  adjustmentNotFound: boolean
   createAdjustmentAction: (formData: FormData) => Promise<void>
   updateAdjustmentAction: (formData: FormData) => Promise<void>
   deleteAdjustmentAction: (formData: FormData) => Promise<void>
@@ -53,7 +48,6 @@ export function TotalBalanceSection ({
   month,
   data,
   adjustmentState,
-  adjustmentNotFound,
   createAdjustmentAction,
   updateAdjustmentAction,
   deleteAdjustmentAction
@@ -95,9 +89,11 @@ export function TotalBalanceSection ({
     balanceQuery: data.queryParams,
     balanceAdjustment: 'manage'
   })
-  const editingAdjustment = data.adjustments.find(
-    adjustment => adjustment.id === adjustmentState
-  )
+  const addAdjustmentHref = buildDashboardHref({
+    month,
+    balanceQuery: data.queryParams,
+    balanceAdjustment: 'add'
+  })
 
   return (
     <section
@@ -192,158 +188,30 @@ export function TotalBalanceSection ({
           )}
 
           <BalanceAdjustmentCreateDisclosure
-            currency={currency}
-            month={month}
-            latestCompletedMonth={data.latestCompletedMonth}
-            initialOpen={adjustmentState === 'add'}
-            managementOpen={Boolean(
-              adjustmentState && adjustmentState !== 'add'
-            )}
-            closeManagementHref={closeAdjustmentHref}
-            manageHref={manageAdjustmentsHref}
+            addHref={addAdjustmentHref}
+            adjustments={data.adjustments.map(adjustment => ({
+              id: adjustment.id,
+              amount: adjustment.amount,
+              effectiveMonth: adjustment.effectiveMonth,
+              editHref: buildDashboardHref({
+                month,
+                balanceQuery: data.queryParams,
+                balanceAdjustment: adjustment.id
+              }),
+              formattedAmount: formatter.format(Number(adjustment.amount)),
+              formattedMonth: formatMonthLabel(adjustment.effectiveMonth),
+              note: adjustment.note
+            }))}
+            closeHref={closeAdjustmentHref}
             createAdjustmentAction={createAdjustmentAction}
-          >
-
-            {adjustmentState && adjustmentState !== 'add' ? (
-              <>
-                <Separator />
-
-                <div className='flex flex-col gap-4'>
-                  <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
-                    <h3 className='text-base font-semibold text-foreground'>
-                      Balance adjustments
-                    </h3>
-                    <Link
-                      href={closeAdjustmentHref}
-                      scroll={false}
-                      className={buttonVariants({
-                        variant: 'ghost',
-                        size: 'sm'
-                      })}
-                    >
-                      <X data-icon='inline-start' />
-                      Close
-                    </Link>
-                  </div>
-
-                  {adjustmentNotFound ? (
-                    <PageNotice variant='error' title='Adjustment unavailable'>
-                      Balance adjustment not found.
-                    </PageNotice>
-                  ) : null}
-
-                  {data.adjustments.length === 0 ? (
-                    <EmptyState
-                      icon={History}
-                      title='No balance adjustments yet'
-                      description='Add an opening balance or previously untracked money to include it in completed-month history.'
-                    />
-                  ) : (
-                    <div className='flex flex-col gap-3'>
-                      {data.adjustments.map(adjustment => {
-                        const isEditing =
-                          editingAdjustment?.id === adjustment.id
-
-                        return (
-                          <div
-                            key={adjustment.id}
-                            className='flex flex-col gap-3 rounded-xl border border-border/70 bg-background/60 p-4'
-                          >
-                            <div className='flex items-start justify-between gap-3'>
-                              <div className='flex min-w-0 flex-col gap-1.5'>
-                                <p className='font-mono text-lg font-semibold text-foreground'>
-                                  {formatter.format(Number(adjustment.amount))}
-                                </p>
-                                <p className='whitespace-pre-wrap wrap-break-word text-sm leading-6 text-muted-foreground'>
-                                  {adjustment.note ?? 'No note'}
-                                </p>
-                                {isEditing ? null : (
-                                  <Link
-                                    href={buildDashboardHref({
-                                      month,
-                                      balanceQuery: data.queryParams,
-                                      balanceAdjustment: adjustment.id
-                                    })}
-                                    scroll={false}
-                                    className={cn(
-                                      buttonVariants({
-                                        variant: 'outline',
-                                        size: 'sm'
-                                      }),
-                                      'mt-1 w-fit'
-                                    )}
-                                  >
-                                    <PencilLine data-icon='inline-start' />
-                                    Edit
-                                  </Link>
-                                )}
-                              </div>
-                              <p className='shrink-0 text-sm font-medium text-muted-foreground'>
-                                {formatMonthLabel(adjustment.effectiveMonth)}
-                              </p>
-                            </div>
-
-                            {isEditing ? (
-                              <>
-                                <Separator />
-                                <form
-                                  action={updateAdjustmentAction}
-                                  className='flex flex-col gap-4'
-                                >
-                                  <input
-                                    type='hidden'
-                                    name='month'
-                                    value={month}
-                                  />
-                                  <input
-                                    type='hidden'
-                                    name='id'
-                                    value={adjustment.id}
-                                  />
-                                  <BalanceAdjustmentFormFields
-                                    idPrefix={`edit-balance-adjustment-${adjustment.id}`}
-                                    currency={currency}
-                                    latestCompletedMonth={
-                                      data.latestCompletedMonth
-                                    }
-                                    defaultValues={{
-                                      amount: adjustment.amount,
-                                      effectiveMonth: adjustment.effectiveMonth,
-                                      note: adjustment.note ?? ''
-                                    }}
-                                  />
-                                  <div className='flex flex-wrap justify-end gap-3'>
-                                    <Link
-                                      href={manageAdjustmentsHref}
-                                      scroll={false}
-                                      className={buttonVariants({
-                                        variant: 'outline'
-                                      })}
-                                    >
-                                      Close/Cancel
-                                    </Link>
-                                    <Button
-                                      type='submit'
-                                      formAction={deleteAdjustmentAction}
-                                      variant='destructive'
-                                    >
-                                      <Trash2 data-icon='inline-start' />
-                                      Delete adjustment
-                                    </Button>
-                                    <Button type='submit'>Save changes</Button>
-                                  </div>
-                                </form>
-                              </>
-                            ) : null}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              </>
-            ) : null}
-          </BalanceAdjustmentCreateDisclosure>
+            currency={currency}
+            deleteAdjustmentAction={deleteAdjustmentAction}
+            initialState={adjustmentState}
+            latestCompletedMonth={data.latestCompletedMonth}
+            manageHref={manageAdjustmentsHref}
+            month={month}
+            updateAdjustmentAction={updateAdjustmentAction}
+          />
         </CardContent>
       </Card>
     </section>

@@ -1,7 +1,6 @@
 "use client";
 
 import { Trash2 } from "lucide-react";
-import Link from "next/link";
 import * as React from "react";
 
 import {
@@ -10,6 +9,7 @@ import {
   type TransactionFormDefaultValues,
 } from "@/app/(app)/transactions/transaction-form-fields";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { InlineEditorLink } from "@/components/ui/inline-editor";
 import { cn } from "@/lib/utils";
 
 type TransactionEditFormProps = {
@@ -71,13 +71,12 @@ export function TransactionEditForm({
       />
 
       <div className="flex flex-wrap justify-end gap-3 border-t border-border/70 pt-5">
-        <Link
+        <InlineEditorLink
           href={cancelHref}
-          scroll={false}
           className={cn(buttonVariants({ variant: "outline" }), "rounded-xl")}
         >
           Close/Cancel
-        </Link>
+        </InlineEditorLink>
         <Button
           type="submit"
           formAction={deleteAction}

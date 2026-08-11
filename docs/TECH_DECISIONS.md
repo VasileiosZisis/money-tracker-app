@@ -370,7 +370,11 @@ Dashboard rules:
   `month` parameter and are preserved across dashboard mutations
 - Total Balance defaults to all time
 - invalid balance ranges normalize to all time and return an actionable error
-- Add Money opens its inline form immediately with local client state; its query parameter remains available for validation-error recovery, while adjustment management stays query-parameter-driven. Add, manage, and edit disclosures are mutually exclusive: opening Add clears manage/edit URL state, and opening Manage closes Add.
+- Add Money, adjustment management, and adjustment editing share one local
+  client state and are mutually exclusive. Their `balanceAdjustment` query
+  state is synchronized with the native history API without a server
+  navigation, while direct links and validation-error redirects remain
+  supported.
 - calculations stay Decimal-safe on the server; chart numbers are display-only
 
 ---
@@ -607,9 +611,10 @@ Planned-workspace interaction rules:
 - keep planned-bill and planned-income models, validators, actions, and ownership
   checks separate; the unified list uses an internal `BILL`/`INCOME`
   discriminant only
-- use URL-backed `type=BILL|INCOME`, `status=inactive`, and composite
-  `edit=bill:<id>|income:<id>` state; omitted type means All and omitted status
-  means Active
+- use URL-backed `type=BILL|INCOME` and `status=inactive` filters; omitted type
+  means All and omitted status means Active. Composite
+  `edit=bill:<id>|income:<id>` state opens locally and is shallowly synchronized
+  to the URL without a server navigation
 - render Add bill and Add income as tabs in one content-height creation card;
   creation forms omit `isActive` and the server boundary always creates Active
   templates

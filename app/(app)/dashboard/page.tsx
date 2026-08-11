@@ -678,22 +678,6 @@ export default async function DashboardPage ({
   const requestedBalanceAdjustment = firstSearchParamValue(
     resolvedSearchParams.balanceAdjustment
   )
-  const selectedBalanceAdjustment = dashboardData.totalBalance.adjustments.find(
-    adjustment => adjustment.id === requestedBalanceAdjustment
-  )
-  const balanceAdjustmentState =
-    requestedBalanceAdjustment === 'add' ||
-    requestedBalanceAdjustment === 'manage' ||
-    selectedBalanceAdjustment
-      ? requestedBalanceAdjustment
-      : requestedBalanceAdjustment
-        ? 'manage'
-        : undefined
-  const balanceAdjustmentNotFound =
-    Boolean(requestedBalanceAdjustment) &&
-    requestedBalanceAdjustment !== 'add' &&
-    requestedBalanceAdjustment !== 'manage' &&
-    !selectedBalanceAdjustment
 
   async function createBalanceAdjustmentAction (formData: FormData) {
     'use server'
@@ -953,8 +937,7 @@ export default async function DashboardPage ({
             currency={data.currency}
             month={selectedMonth}
             data={dashboardData.totalBalance}
-            adjustmentState={balanceAdjustmentState}
-            adjustmentNotFound={balanceAdjustmentNotFound}
+            adjustmentState={requestedBalanceAdjustment}
             createAdjustmentAction={createBalanceAdjustmentAction}
             updateAdjustmentAction={updateBalanceAdjustmentAction}
             deleteAdjustmentAction={deleteBalanceAdjustmentAction}
