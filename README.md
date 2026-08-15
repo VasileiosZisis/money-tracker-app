@@ -1,195 +1,164 @@
 # Money Tracker
 
-A manual-first personal money tracking web app for monthly cashflow planning.
+Money Tracker is a manual-first personal finance web app for recording everyday
+income and expenses, understanding monthly cashflow, and planning the rest of
+the month.
 
-The app started as an Excel replacement for income and expense tracking. It now
-adds lightweight planning around expected bills, expected income, import/export,
-forecasting, and daily safe-spend decisions.
+It is designed as a trustworthy replacement for a monthly spreadsheet: actual
+totals always come from transactions, while planned bills, planned income, and
+forecast estimates remain separate and explainable.
 
-## Status
+## What the app does
 
-Implemented through the current planning polish work:
+### Track actual money
 
-- Free MVP baseline:
-  - Google sign-in with NextAuth
-  - mandatory setup flow
-  - categories and category subcategories
-  - transactions CRUD with month/type/category/subcategory filters
-  - monthly dashboard totals
-  - CSV export
-- Next phase:
-  - CSV import with preview, row validation, category/subcategory handling, and confirm flow
-  - planned bills with optional subcategories
-  - planned-bill monthly paid/skipped state
-  - mark planned bill paid, skip, undo, or link an existing expense transaction
-  - planned income templates with optional subcategories
-  - planned-income monthly received/skipped state
-  - mark planned income received, skip, undo, or link an existing income transaction
-  - dashboard forecast, safe-to-spend, daily safe spend, and needs-attention signals
-  - selected-month spending breakdown by category and subcategory
-  - completed-month Total Balance history with preset and custom periods
-  - positive balance adjustments for opening balances and previously untracked money
+- Sign in with Google and complete a required first-time setup.
+- Choose one base currency for the account.
+- Create, edit, and delete income and expense transactions.
+- Organize transactions with categories and optional category-scoped
+  subcategories.
+- Archive and restore categories without breaking historical records.
+- Filter transactions by month, type, category, and subcategory.
 
-## Current Behavior
+### Move data in and out
 
-- Unauthenticated access to `/setup`, `/dashboard`, `/transactions`, `/categories`, `/planned`, `/planned-income`, `/import`, and `/export` redirects to `/login`.
-- Visiting `/login` while authenticated redirects:
-  - to `/setup` if `hasCompletedSetup` is `false`
-  - to `/dashboard` if `hasCompletedSetup` is `true`
-- App routes under the authenticated shell require completed setup.
-- The authenticated shell uses a responsive sidebar plus a contextual top bar showing the current page, the user's local date, and days remaining in the month.
-- `/transactions` supports month/type/category/subcategory filters plus create, edit, and delete.
-- `/categories` manages income and expense categories, category archiving, and category-scoped subcategories.
-- `/dashboard` supports month selection (`?month=YYYY-MM`) and shows:
-  - cumulative Total Balance for completed months
-  - independent preset, custom-month, and custom-year balance periods
-  - starting balance, net change, ending balance, and monthly balance history
-  - Add Money plus inline adjustment editing and deletion
-  - actual income and expense totals
-  - net left now
-  - selected-month actual spending grouped by category and subcategory
-  - safe to spend
-  - daily safe spend
-  - forecast remaining spend
-  - forecast breakdown: reserved planned bills, variable spend estimate, pending planned income, and projected month-end net
-  - needs-attention signals
-  - planned income for the selected month
-  - planned bills for the selected month
-  - recent monthly transactions
-- `/planned` is the unified workspace for monthly planned bills and planned
-  income, with tabbed creation and URL-backed type/status filters.
-- `/planned-income` is a protected compatibility redirect to
-  `/planned?type=INCOME`, including legacy income edit links.
-- `/import` supports CSV upload, preview, validation, category/subcategory resolution, and explicit confirm.
-- `/export` downloads a CSV for the selected month via `/export/download`.
+- Import CSV files through an explicit upload, preview, validation, mapping, and
+  confirmation flow.
+- Map unknown categories or create them during import.
+- Export a selected month's transactions as CSV.
+- Keep imported transactions subject to the same validation rules as manually
+  entered transactions.
 
-## Product Scope
+Only CSV import is supported currently. The app does not perform fuzzy
+historical duplicate detection or overwrite existing transactions.
 
-### In scope today
+### Plan recurring monthly items
 
-- Single-user web app
-- Google OAuth only
-- Per-user base currency
-- Manual transaction entry
-- Month-based tracking using `localDate = "YYYY-MM-DD"`
-- Category-scoped subcategories for transaction classification
-- Planned monthly expense templates
-- Planned monthly income templates
-- Explicit monthly occurrence state for planned bills and planned income
-- Manual linking from planned items to existing transactions
-- Simple explainable forecasting
-- Safe-to-spend and daily-safe-spend planning indicators
-- CSV import and CSV export
-- Completed-month cumulative balance history
-- Positive balance adjustments that remain separate from transaction income
+- Manage monthly planned bill and planned income templates in one `/planned`
+  workspace.
+- Assign each template a category, optional subcategory, amount, day of month,
+  Source, and Note.
+- Activate, deactivate, edit, or delete templates.
+- For a selected month, mark a bill paid or income received, skip it, undo the
+  occurrence, or link an existing transaction.
+- Marking an item paid or received creates a normal transaction; linking an
+  existing transaction does not create a duplicate.
 
-### Explicitly out of scope
+Monthly occurrence actions are available from the dashboard. The app never
+automatically matches a planned item to a transaction.
 
-- Bank sync
-- multi-currency transactions or FX conversion
-- advanced recurring rules beyond monthly templates
-- automatic or fuzzy transaction matching
-- budgets / envelopes / rollover systems
-- paid subscriptions or billing
-- shared household accounts
-- native mobile apps
-- AI categorization or AI forecasting
-- background jobs or notification systems
+### Understand the month
 
-## Route Groups
+The dashboard combines actual activity with conservative planning estimates:
 
-- `app/(auth)` for public auth pages (`/login`)
-- `app/(onboarding)` for setup onboarding (`/setup`)
-- `app/(app)` for authenticated app pages:
-  - `/dashboard`
-  - `/transactions`
-  - `/categories`
-  - `/planned`
-  - `/import`
-  - `/export`
+- income, expenses, and net left now
+- projected month-end net
+- forecast remaining spend and forecast confidence
+- safe to spend
+- daily and weekly safe spend
+- spending pace against up to six usable trailing months
+- planned-income realization
+- actual spending by category and subcategory
+- recent transactions and pending planned items
+- a deterministic Needs Attention panel for due, overdue, negative, stale, or
+  low-confidence conditions
 
-`/planned-income` remains under the authenticated app route group as a
-compatibility redirect rather than a separate workspace.
+Forecasts are calculated on demand and are never stored. They are estimates,
+not an account balance or a guarantee.
 
-## Tech Stack
+### Review completed history
 
-- Next.js 16 App Router + React 19 + TypeScript
-- Tailwind CSS 4 with token-based theming and dark mode
-- PostgreSQL + Prisma 7
-- NextAuth (Google OAuth) + Prisma adapter
+Total Balance is a completed-month historical ledger built from actual
+transactions and optional positive balance adjustments. It supports preset and
+custom completed periods and shows starting balance, period change, ending
+balance, and monthly history.
 
-## Planning Model
+Balance adjustments are intended for opening balances or previously untracked
+money. They affect Total Balance only; they do not count as transaction income
+and do not change monthly totals, planned items, safe-to-spend, or forecasts.
 
-- Actual income and expense totals come only from transactions.
-- Planned bills reserve forecasted spend until the selected-month occurrence is paid or skipped.
-- Planned income is planning metadata until received, skipped, or linked to a transaction.
-- `Safe to spend` stays conservative and excludes pending planned income.
-- `Projected month-end net` includes pending planned income:
+Total Balance is not bank-synced and is not a reconciliation system.
+
+## How planning works
+
+Actual income and expense totals come only from transactions. Active planned
+bills reserve future spend until they are paid or skipped. Pending planned
+income improves the projected month-end result but is deliberately excluded
+from safe-to-spend.
 
 ```text
 netLeftNow = incomeSoFar - expenseSoFar
 forecastRemainingSpend = unpaidPlannedBills + variableCategoryForecast
 safeToSpend = netLeftNow - forecastRemainingSpend
 dailySafeSpend = safeToSpend / remainingDaysIncludingToday
+weeklySafeSpend = dailySafeSpend * min(7, remainingDaysIncludingToday)
 projectedEndOfMonthNet = netLeftNow + pendingPlannedIncome - forecastRemainingSpend
 ```
 
-## Total Balance Model
+Variable spending uses recent eligible expense history where available.
+Categories covered by active planned bills are excluded from that calculation
+to avoid double counting.
 
-Total Balance is a calculated historical ledger view, not a bank-synced account
-balance. It includes completed months only and uses all prior activity when
-calculating the selected period's starting balance.
+## Routes
 
-```text
-endingBalance = balanceAdjustmentsToDate + incomeToDate - expensesToDate
-netChange = incomeInPeriod - expensesInPeriod + balanceAdjustmentsInPeriod
-endingBalance = startingBalance + netChange
-```
+| Route | Purpose |
+| --- | --- |
+| `/login` | Google sign-in |
+| `/setup` | Required currency and optional default-category setup |
+| `/dashboard` | Monthly snapshot, planning metrics, Total Balance, and monthly planned-item actions |
+| `/transactions` | Transaction entry, filtering, editing, and deletion |
+| `/categories` | Category and subcategory management |
+| `/planned` | Planned bill and planned income template management |
+| `/import` | CSV import preview and confirmation |
+| `/export` | Selected-month CSV export |
 
-`Add money` records a positive balance adjustment for a completed month. It can
-be edited or deleted later through `Manage adjustments`. Adjustments affect
-Total Balance only; they do not change transaction income, monthly totals,
-safe-to-spend, planned income, or forecast values.
+`/planned-income` is retained as a protected compatibility redirect to the
+income view of `/planned`.
 
-## Deployment
+All app routes require authentication. Setup must be completed before the main
+app can be used.
 
-Vercel Git deployments are opt-in for this repo. The ignored build step in
-`vercel.json` skips builds by default.
+## Product boundaries
 
-To deploy a commit, include `[deploy]` in the commit message:
+Money Tracker is a personal, single-currency, web-first tool. It intentionally
+does not include:
 
-```bash
-git commit -m "Update dashboard forecast [deploy]"
-```
+- bank syncing, multiple accounts, or bank reconciliation
+- multi-currency transactions or FX conversion
+- budgets, envelopes, rollover budgets, or sinking funds
+- recurrence rules beyond monthly planned templates
+- fuzzy or automatic transaction matching
+- shared household workspaces
+- paid plans or subscriptions
+- native mobile apps
+- AI categorization or AI forecasting
+- background jobs, reminders, or notification delivery
+- investment or net-worth tracking
 
-## Design System
+Candidate future work lives in `docs/ROADMAP.md` and is not current product
+scope until explicitly selected.
 
-UI follows `docs/DESIGN_SYSTEM.md`:
+## Tech stack
 
-- token-based colors in components
-- light/dark mode via `dark` class
-- Inter for UI text
-- JetBrains Mono for numeric values
+- Next.js 16 App Router, React 19, and TypeScript
+- Tailwind CSS 4 and shadcn-based UI components
+- PostgreSQL and Prisma 7
+- NextAuth with Google OAuth and a Prisma adapter
+- Zod validation and server-side database access
+- Recharts for dashboard visualizations
 
-## Project Docs
+Money values are stored as PostgreSQL `numeric(14,2)` / Prisma `Decimal`.
+Transaction dates are stored as local `YYYY-MM-DD` strings to avoid timezone
+month-boundary errors. Every database operation is scoped to the authenticated
+user.
 
-Read these in order for product and implementation rules:
+## Local development
 
-1. `AGENTS.md`
-2. `docs/DESIGN_SYSTEM.md`
-3. `docs/TECH_DECISIONS.md`
-4. `docs/PRODUCT_SPEC.md`
-5. `docs/ROADMAP.md` for candidate future work
+### Prerequisites
 
-Completed implementation plan retained as the feature reference:
-
-- `docs/archive/TOTAL_BALANCE_IMPLEMENTATION_PLAN.md`
-
-Historical phase specifications remain in `docs/MVP_SPEC.md` and
-`docs/NEXT_PHASE_SPEC.md`. Completed task and feature plans are stored under
-`docs/archive/`.
-
-## Local Setup
+- Node.js and npm
+- PostgreSQL
+- Google OAuth credentials
 
 ### 1. Install dependencies
 
@@ -197,7 +166,9 @@ Historical phase specifications remain in `docs/MVP_SPEC.md` and
 npm install
 ```
 
-### 2. Configure environment (`.env.local`)
+### 2. Configure the environment
+
+Create `.env.local`:
 
 ```env
 DATABASE_URL=postgresql://...
@@ -207,14 +178,14 @@ GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 ```
 
-### 3. Initialize Prisma
+### 3. Apply the database migrations
 
 ```bash
 npm run prisma:generate
 npx prisma migrate dev
 ```
 
-### 4. Run the app
+### 4. Start the app
 
 ```bash
 npm run dev
@@ -222,19 +193,37 @@ npm run dev
 
 ## Verification
 
-Project verification commands:
-
 ```bash
-npx prisma validate
-npx prisma migrate status
 npm test
 npm run lint
 npm run typecheck
 npm run build
 ```
 
-To run the lint, typecheck, and production build sequence together:
+Run the lint, typecheck, and production build sequence together with:
 
 ```bash
 npm run check
 ```
+
+## Deployment
+
+Vercel Git deployments are opt-in. The ignored-build script skips a deployment
+unless the commit message contains `[deploy]`:
+
+```bash
+git commit -m "Describe the change [deploy]"
+```
+
+## Project documentation
+
+Use these sources in order for current product and implementation decisions:
+
+1. `AGENTS.md`
+2. `docs/DESIGN_SYSTEM.md`
+3. `docs/TECH_DECISIONS.md`
+4. `docs/PRODUCT_SPEC.md`
+5. `docs/ROADMAP.md` for candidate future work
+
+Historical specifications and completed implementation plans are retained under
+`docs/archive/` for reference only.
