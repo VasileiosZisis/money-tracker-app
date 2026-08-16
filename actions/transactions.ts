@@ -12,6 +12,7 @@ import {
   type ActionResultWithData,
 } from "@/lib/actions/result";
 import { getMonthRange } from "@/lib/dates/month";
+import { getLocalDateInTimeZone } from "@/lib/dates/time-zone";
 import { getUserIdOrThrow } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { transactionInputSchema, transactionTypeSchema } from "@/lib/validators/transaction";
@@ -113,13 +114,24 @@ export async function getTransactionFormMeta() {
     }),
     db.user.findUnique({
       where: { id: userId },
-      select: { currency: true },
+      select: {
+        currency: true,
+        timeZone: true,
+      },
     }),
   ]);
 
+  if (!user?.timeZone) {
+    throw new Error("Account time zone is not configured.");
+  }
+
+  const currentLocalDate = getLocalDateInTimeZone(user.timeZone);
+
   return {
     categories,
-    currency: user?.currency ?? "USD",
+    currency: user.currency,
+    currentLocalDate,
+    currentMonth: currentLocalDate.slice(0, 7),
   };
 }
 

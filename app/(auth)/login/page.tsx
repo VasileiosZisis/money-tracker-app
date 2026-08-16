@@ -35,14 +35,17 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   if (session?.user?.id) {
     const user = await db.user.findUnique({
       where: { id: session.user.id },
-      select: { hasCompletedSetup: true },
+      select: {
+        hasCompletedSetup: true,
+        timeZone: true,
+      },
     });
 
-    if (user?.hasCompletedSetup) {
+    if (user?.hasCompletedSetup && user.timeZone) {
       redirect("/dashboard");
     }
 
-    if (user && !user.hasCompletedSetup) {
+    if (user && (!user.hasCompletedSetup || !user.timeZone)) {
       redirect("/setup");
     }
   }
@@ -127,8 +130,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <div className="rounded-xl border border-border/80 bg-background/60 p-4">
               <p className="text-sm font-medium text-muted-foreground">What happens next</p>
               <p className="mt-2 text-sm leading-6 text-foreground">
-                After sign-in, first-time users are redirected to setup to choose a base currency
-                and optionally create starter categories.
+                After sign-in, first-time users are redirected to setup to choose a base currency,
+                confirm an account time zone, and optionally create starter categories.
               </p>
             </div>
             <GoogleSignInButton />

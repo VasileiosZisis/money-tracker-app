@@ -1,11 +1,20 @@
-import { ArrowRight, CircleCheck, ScrollText, WalletCards } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarClock,
+  CircleCheck,
+  Globe2,
+  ScrollText,
+  WalletCards,
+} from "lucide-react";
 import { redirect } from "next/navigation";
 
 import {
   completeSetup,
   createDefaultCategories,
   setCurrency,
+  setTimeZone,
 } from "@/actions/setup";
+import { TimeZoneSelect } from "@/components/settings/time-zone-select";
 import {
   Card,
   CardContent,
@@ -16,15 +25,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { PageNotice } from "@/components/ui/page-notice";
 import { Select } from "@/components/ui/select";
-import { db } from "@/lib/db";
-import { getUserIdOrThrow } from "@/lib/auth/session";
+import { getSupportedTimeZones } from "@/lib/dates/time-zone";
+import { getAuthenticatedUserPreferences } from "@/lib/auth/session";
 import {
   buildPathWithSearchParams,
   firstSearchParamValue,
   resolveSearchParams,
   type PageSearchParams,
 } from "@/lib/routes/search-params";
-import { allowedCurrencies, setupSubmitSchema } from "@/lib/validators/setup";
+import {
+  allowedCurrencies,
+  setupSubmitSchema,
+  timeZoneSchema,
+} from "@/lib/validators/setup";
 
 const currencyLabels: Record<(typeof allowedCurrencies)[number], string> = {
   EUR: "EUR - Euro",
@@ -55,6 +68,7 @@ async function finishSetupAction(formData: FormData) {
 
   const parsed = setupSubmitSchema.safeParse({
     currency: formData.get("currency"),
+    timeZone: formData.get("timeZone"),
     createDefaults: formData.get("createDefaults") === "on",
   });
 
@@ -66,6 +80,12 @@ async function finishSetupAction(formData: FormData) {
 
   if (!currencyResult.ok) {
     redirect(buildSetupPageUrl(currencyResult.error));
+  }
+
+  const timeZoneResult = await setTimeZone(parsed.data.timeZone);
+
+  if (!timeZoneResult.ok) {
+    redirect(buildSetupPageUrl(timeZoneResult.error));
   }
 
   if (parsed.data.createDefaults) {
@@ -85,6 +105,24 @@ async function finishSetupAction(formData: FormData) {
   redirect("/dashboard");
 }
 
+async function finishTimeZoneSetupAction(formData: FormData) {
+  "use server";
+
+  const parsed = timeZoneSchema.safeParse(formData.get("timeZone"));
+
+  if (!parsed.success) {
+    redirect(buildSetupPageUrl(parsed.error.issues[0]?.message ?? "Invalid time zone."));
+  }
+
+  const result = await setTimeZone(parsed.data);
+
+  if (!result.ok) {
+    redirect(buildSetupPageUrl(result.error));
+  }
+
+  redirect("/dashboard");
+}
+
 export default async function SetupPage({
   searchParams,
 }: {
@@ -92,13 +130,91 @@ export default async function SetupPage({
 }) {
   const resolvedParams = await resolveSearchParams(searchParams);
   const errorMessage = firstSearchParamValue(resolvedParams.error);
-  const userId = await getUserIdOrThrow();
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    select: { currency: true },
-  });
+  const user = await getAuthenticatedUserPreferences();
+  const selectedCurrency = user.currency;
+  const timeZones = getSupportedTimeZones();
+  const isTimeZoneCompletion = user.hasCompletedSetup && !user.timeZone;
 
-  const selectedCurrency = user?.currency ?? "EUR";
+  if (isTimeZoneCompletion) {
+    return (
+      <section className="grid w-full gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(400px,0.85fr)]">
+        <Card className="overflow-hidden">
+          <CardContent className="flex h-full flex-col justify-between gap-6 p-4 md:p-6">
+            <div className="flex flex-col gap-5">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-floating">
+                  <ScrollText className="size-5" />
+                </div>
+                <div>
+                  <p className="text-base font-semibold tracking-tight text-foreground">
+                    Money Tracker
+                  </p>
+                  <p className="text-sm text-muted-foreground">One-time update</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h1 className="text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
+                  Confirm your account time zone.
+                </h1>
+                <p className="max-w-2xl text-base leading-7 text-muted-foreground">
+                  Your account time zone keeps transaction defaults, forecasts, and planned-item
+                  statuses aligned with the same local day.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-xl border border-border/80 bg-background/60 p-4">
+                <Globe2 className="size-5 text-muted-foreground" />
+                <p className="mt-4 text-sm font-semibold text-foreground">One account clock</p>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  Every device uses the time zone you confirm here.
+                </p>
+              </div>
+              <div className="rounded-xl border border-border/80 bg-background/60 p-4">
+                <CalendarClock className="size-5 text-muted-foreground" />
+                <p className="mt-4 text-sm font-semibold text-foreground">Consistent planning</p>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  Day-sensitive calculations change together at local midnight.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="h-fit lg:my-auto">
+          <CardHeader>
+            <CardTitle>Set account time zone</CardTitle>
+            <CardDescription>
+              The detected device time zone is suggested, but you must confirm it.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {errorMessage ? (
+              <PageNotice variant="error" title="Time zone could not be saved" className="mb-6">
+                {errorMessage}
+              </PageNotice>
+            ) : null}
+
+            <form action={finishTimeZoneSetupAction} className="grid gap-4">
+              <div className="space-y-2">
+                <label htmlFor="timeZone" className="text-sm font-medium text-foreground">
+                  Account time zone
+                </label>
+                <TimeZoneSelect id="timeZone" timeZones={timeZones} />
+              </div>
+
+              <Button type="submit" className="w-full justify-center">
+                Save and continue
+                <ArrowRight />
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </section>
+    );
+  }
 
   return (
     <section className="grid w-full gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(400px,0.85fr)]">
@@ -119,7 +235,7 @@ export default async function SetupPage({
 
             <div className="space-y-4">
               <h1 className="text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
-                Set the base currency and start with a clean structure.
+                Set your financial calendar and start with a clean structure.
               </h1>
               <p className="max-w-2xl text-base leading-7 text-muted-foreground">
                 Setup is intentionally short. Once it is complete, the app redirects you into the
@@ -151,7 +267,8 @@ export default async function SetupPage({
         <CardHeader>
           <CardTitle>Finish setup</CardTitle>
           <CardDescription>
-            Choose the base currency and decide whether to create default categories.
+            Choose the base currency, confirm the account time zone, and decide whether to create
+            default categories.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -176,6 +293,17 @@ export default async function SetupPage({
               <p className="text-sm leading-6 text-muted-foreground">
                 This currency is used throughout the dashboard, transaction list, and CSV export.
               </p>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="timeZone" className="text-sm font-medium text-foreground">
+                Account time zone
+              </label>
+              <TimeZoneSelect
+                id="timeZone"
+                initialTimeZone={user.timeZone}
+                timeZones={timeZones}
+              />
             </div>
 
             <div className="rounded-xl border border-border/80 bg-background/60 p-4">

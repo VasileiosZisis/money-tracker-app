@@ -1,16 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { appNavItems } from "@/components/app-shell/nav-items";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import {
+  getAccountDateContext,
+  type AccountDateContext,
+} from "@/lib/dates/time-zone";
 
-type DateContext = {
-  dateLabel: string;
-  dateTime: string;
-  daysLeftLabel: string;
-};
+const DATE_CHECK_INTERVAL_MS = 60 * 1000;
 
 function getPageLabel(pathname: string) {
   const navItem = appNavItems.find(
@@ -33,39 +33,42 @@ function getPageLabel(pathname: string) {
     .join(" ");
 }
 
-function getDateContext(): DateContext {
-  const today = new Date();
-  const lastDayOfMonth = new Date(
-    today.getFullYear(),
-    today.getMonth() + 1,
-    0,
-  ).getDate();
-  const daysLeft = lastDayOfMonth - today.getDate();
-  const dateTime = [
-    today.getFullYear(),
-    String(today.getMonth() + 1).padStart(2, "0"),
-    String(today.getDate()).padStart(2, "0"),
-  ].join("-");
-
-  return {
-    dateLabel: new Intl.DateTimeFormat("en-GB", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    }).format(today),
-    dateTime,
-    daysLeftLabel: `${daysLeft} ${daysLeft === 1 ? "day" : "days"} left`,
-  };
-}
-
-export function PageContextBar() {
+export function PageContextBar({
+  initialDateContext,
+  timeZone,
+}: {
+  initialDateContext: AccountDateContext;
+  timeZone: string;
+}) {
   const pathname = usePathname();
+  const router = useRouter();
   const pageLabel = getPageLabel(pathname);
-  const [dateContext, setDateContext] = React.useState<DateContext | null>(null);
+  const [dateContext, setDateContext] =
+    React.useState<AccountDateContext>(initialDateContext);
 
   React.useEffect(() => {
-    setDateContext(getDateContext());
-  }, []);
+    let previousLocalDate = initialDateContext.localDate;
+
+    function updateDateContext() {
+      const nextDateContext = getAccountDateContext(timeZone);
+
+      if (nextDateContext.localDate !== previousLocalDate) {
+        previousLocalDate = nextDateContext.localDate;
+        setDateContext(nextDateContext);
+        React.startTransition(() => {
+          router.refresh();
+        });
+      }
+    }
+
+    updateDateContext();
+    const intervalId = window.setInterval(
+      updateDateContext,
+      DATE_CHECK_INTERVAL_MS,
+    );
+
+    return () => window.clearInterval(intervalId);
+  }, [initialDateContext.localDate, router, timeZone]);
 
   return (
     <div className="-mx-3 grid h-18 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 border-b border-sidebar-border bg-sidebar px-3 sm:-mx-5 sm:px-5">
@@ -81,13 +84,13 @@ export function PageContextBar() {
 
       <time
         className="justify-self-center text-center text-xl font-semibold text-foreground"
-        dateTime={dateContext?.dateTime}
+        dateTime={dateContext.localDate}
       >
-        {dateContext?.dateLabel ?? "\u00A0"}
+        {dateContext.dateLabel}
       </time>
 
       <p className="justify-self-end text-right text-xl font-semibold text-foreground">
-        {dateContext?.daysLeftLabel ?? "\u00A0"}
+        {dateContext.daysLeftLabel}
       </p>
     </div>
   );

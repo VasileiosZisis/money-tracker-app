@@ -1,25 +1,16 @@
 import { redirect } from "next/navigation";
 
 import { ThemeToggle } from "@/components/theme/theme-toggle";
-import { getUserIdOrThrow } from "@/lib/auth/session";
-import { db } from "@/lib/db";
+import { getAuthenticatedUserPreferences } from "@/lib/auth/session";
 
 export default async function OnboardingLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const userId = await getUserIdOrThrow();
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    select: { hasCompletedSetup: true },
-  });
+  const user = await getAuthenticatedUserPreferences();
 
-  if (!user) {
-    redirect("/login");
-  }
-
-  if (user.hasCompletedSetup) {
+  if (user.hasCompletedSetup && user.timeZone) {
     redirect("/dashboard");
   }
 

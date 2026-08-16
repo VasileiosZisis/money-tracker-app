@@ -9,7 +9,7 @@
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "start": "next start",
-    "test": "tsx --test lib/balance/balance.test.ts lib/categories/name-normalization.test.ts lib/dashboard/attention.test.ts lib/dashboard/planned-income-realization.test.ts lib/dashboard/spending-by-category.test.ts lib/forecast/forecast-confidence.test.ts lib/forecast/weekly-and-pace.test.ts lib/planned-items.test.ts lib/routes/editor-state.test.ts",
+    "test": "tsx --test lib/balance/balance.test.ts lib/categories/name-normalization.test.ts lib/dashboard/attention.test.ts lib/dashboard/planned-income-realization.test.ts lib/dashboard/spending-by-category.test.ts lib/dates/time-zone.test.ts lib/forecast/forecast-confidence.test.ts lib/forecast/weekly-and-pace.test.ts lib/planned-items.test.ts lib/routes/editor-state.test.ts",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "check": "npm run lint && npm run typecheck && npm run build"

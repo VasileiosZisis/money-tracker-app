@@ -9,7 +9,7 @@ import {
 } from "@/lib/actions/result";
 import { db } from "@/lib/db";
 import { getUserIdOrThrow } from "@/lib/auth/session";
-import { currencySchema } from "@/lib/validators/setup";
+import { currencySchema, timeZoneSchema } from "@/lib/validators/setup";
 
 const defaultCategories: Array<{ name: string; type: TransactionType }> = [
   { name: "Salary", type: TransactionType.INCOME },
@@ -46,6 +46,30 @@ export async function setCurrency(currency: string): Promise<SetupActionResult> 
   return actionSuccess();
 }
 
+export async function setTimeZone(timeZone: string): Promise<SetupActionResult> {
+  const userId = await getUserIdOrThrow();
+  const parsedTimeZone = timeZoneSchema.safeParse(timeZone);
+
+  if (!parsedTimeZone.success) {
+    return actionError(
+      parsedTimeZone.error.issues[0]?.message ?? "Invalid time zone.",
+    );
+  }
+
+  try {
+    await db.user.update({
+      where: { id: userId },
+      data: { timeZone: parsedTimeZone.data },
+    });
+  } catch {
+    return actionError("Could not save your time zone. Please try again.");
+  }
+
+  revalidatePath("/setup");
+  revalidatePath("/dashboard");
+  return actionSuccess();
+}
+
 export async function createDefaultCategories(): Promise<SetupActionResult> {
   const userId = await getUserIdOrThrow();
 
@@ -70,10 +94,17 @@ export async function completeSetup(): Promise<SetupActionResult> {
   const userId = await getUserIdOrThrow();
 
   try {
-    await db.user.update({
-      where: { id: userId },
+    const updated = await db.user.updateMany({
+      where: {
+        id: userId,
+        timeZone: { not: null },
+      },
       data: { hasCompletedSetup: true },
     });
+
+    if (updated.count === 0) {
+      return actionError("Choose an account time zone before completing setup.");
+    }
   } catch {
     return actionError("Could not complete setup. Please try again.");
   }

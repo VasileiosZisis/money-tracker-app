@@ -68,10 +68,6 @@ function getDaysInMonth(month: string) {
   return new Date(Date.UTC(parsed.year, parsed.month, 0)).getUTCDate();
 }
 
-export function getTodayLocalDate(now = new Date()) {
-  return `${now.getFullYear()}-${padNumber(now.getMonth() + 1)}-${padNumber(now.getDate())}`;
-}
-
 export function buildForecastMonthContext(params: {
   selectedMonth: string;
   referenceDate: string;

@@ -61,6 +61,8 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { ToastFeedback } from '@/components/ui/toast-feedback'
+import { getAuthenticatedUserPreferences } from '@/lib/auth/session'
+import { getCurrentMonthInTimeZone } from '@/lib/dates/time-zone'
 import { cn } from '@/lib/utils'
 
 type DashboardPageProps = {
@@ -81,24 +83,18 @@ type ForecastData = DashboardData['forecast']
 type MetricTone = 'default' | 'success' | 'warning' | 'danger'
 type AttentionTone = DashboardData['attentionItems'][number]['tone']
 
-function getCurrentMonthKey (): string {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  return `${year}-${month}`
-}
-
 function normalizeMonthParam (
-  monthParam: string | string[] | undefined
+  monthParam: string | string[] | undefined,
+  currentMonth: string
 ): string {
   const raw = Array.isArray(monthParam) ? monthParam[0] : monthParam
 
   if (!raw) {
-    return getCurrentMonthKey()
+    return currentMonth
   }
 
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(raw)) {
-    return getCurrentMonthKey()
+    return currentMonth
   }
 
   return raw
@@ -698,7 +694,16 @@ export default async function DashboardPage ({
   searchParams
 }: DashboardPageProps) {
   const resolvedSearchParams = (await searchParams) ?? {}
-  const selectedMonth = normalizeMonthParam(resolvedSearchParams?.month)
+  const user = await getAuthenticatedUserPreferences()
+
+  if (!user.timeZone) {
+    redirect('/setup')
+  }
+
+  const selectedMonth = normalizeMonthParam(
+    resolvedSearchParams?.month,
+    getCurrentMonthInTimeZone(user.timeZone)
+  )
   const errorMessage = firstSearchParamValue(resolvedSearchParams?.error)
   const successMessage = firstSearchParamValue(resolvedSearchParams?.success)
   const dashboardData = await getDashboardData(
@@ -1462,6 +1467,7 @@ export default async function DashboardPage ({
                               Received date
                             </label>
                             <Input
+                              key={plannedIncome.defaultReceivedLocalDate}
                               id={`received-date-${plannedIncome.id}`}
                               name='localDate'
                               type='date'
@@ -1711,6 +1717,7 @@ export default async function DashboardPage ({
                               Payment date
                             </label>
                             <Input
+                              key={plannedBill.defaultPaymentLocalDate}
                               id={`paid-date-${plannedBill.id}`}
                               name='localDate'
                               type='date'

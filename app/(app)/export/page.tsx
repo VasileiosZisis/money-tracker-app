@@ -9,16 +9,18 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { getAuthenticatedUserPreferences } from "@/lib/auth/session";
+import { getCurrentMonthInTimeZone } from "@/lib/dates/time-zone";
+import { redirect } from "next/navigation";
 
-function getCurrentMonth(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  return `${year}-${month}`;
-}
+export default async function ExportPage() {
+  const user = await getAuthenticatedUserPreferences();
 
-export default function ExportPage() {
-  const defaultMonth = getCurrentMonth();
+  if (!user.timeZone) {
+    redirect("/setup");
+  }
+
+  const defaultMonth = getCurrentMonthInTimeZone(user.timeZone);
 
   return (
     <div className="flex flex-col gap-5">
@@ -30,6 +32,7 @@ export default function ExportPage() {
           <CardContent>
             <form action="/export/download" method="get" className="grid gap-4">
               <Input
+                key={defaultMonth}
                 id="month"
                 aria-label="Month"
                 type="month"

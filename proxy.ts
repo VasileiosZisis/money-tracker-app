@@ -20,5 +20,6 @@ export const config = {
     "/planned-income/:path*",
     "/import/:path*",
     "/export/:path*",
+    "/settings/:path*",
   ],
 };

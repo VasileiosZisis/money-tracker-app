@@ -14,6 +14,7 @@ forecast estimates remain separate and explainable.
 
 - Sign in with Google and complete a required first-time setup.
 - Choose one base currency for the account.
+- Confirm one account time zone for transaction defaults and planning calculations.
 - Create, edit, and delete income and expense transactions.
 - Organize transactions with categories and optional category-scoped
   subcategories.
@@ -104,13 +105,14 @@ to avoid double counting.
 | Route | Purpose |
 | --- | --- |
 | `/login` | Google sign-in |
-| `/setup` | Required currency and optional default-category setup |
+| `/setup` | Required currency, account time zone, and optional default-category setup |
 | `/dashboard` | Monthly snapshot, planning metrics, Total Balance, and monthly planned-item actions |
 | `/transactions` | Transaction entry, filtering, editing, and deletion |
 | `/categories` | Category and subcategory management |
 | `/planned` | Planned bill and planned income template management |
 | `/import` | CSV import preview and confirmation |
 | `/export` | Selected-month CSV export |
+| `/settings` | Account time-zone settings |
 
 `/planned-income` is retained as a protected compatibility redirect to the
 income view of `/planned`.
@@ -149,8 +151,9 @@ scope until explicitly selected.
 
 Money values are stored as PostgreSQL `numeric(14,2)` / Prisma `Decimal`.
 Transaction dates are stored as local `YYYY-MM-DD` strings to avoid timezone
-month-boundary errors. Every database operation is scoped to the authenticated
-user.
+month-boundary errors. A confirmed IANA account time zone defines today and the
+current month for every server calculation, independent of the deployment
+server's clock. Every database operation is scoped to the authenticated user.
 
 ## Local development
 

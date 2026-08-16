@@ -1,19 +1,22 @@
 import { NextRequest } from "next/server";
 
+import { getAuthenticatedUserPreferences } from "@/lib/auth/session";
+import { getCurrentMonthInTimeZone } from "@/lib/dates/time-zone";
 import { buildCsvForMonth } from "@/lib/export/csv";
 
 const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
 
-function getCurrentMonth(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  return `${year}-${month}`;
-}
-
 export async function GET(request: NextRequest) {
+  const user = await getAuthenticatedUserPreferences();
+
+  if (!user.timeZone) {
+    return Response.redirect(new URL("/setup", request.url));
+  }
+
   const monthParam = request.nextUrl.searchParams.get("month") ?? "";
-  const month = MONTH_REGEX.test(monthParam) ? monthParam : getCurrentMonth();
+  const month = MONTH_REGEX.test(monthParam)
+    ? monthParam
+    : getCurrentMonthInTimeZone(user.timeZone);
   const csv = await buildCsvForMonth(month);
 
   return new Response(csv, {

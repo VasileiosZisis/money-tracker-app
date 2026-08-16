@@ -45,21 +45,9 @@ type TypeFilter = "ALL" | TransactionType;
 
 const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
 
-function getCurrentMonthKey() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function getTodayLocalDate() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
-    now.getDate(),
-  ).padStart(2, "0")}`;
-}
-
-function normalizeMonthParam(value: string | undefined) {
+function normalizeMonthParam(value: string | undefined, currentMonth: string) {
   if (!value || !MONTH_REGEX.test(value)) {
-    return getCurrentMonthKey();
+    return currentMonth;
   }
 
   return value;
@@ -106,7 +94,11 @@ export default async function TransactionsPage({
   searchParams?: PageSearchParams;
 }) {
   const resolvedSearchParams = await resolveSearchParams(searchParams);
-  const selectedMonth = normalizeMonthParam(firstSearchParamValue(resolvedSearchParams.month));
+  const meta = await getTransactionFormMeta();
+  const selectedMonth = normalizeMonthParam(
+    firstSearchParamValue(resolvedSearchParams.month),
+    meta.currentMonth,
+  );
   const selectedType = normalizeTypeFilter(firstSearchParamValue(resolvedSearchParams.type));
   const requestedCategoryId = firstSearchParamValue(resolvedSearchParams.categoryId);
   const canonicalSubcategoryId = firstSearchParamValue(resolvedSearchParams.subcategoryId);
@@ -130,7 +122,6 @@ export default async function TransactionsPage({
     );
   }
 
-  const meta = await getTransactionFormMeta();
   const activeCategories = meta.categories.filter((category) => !category.isArchived);
   const validCategoryFilter = meta.categories.some((category) => category.id === requestedCategoryId)
     ? requestedCategoryId
@@ -299,7 +290,7 @@ export default async function TransactionsPage({
                   defaultValues={{
                     type: "EXPENSE",
                     amount: "",
-                    localDate: getTodayLocalDate(),
+                    localDate: meta.currentLocalDate,
                     categoryId: "",
                     subcategoryId: "",
                     source: "",

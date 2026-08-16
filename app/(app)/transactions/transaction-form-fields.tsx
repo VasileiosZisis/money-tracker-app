@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { FormField } from "@/components/ui/form-field";
@@ -53,6 +53,21 @@ export function TransactionFormFields({
 }) {
   const [selectedCategoryId, setSelectedCategoryId] = useState(defaultValues.categoryId);
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState(defaultValues.subcategoryId);
+  const localDateInputRef = useRef<HTMLInputElement | null>(null);
+  const previousDefaultLocalDateRef = useRef(defaultValues.localDate);
+
+  useEffect(() => {
+    const localDateInput = localDateInputRef.current;
+
+    if (
+      localDateInput &&
+      localDateInput.value === previousDefaultLocalDateRef.current
+    ) {
+      localDateInput.value = defaultValues.localDate;
+    }
+
+    previousDefaultLocalDateRef.current = defaultValues.localDate;
+  }, [defaultValues.localDate]);
 
   const selectedCategory = useMemo(
     () => categories.find((category) => category.id === selectedCategoryId) ?? null,
@@ -66,6 +81,7 @@ export function TransactionFormFields({
   const dateField = (
     <FormField htmlFor={`${idPrefix}-date`} label="Date">
       <Input
+        ref={localDateInputRef}
         id={`${idPrefix}-date`}
         name="localDate"
         type="date"

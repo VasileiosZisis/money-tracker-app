@@ -105,6 +105,7 @@ It is **not** yet a full budgeting suite, full subscription product, or bank-syn
 - Authentication: Google OAuth only (NextAuth)
 - Onboarding: first login redirects to `/setup`, which must be completed before using the app
 - Currency: per-user base currency (choose from a common list). No FX conversion.
+- Time zone: per-user IANA time zone defines the account's financial calendar day.
 - Date handling: store `Transaction.localDate` as a string `"YYYY-MM-DD"`
 - Categories: support archiving (`isArchived`). Archiving is allowed even if category is used.
 - Transactions: include Create + Edit + Delete
@@ -146,6 +147,7 @@ Keep working/supporting:
 2. Setup flow:
    - `/setup`
    - user selects base currency
+   - user confirms an account time zone
    - user can create default categories
    - user completes setup (`hasCompletedSetup = true`)
    - app routes redirect to `/setup` until setup is complete
@@ -264,6 +266,9 @@ Do NOT implement unless explicitly requested later:
 - Every DB query MUST be scoped to the authenticated `userId` (`session.user.id`)
 - Never trust client-provided `userId`
 - If an entity is accessed by ID, verify it belongs to the authenticated user before reading/updating/deleting
+- Use `User.timeZone` with the centralized date helpers for every server-side
+  calculation of today or the current month; never use the deployment server's
+  local calendar fields for account data.
 
 ### Transactions
 
@@ -357,6 +362,7 @@ app/
 (app)/planned-income/page.tsx # compatibility redirect to /planned?type=INCOME
 (app)/import/page.tsx
 (app)/export/page.tsx
+(app)/settings/page.tsx
 api/auth/[...nextauth]/route.ts
 actions/
 setup.ts
@@ -400,6 +406,8 @@ Route groups:
 - Keep DB access on the server only
 - Use Zod validators under `/lib/validators`
 - Month helpers under `/lib/dates` should work with `localDate` strings
+- Account-current date helpers under `/lib/dates` must accept an explicit IANA
+  time zone and remain deterministic when an instant is supplied
 - Currency formatting via `Intl.NumberFormat` using `user.currency`
 - Forecast logic should live under `/lib/forecast`
 - Import parsing/mapping helpers should live under `/lib/import`
@@ -503,9 +511,10 @@ Legacy CSV headers `tag` and `tags` remain accepted as aliases for `subcategory`
 
 - `proxy.ts` protects authenticated routes
 - In `app/(app)/layout.tsx` (server component), enforce setup:
-  - if `user.hasCompletedSetup` is false and route is not `/setup`, redirect to `/setup`
-  - after setup completion, redirect `/setup` -> `/dashboard`
+  - if `user.hasCompletedSetup` is false or `user.timeZone` is missing, redirect to `/setup`
+  - after setup completion and time-zone confirmation, redirect `/setup` -> `/dashboard`
 - New authenticated routes such as `/planned` and `/import` must also be protected
+- `/settings` is protected and is the account time-zone management surface
 - `/planned-income` remains protected as a compatibility redirect to `/planned?type=INCOME`
 
 ---

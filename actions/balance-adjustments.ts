@@ -7,9 +7,9 @@ import {
   actionSuccess,
   type ActionResult,
 } from "@/lib/actions/result";
-import { getUserIdOrThrow } from "@/lib/auth/session";
+import { getAuthenticatedUserPreferences, getUserIdOrThrow } from "@/lib/auth/session";
+import { getLocalDateInTimeZone } from "@/lib/dates/time-zone";
 import { db } from "@/lib/db";
-import { getTodayLocalDate } from "@/lib/forecast";
 import {
   createBalanceAdjustmentSchema,
   deleteBalanceAdjustmentSchema,
@@ -63,10 +63,15 @@ export async function listBalanceAdjustments(): Promise<
 export async function createBalanceAdjustment(
   input: CreateBalanceAdjustmentInput,
 ): Promise<ActionResult> {
-  const userId = await getUserIdOrThrow();
-  const parsed = createBalanceAdjustmentSchema(getTodayLocalDate()).safeParse(
-    input,
-  );
+  const user = await getAuthenticatedUserPreferences();
+
+  if (!user.timeZone) {
+    return actionError("Configure your account time zone before adding money.");
+  }
+
+  const parsed = createBalanceAdjustmentSchema(
+    getLocalDateInTimeZone(user.timeZone),
+  ).safeParse(input);
 
   if (!parsed.success) {
     return getValidationError(parsed.error.issues[0]?.message);
@@ -75,7 +80,7 @@ export async function createBalanceAdjustment(
   try {
     await db.balanceAdjustment.create({
       data: {
-        userId,
+        userId: user.userId,
         amount: parsed.data.amount,
         effectiveMonth: parsed.data.effectiveMonth,
         note: parsed.data.note ?? null,
@@ -94,10 +99,15 @@ export async function createBalanceAdjustment(
 export async function updateBalanceAdjustment(
   input: UpdateBalanceAdjustmentInput,
 ): Promise<ActionResult> {
-  const userId = await getUserIdOrThrow();
-  const parsed = updateBalanceAdjustmentSchema(getTodayLocalDate()).safeParse(
-    input,
-  );
+  const user = await getAuthenticatedUserPreferences();
+
+  if (!user.timeZone) {
+    return actionError("Configure your account time zone before editing money.");
+  }
+
+  const parsed = updateBalanceAdjustmentSchema(
+    getLocalDateInTimeZone(user.timeZone),
+  ).safeParse(input);
 
   if (!parsed.success) {
     return getValidationError(parsed.error.issues[0]?.message);
@@ -109,7 +119,7 @@ export async function updateBalanceAdjustment(
     updated = await db.balanceAdjustment.updateMany({
       where: {
         id: parsed.data.id,
-        userId,
+        userId: user.userId,
       },
       data: {
         amount: parsed.data.amount,

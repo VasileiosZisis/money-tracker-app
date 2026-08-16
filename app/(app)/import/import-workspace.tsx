@@ -107,12 +107,14 @@ function getResolutionIssues(
   });
 }
 
-function getMostRecentImportedMonth(rows: ImportPreviewResult["rowsForConfirmation"]) {
+function getMostRecentImportedMonth(
+  rows: ImportPreviewResult["rowsForConfirmation"],
+  currentMonth: string,
+) {
   const months = rows.map((row) => row.localDate.slice(0, 7)).filter((month) => month.length === 7);
 
   if (months.length === 0) {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    return currentMonth;
   }
 
   return [...months].sort().at(-1) ?? months[0];
@@ -164,7 +166,7 @@ async function requestImportConfirmation(payload: {
   return parseJsonResponse<ConfirmImportResult>(response);
 }
 
-export function ImportWorkspace() {
+export function ImportWorkspace({ currentMonth }: { currentMonth: string }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -286,7 +288,10 @@ export function ImportWorkspace() {
         }
 
         const successMessage = buildImportSuccessMessage(result.data);
-        const targetMonth = getMostRecentImportedMonth(preview.rowsForConfirmation);
+        const targetMonth = getMostRecentImportedMonth(
+          preview.rowsForConfirmation,
+          currentMonth,
+        );
 
         if (result.data.importedCount > 0) {
           router.push(

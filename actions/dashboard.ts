@@ -1,6 +1,6 @@
 import { Prisma } from "@/generated/prisma/client";
 
-import { getUserIdOrThrow } from "@/lib/auth/session";
+import { getAuthenticatedUserPreferences } from "@/lib/auth/session";
 import {
   computeTotalBalanceSummary,
   findEarliestCompletedActivityMonth,
@@ -10,6 +10,7 @@ import {
   type TotalBalanceSummary,
 } from "@/lib/balance";
 import { getMonthRange } from "@/lib/dates/month";
+import { getLocalDateInTimeZone } from "@/lib/dates/time-zone";
 import {
   buildSpendingByCategory,
   type DashboardSpendingCategory,
@@ -26,7 +27,6 @@ import { db } from "@/lib/db";
 import {
   buildForecastMonthContext,
   computeForecastSummary,
-  getTodayLocalDate,
   type ForecastMonthRelation,
   type ForecastSummary,
 } from "@/lib/forecast";
@@ -621,6 +621,7 @@ async function loadDashboardMonthData(
   month: string,
   userId: string,
   referenceDate: string,
+  currency: string,
 ): Promise<DashboardMonthData> {
   const forecastMonthContext = buildForecastMonthContext({
     selectedMonth: month,
@@ -642,7 +643,6 @@ async function loadDashboardMonthData(
     linkCandidateTransactions,
     plannedIncomeLinkCandidateTransactions,
     latestTransactionEntry,
-    user,
   ] = await Promise.all([
     db.transaction.aggregate({
       where: {
@@ -893,10 +893,6 @@ async function loadDashboardMonthData(
         createdAt: "desc",
       },
     }),
-    db.user.findUnique({
-      where: { id: userId },
-      select: { currency: true },
-    }),
   ]);
 
   const incomeSum = incomeAggregate._sum.amount ?? new Prisma.Decimal(0);
@@ -928,7 +924,6 @@ async function loadDashboardMonthData(
     transactions: monthlyChartTransactions,
   });
   const spendingByCategory = buildSpendingByCategory(monthlyChartTransactions);
-  const currency = user?.currency ?? "USD";
   const getLinkCandidatesForPlannedBill = (plannedBill: {
     amount: Prisma.Decimal;
     categoryId: string;
@@ -1120,22 +1115,42 @@ async function loadDashboardMonthData(
 export async function getDashboardMonthData(
   month: string,
 ): Promise<DashboardMonthData> {
-  const userId = await getUserIdOrThrow();
-  const referenceDate = getTodayLocalDate();
+  const user = await getAuthenticatedUserPreferences();
 
-  return loadDashboardMonthData(month, userId, referenceDate);
+  if (!user.timeZone) {
+    throw new Error("Account time zone is not configured.");
+  }
+
+  const referenceDate = getLocalDateInTimeZone(user.timeZone);
+
+  return loadDashboardMonthData(
+    month,
+    user.userId,
+    referenceDate,
+    user.currency,
+  );
 }
 
 export async function getDashboardData(
   month: string,
   searchParams: SearchParamsShape,
 ): Promise<DashboardData> {
-  const userId = await getUserIdOrThrow();
-  const referenceDate = getTodayLocalDate();
+  const user = await getAuthenticatedUserPreferences();
+
+  if (!user.timeZone) {
+    throw new Error("Account time zone is not configured.");
+  }
+
+  const referenceDate = getLocalDateInTimeZone(user.timeZone);
   const [monthData, totalBalance] = await Promise.all([
-    loadDashboardMonthData(month, userId, referenceDate),
+    loadDashboardMonthData(
+      month,
+      user.userId,
+      referenceDate,
+      user.currency,
+    ),
     loadDashboardTotalBalanceData({
-      userId,
+      userId: user.userId,
       referenceDate,
       searchParams,
     }),

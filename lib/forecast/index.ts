@@ -8,7 +8,6 @@ export type ForecastComputationMode = "on-demand";
 
 export {
   buildForecastMonthContext,
-  getTodayLocalDate,
   type ForecastMonthContext,
   type ForecastMonthRelation,
 } from "@/lib/forecast/month-context";

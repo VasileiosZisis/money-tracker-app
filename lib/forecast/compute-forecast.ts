@@ -9,7 +9,6 @@ import {
 import { roundMoney, ZERO_DECIMAL } from "@/lib/forecast/decimal";
 import {
   buildForecastMonthContext,
-  getTodayLocalDate,
   type ForecastMonthContext,
 } from "@/lib/forecast/month-context";
 import {
@@ -124,14 +123,14 @@ export function calculateWeeklySafeSpend(
 
 export function computeForecastSummary(params: {
   selectedMonth: string;
-  referenceDate?: string;
+  referenceDate: string;
   transactions: readonly ForecastInputTransaction[];
   plannedBills: readonly ForecastInputPlannedBill[];
   plannedIncomes?: readonly ForecastInputPlannedIncome[];
 }) {
   const monthContext = buildForecastMonthContext({
     selectedMonth: params.selectedMonth,
-    referenceDate: params.referenceDate ?? getTodayLocalDate(),
+    referenceDate: params.referenceDate,
   });
   const incomeSoFar = calculateIncomeSoFar(params.transactions, monthContext);
   const expenseSoFar = calculateExpenseSoFar(params.transactions, monthContext);

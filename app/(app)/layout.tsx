@@ -2,9 +2,12 @@ import { redirect } from 'next/navigation'
 
 import { AppSidebar } from '@/components/app-shell/app-sidebar'
 import { PageContextBar } from '@/components/app-shell/page-context-bar'
-import { getSession } from '@/lib/auth/session'
+import {
+  getAuthenticatedUserPreferences,
+  getSession
+} from '@/lib/auth/session'
 import { SidebarProvider } from '@/components/ui/sidebar'
-import { db } from '@/lib/db'
+import { getAccountDateContext } from '@/lib/dates/time-zone'
 
 function getDisplayName (
   name: string | null | undefined,
@@ -47,25 +50,16 @@ export default async function AppLayout ({
     redirect('/login')
   }
 
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    select: {
-      hasCompletedSetup: true,
-      currency: true
-    }
-  })
+  const user = await getAuthenticatedUserPreferences()
 
-  if (!user) {
-    redirect('/login')
-  }
-
-  if (!user.hasCompletedSetup) {
+  if (!user.hasCompletedSetup || !user.timeZone) {
     redirect('/setup')
   }
 
   const displayName = getDisplayName(session?.user?.name, session?.user?.email)
   const initials = getInitials(displayName)
   const userImage = session?.user?.image ?? null
+  const dateContext = getAccountDateContext(user.timeZone)
 
   return (
     <div className='min-h-screen'>
@@ -78,7 +72,11 @@ export default async function AppLayout ({
           />
 
           <main className='flex min-w-0 flex-1 flex-col gap-3 pb-5 lg:gap-5'>
-            <PageContextBar />
+            <PageContextBar
+              key={`${user.timeZone}:${dateContext.localDate}`}
+              initialDateContext={dateContext}
+              timeZone={user.timeZone}
+            />
 
             <div className='mx-auto flex w-full flex-col gap-5'>
               {children}

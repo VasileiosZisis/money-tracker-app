@@ -107,6 +107,7 @@ Protected authenticated routes include:
 - `/planned`
 - `/planned-income`
 - `/import`
+- `/settings`
 
 `/planned` is the canonical planned-items workspace. `/planned-income` remains
 protected only as a compatibility redirect to `/planned?type=INCOME`, translating
@@ -119,8 +120,8 @@ Use the app layout server-side for setup gating.
 In `app/(app)/layout.tsx`:
 
 - query the authenticated user record
-- if `hasCompletedSetup` is false and current route is not `/setup`, redirect to `/setup`
-- if user visits `/setup` and `hasCompletedSetup` is true, redirect to `/dashboard`
+- if `hasCompletedSetup` is false or `timeZone` is null, redirect to `/setup`
+- if user visits `/setup` with completed setup and a configured time zone, redirect to `/dashboard`
 
 Do not move setup enforcement fully to the client.
 
@@ -154,6 +155,12 @@ Currency rules:
 
 Locked date strategy:
 
+- store one nullable IANA identifier on `User.timeZone`; it is nullable because
+  NextAuth creates the user before setup
+- require a confirmed time zone before authenticated app routes can render
+- derive today, the current month, forecast reference dates, transaction
+  defaults, and export/import fallbacks from the account time zone
+- never derive an account calendar date from the Vercel/server runtime time zone
 - store transaction date as a local date string:
   - `Transaction.localDate = "YYYY-MM-DD"`
 - month queries use local-date string ranges
@@ -181,6 +188,11 @@ Keep:
 
 - `hasCompletedSetup: boolean`
 - `currency: string`
+- `timeZone: string?`
+
+Users confirm the time zone during setup and can change it from `/settings`.
+Existing completed users with a null time zone complete a one-time time-zone
+step; migrations do not guess or backfill the value.
 
 ### Categories
 

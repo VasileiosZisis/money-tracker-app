@@ -49,18 +49,25 @@ simpler than a full accounting or budgeting suite.
 - First login requires setup before the authenticated app can be used.
 - Setup includes:
   - choosing a base currency
+  - confirming an account time zone suggested from the current browser
   - optionally creating default categories
   - marking setup complete
 - Unauthenticated users are redirected to `/login`.
-- Authenticated users without completed setup are redirected to `/setup`.
+- Authenticated users without completed setup or a confirmed time zone are
+  redirected to `/setup`.
 - Authenticated users with completed setup are redirected away from `/setup`
   to `/dashboard`.
 
 ### Currency And Dates
 
 - Each user has one ISO 4217 base currency.
+- Each user has one confirmed IANA account time zone.
 - All amounts are assumed to use that currency.
 - No FX conversion is performed.
+- The account time zone is the authority for today, current-month defaults,
+  forecasts, planned-item status, and date-sensitive validation on every device.
+- Users can change the account time zone from Settings. The app refreshes
+  server-rendered date-sensitive data when the account-local date crosses midnight.
 - Transaction dates use a local date string in `YYYY-MM-DD` format.
 - Month filtering uses local-date string boundaries.
 
@@ -438,12 +445,13 @@ The panel does not perform automatic corrections or matching.
 - `/planned`
 - `/import`
 - `/export`
+- `/settings`
 
 `/planned-income` remains an authenticated compatibility redirect to the income
 view of `/planned`; it is not a separate workspace.
 
-All authenticated routes require login and completed setup, except `/setup`
-during onboarding.
+All authenticated routes require login, completed setup, and a confirmed account
+time zone, except `/setup` during onboarding or the one-time time-zone update.
 
 ## Open Roadmap
 
@@ -505,4 +513,6 @@ Do not implement without an explicit product decision:
 - Balance-adjustment reads and mutations are scoped to the authenticated user.
 - Safe to spend is clearly presented as an estimate, not an account balance.
 - Currency formatting follows the user's configured currency.
+- All date-sensitive defaults and calculations follow the user's configured
+  account time zone rather than the deployment server time zone.
 - The app remains responsive and follows `docs/DESIGN_SYSTEM.md`.

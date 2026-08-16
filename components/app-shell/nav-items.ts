@@ -5,6 +5,7 @@ import {
   FileDown,
   FileUp,
   ReceiptText,
+  Settings2,
   WalletCards,
 } from "lucide-react";
 
@@ -51,5 +52,11 @@ export const appNavItems: AppNavItem[] = [
     label: "Export",
     icon: FileDown,
     description: "Download monthly CSV",
+  },
+  {
+    href: "/settings",
+    label: "Settings",
+    icon: Settings2,
+    description: "Account date and time preferences",
   },
 ];
