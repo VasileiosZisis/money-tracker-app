@@ -103,7 +103,7 @@ function revalidatePlannedBillPaths() {
 function revalidatePlannedBillOccurrencePaths() {
   revalidatePath("/dashboard");
   revalidatePath("/transactions");
-  revalidatePath("/export");
+  revalidatePath("/settings");
   revalidatePath("/planned");
 }
 

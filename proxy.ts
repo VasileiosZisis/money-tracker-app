@@ -18,8 +18,6 @@ export const config = {
     "/categories/:path*",
     "/planned/:path*",
     "/planned-income/:path*",
-    "/import/:path*",
-    "/export/:path*",
     "/settings/:path*",
   ],
 };

@@ -360,9 +360,8 @@ app/
 (app)/categories/page.tsx
 (app)/planned/page.tsx # unified planned bills and income workspace
 (app)/planned-income/page.tsx # compatibility redirect to /planned?type=INCOME
-(app)/import/page.tsx
-(app)/export/page.tsx
-(app)/settings/page.tsx
+(app)/settings/page.tsx # account time zone, import, export, and theme
+(app)/settings/export/download/route.ts
 api/auth/[...nextauth]/route.ts
 actions/
 setup.ts
@@ -513,8 +512,11 @@ Legacy CSV headers `tag` and `tags` remain accepted as aliases for `subcategory`
 - In `app/(app)/layout.tsx` (server component), enforce setup:
   - if `user.hasCompletedSetup` is false or `user.timeZone` is missing, redirect to `/setup`
   - after setup completion and time-zone confirmation, redirect `/setup` -> `/dashboard`
-- New authenticated routes such as `/planned` and `/import` must also be protected
-- `/settings` is protected and is the account time-zone management surface
+- New authenticated routes such as `/planned` and `/settings` must also be protected
+- `/settings` is protected and is the account time-zone, import, export, and theme management surface
+- Import and export do not have standalone user-facing pages; CSV import uses
+  authenticated `/api/import/*` handlers and CSV downloads use
+  `/settings/export/download`
 - `/planned-income` remains protected as a compatibility redirect to `/planned?type=INCOME`
 
 ---

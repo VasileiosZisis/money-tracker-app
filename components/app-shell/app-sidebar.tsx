@@ -2,11 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ScrollText } from "lucide-react";
+import { ScrollText, Settings2 } from "lucide-react";
 
 import { appNavItems } from "@/components/app-shell/nav-items";
 import SignOutButton from "@/components/auth/SignOutButton";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -19,6 +29,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 
 type AppSidebarProps = {
   displayName: string;
@@ -37,6 +48,7 @@ function isActivePath(pathname: string, href: string) {
 export function AppSidebar({ displayName, initials, userImage }: AppSidebarProps) {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
+  const settingsActive = isActivePath(pathname, "/settings");
 
   function handleNavigate() {
     if (isMobile) {
@@ -92,28 +104,54 @@ export function AppSidebar({ displayName, initials, userImage }: AppSidebarProps
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <div className="flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-sidebar-foreground">
-              {userImage ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={userImage}
-                  alt={displayName}
-                  className="size-8 rounded-lg object-cover"
-                />
-              ) : (
-                <div className="flex size-8 items-center justify-center rounded-lg border border-border/50 bg-background/60 font-semibold text-muted-foreground">
-                  {initials}
-                </div>
-              )}
-              <p className="text-sm font-semibold text-inherit">{displayName}</p>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <SidebarMenuButton
+                    aria-label="Open account menu"
+                    className="focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/60 data-popup-open:bg-sidebar-accent data-popup-open:text-foreground"
+                  />
+                }
+              >
+                <Avatar className="rounded-lg after:rounded-lg">
+                  {userImage ? (
+                    <AvatarImage
+                      src={userImage}
+                      alt={displayName}
+                      className="rounded-lg"
+                    />
+                  ) : null}
+                  <AvatarFallback className="rounded-lg font-semibold">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="truncate">{displayName}</span>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="top" align="start" sideOffset={8}>
+                <DropdownMenuGroup>
+                  <SignOutButton variant="menu" />
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SignOutButton variant="sidebar" />
+            <SidebarMenuButton asChild isActive={settingsActive}>
+              <Link href="/settings" onClick={handleNavigate}>
+                <span
+                  className={cn(
+                    "flex size-8 items-center justify-center rounded-lg border",
+                    settingsActive
+                      ? "border-white/15 bg-white/10"
+                      : "border-border/50 bg-background/60 text-muted-foreground",
+                  )}
+                >
+                  <Settings2 className="size-4.5" />
+                </span>
+                <span>Settings</span>
+              </Link>
+            </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
-            <ThemeToggle variant="sidebar" />
-          </SidebarMenuItem>
+          <SidebarMenuItem aria-hidden="true" className="h-11" />
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>

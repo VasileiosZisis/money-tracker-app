@@ -51,7 +51,7 @@ function getMutationError(error: unknown, duplicateError: string) {
 function revalidateCategoryPaths() {
   revalidatePath("/categories");
   revalidatePath("/transactions");
-  revalidatePath("/export");
+  revalidatePath("/settings");
   revalidatePath("/planned");
   revalidatePath("/dashboard");
 }

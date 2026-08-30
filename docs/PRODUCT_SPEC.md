@@ -443,12 +443,14 @@ The panel does not perform automatic corrections or matching.
 - `/transactions`
 - `/categories`
 - `/planned`
-- `/import`
-- `/export`
 - `/settings`
 
 `/planned-income` remains an authenticated compatibility redirect to the income
 view of `/planned`; it is not a separate workspace.
+
+`/settings` is the single user-facing workspace for Account time zone, Import,
+Export, and Theme. Its compact section links scroll to four sections rendered on
+the same page. Import and Export do not have standalone user-facing routes.
 
 All authenticated routes require login, completed setup, and a confirmed account
 time zone, except `/setup` during onboarding or the one-time time-zone update.

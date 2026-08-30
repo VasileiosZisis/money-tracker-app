@@ -2,10 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
   FolderKanban,
-  FileDown,
-  FileUp,
   ReceiptText,
-  Settings2,
   WalletCards,
 } from "lucide-react";
 
@@ -40,23 +37,5 @@ export const appNavItems: AppNavItem[] = [
     label: "Planned",
     icon: WalletCards,
     description: "Expected monthly bills and income",
-  },
-  {
-    href: "/import",
-    label: "Import",
-    icon: FileUp,
-    description: "Preview and add CSV data",
-  },
-  {
-    href: "/export",
-    label: "Export",
-    icon: FileDown,
-    description: "Download monthly CSV",
-  },
-  {
-    href: "/settings",
-    label: "Settings",
-    icon: Settings2,
-    description: "Account date and time preferences",
   },
 ];

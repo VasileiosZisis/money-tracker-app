@@ -188,9 +188,10 @@ Rules:
 - Primary navigation lives in the sidebar.
 - Desktop sidebar branding should stay concise: app name plus mark, without supporting tagline copy.
 - Desktop sidebar nav items should use icon plus single-line labels, not secondary description text.
-- Sidebar user identity can show avatar and display name, but should avoid extra metadata lines unless they are genuinely necessary.
-- Desktop sidebar user identity and utility controls should visually reuse the same row treatment as the primary nav links: matching spacing, icon box sizing, corner radius, and hover language.
-- Desktop sidebar utility controls such as sign-out and theme toggle should sit in the sidebar footer/menu area after the account identity block.
+- Sidebar user identity shows the avatar and display name as one full-row account-menu trigger, with initials as the avatar fallback.
+- The account menu opens above the profile row and contains Sign out. Settings remains visible as a footer navigation item directly below the profile row.
+- Desktop sidebar user identity and Settings visually reuse the same row treatment as the primary nav links: matching spacing, icon box sizing, corner radius, and hover language.
+- Import, Export, and Theme do not appear as sidebar items; they live in Settings.
 - The desktop sidebar should sit flush against the left edge, span the full viewport height, and use square outer corners instead of an inset card treatment.
 - Authenticated pages use a `h-18` contextual bar at the top of `main`, matching the 72px sidebar header height.
 - The contextual bar uses three aligned regions: current page at the left edge, the account-time-zone current date centered, and days remaining before month end at the right edge. It refreshes server-rendered data when that account-local date crosses midnight.
@@ -207,10 +208,13 @@ Rules:
 - An expanded category editor stages category and subcategory renames, additions, and removals until Save changes. It uses `Close/Cancel`, Archive for active categories or Restore for inactive categories, and keeps Save changes disabled until the staged values differ from the stored category.
 - Inline editors and balance-adjustment disclosures open and close immediately through local client state, allow only one related workflow to be open, and shallowly synchronize their existing query parameters through the native history API. Keep real no-scroll hrefs as deep-link and progressive-enhancement fallbacks; normal page-to-page links retain standard scroll behavior.
 - The Planned workspace follows the same responsive shell as Categories: a content-height 300px creation card in the left column and compact controls plus one unified Planned items list in the flexible right column. On smaller screens the creation card stacks before the list workspace.
-- Settings appears in the primary sidebar and uses a compact Date and time
-  workspace composed from standard cards, a native styled select, and one
-  primary save action. Setup uses the same time-zone control and explicitly
-  asks the user to confirm the browser-suggested IANA time zone.
+- Settings appears in the sidebar footer below the profile row. Its single page
+  uses non-sticky anchor links to Account time zone, Import, Export, and Theme
+  sections, all rendered together. Account time zone keeps the native styled
+  select and one primary save action; Import keeps its explicit preview and
+  confirmation workflow; Theme offers explicit Light and Dark choices. Setup
+  uses the same time-zone control and explicitly asks the user to confirm the
+  browser-suggested IANA time zone.
 - The creation card switches between Add bill and Add income tabs, with Add bill selected by default. Only the selected vertical form renders, and new items are always Active. The list controls offer All, Bill, or Income plus an Active or Inactive status disclosure; All and Active are the defaults.
 - Planned creation and expanded edit forms keep Name as the required template identity and include optional Source and Note fields for future generated transactions. Creation forms order fields as Name, Amount, Category, Subcategory, Source, Note, then due or expected day.
 - Planned bills and planned income share the same list card and URL-backed filter state; their composite editor state expands locally and remains shallowly synchronized to the URL. Rows use the Categories/Transactions visual language: a destructive bill icon or success income icon, category with optional subcategory, and a right-aligned day/amount stack. Planned-item names, status labels, and active badges are omitted from collapsed rows. Collapsed rows expose only `View/Edit`; expanded editors provide `Close/Cancel`, Delete, Activate or Deactivate, and Save changes. In All views, bills appear before income, and the empty list state is `No planned items`.

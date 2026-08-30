@@ -150,8 +150,7 @@ function collectRequiredCategoryResolutions(rows: ImportPreviewConfirmationRow[]
 function revalidateImportPaths() {
   revalidatePath("/transactions");
   revalidatePath("/dashboard");
-  revalidatePath("/export");
-  revalidatePath("/import");
+  revalidatePath("/settings");
 }
 
 export async function previewImportForUser(

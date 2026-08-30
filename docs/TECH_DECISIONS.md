@@ -102,16 +102,18 @@ Protected authenticated routes include:
 - `/dashboard`
 - `/transactions`
 - `/categories`
-- `/export`
 - `/setup`
 - `/planned`
 - `/planned-income`
-- `/import`
 - `/settings`
 
 `/planned` is the canonical planned-items workspace. `/planned-income` remains
 protected only as a compatibility redirect to `/planned?type=INCOME`, translating
 legacy income edit parameters when present.
+
+`/settings` is the single user-facing workspace for account time zone, CSV
+import, CSV export, and theme. CSV import keeps its authenticated `/api/import/*`
+handlers, and authenticated CSV downloads use `/settings/export/download`.
 
 ### 2. Setup enforcement
 
