@@ -150,6 +150,7 @@ function collectRequiredCategoryResolutions(rows: ImportPreviewConfirmationRow[]
 function revalidateImportPaths() {
   revalidatePath("/transactions");
   revalidatePath("/dashboard");
+  revalidatePath("/insights");
   revalidatePath("/settings");
 }
 

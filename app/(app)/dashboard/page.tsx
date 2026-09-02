@@ -1331,7 +1331,7 @@ export default async function DashboardPage ({
             >
               <div className='p-4'>
                 <CardTitle id='planned-income-heading'>Planned income</CardTitle>
-              <div className='flex flex-wrap gap-2'>
+              <div className='flex flex-wrap gap-2 pt-1'>
                 <Badge variant='outline' className='text-base'>
                   {displayedPlannedIncomes.length}
                 </Badge>
@@ -1576,7 +1576,7 @@ export default async function DashboardPage ({
             >
               <div className='p-4'>
                 <CardTitle id='planned-bills-heading'>Planned bills</CardTitle>
-              <div className='flex flex-wrap gap-2'>
+              <div className='flex flex-wrap gap-2 pt-1'>
                 <Badge variant='outline' className='text-base'>
                   {displayedPlannedBills.length}
                 </Badge>
@@ -1698,7 +1698,7 @@ export default async function DashboardPage ({
                         </button>
                       </form>
                     ) : (
-                      <div className='grid gap-3 border-t border-border/70 pt-4'>
+                      <div className='grid gap-3 border-t border-border/70'>
                         <form
                           action={markPaidAction}
                            className='grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] min-[1280px]:max-[1479px]:grid-cols-2!'

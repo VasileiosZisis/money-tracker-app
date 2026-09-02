@@ -54,6 +54,7 @@ function revalidateCategoryPaths() {
   revalidatePath("/settings");
   revalidatePath("/planned");
   revalidatePath("/dashboard");
+  revalidatePath("/insights");
 }
 
 export async function listCategories() {

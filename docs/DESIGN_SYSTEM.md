@@ -249,6 +249,22 @@ Rules:
 - Planned Bills list-item action areas and their internal separators add no top padding.
 - Do not invent analytics or charts that are not backed by real data.
 
+### Insights composition
+
+- Insights is a historical comparison workspace, not a second dashboard and
+  not a category-management surface.
+- Start with the page heading and one compact control row for expense category
+  and completed-month comparison period.
+- Use one full-width monthly bar chart. Completed months use the primary chart
+  treatment; the current account-local month is visually quieter and labeled
+  `So far` or `In progress`.
+- Follow the chart with three compact metrics: Typical month, This month, and
+  Compared with typical. Historical differences use neutral descriptive copy,
+  not success/destructive judgment.
+- Present monthly context as a compact desktop table that becomes stacked cards
+  on mobile. Money values remain mono and each month provides a restrained link
+  to its filtered Transactions view.
+
 ## Component styling principles
 
 ### Buttons

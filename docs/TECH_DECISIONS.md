@@ -101,6 +101,7 @@ Protected authenticated routes include:
 
 - `/dashboard`
 - `/transactions`
+- `/insights`
 - `/categories`
 - `/setup`
 - `/planned`
@@ -604,6 +605,19 @@ Transaction-page interaction rules:
 - update and delete operations remain server actions with the existing
   server-side validation and ownership checks; client dirty-state detection is
   a UX affordance, not a validation or authorization boundary
+
+Insights-page interaction rules:
+
+- read Insights data directly in the server page; do not add a route handler or
+  client-side data fetch
+- use URL-backed `categoryId` and `period=3|6|12` controls, with 6 completed
+  months as the default comparison window
+- query actual transactions only, always scoped to the authenticated user, and
+  aggregate monetary values with Prisma `Decimal`
+- keep the Recharts component as the only required client boundary and pass it
+  plain serialized display data
+- link monthly rows to the existing Transactions filter contract using `month`,
+  `type=EXPENSE`, and `categoryId`
 
 Planned bill form fields:
 

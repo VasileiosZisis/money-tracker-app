@@ -228,6 +228,7 @@ async function getValidatedSubcategoryIdForUpdate(params: {
 function revalidateTransactionPaths() {
   revalidatePath("/transactions");
   revalidatePath("/dashboard");
+  revalidatePath("/insights");
   revalidatePath("/settings");
 }
 

@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  ChartNoAxesCombined,
   LayoutDashboard,
   FolderKanban,
   ReceiptText,
@@ -25,6 +26,12 @@ export const appNavItems: AppNavItem[] = [
     label: "Transactions",
     icon: ReceiptText,
     description: "Add and review entries",
+  },
+  {
+    href: "/insights",
+    label: "Insights",
+    icon: ChartNoAxesCombined,
+    description: "Compare spending over time",
   },
   {
     href: "/categories",

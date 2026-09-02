@@ -103,6 +103,7 @@ function revalidatePlannedIncomePaths() {
 function revalidatePlannedIncomeOccurrencePaths() {
   revalidatePath("/dashboard");
   revalidatePath("/transactions");
+  revalidatePath("/insights");
   revalidatePath("/settings");
   revalidatePath("/planned");
 }

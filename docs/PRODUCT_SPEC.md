@@ -134,6 +134,29 @@ Transaction-page interaction rules:
 
 All transaction operations are scoped to the authenticated user.
 
+### Insights
+
+`/insights` is a historical spending workspace for one expense category at a
+time. It helps users understand normal category behavior and the financial
+context of previous months without presenting historical spending as a budget
+or amount available to spend.
+
+Users can select an active or archived expense category and compare it across
+3, 6, or 12 completed months. The page also shows the current account-local
+month as an incomplete comparison. It includes:
+
+- a monthly category-spending chart
+- typical monthly spend using the median of completed comparison months
+- actual category spending for the current month
+- the amount above, below, or equal to typical spending
+- monthly category spend, total expenses, and actual net context
+- links to the corresponding filtered Transactions view
+
+Months from the category's creation month onward remain part of its history,
+including months with zero spending. Fewer than three completed months is
+clearly labeled as limited history. Insights uses actual transactions only and
+does not alter or replace Safe to spend.
+
 ### CSV Import
 
 The import flow is manual and explicit:
@@ -441,6 +464,7 @@ The panel does not perform automatic corrections or matching.
 
 - `/dashboard`
 - `/transactions`
+- `/insights`
 - `/categories`
 - `/planned`
 - `/settings`
@@ -504,6 +528,8 @@ Do not implement without an explicit product decision:
 - Users cannot access another user's data.
 - Category and subcategory relationships remain valid.
 - Transaction totals are correct for any selected month.
+- Insights calculations are user-scoped, Decimal-safe, and exclude the current
+  month from the typical-spend median.
 - Imported rows behave like manually created transactions.
 - Planned bills do not double-count paid or skipped monthly occurrences.
 - Planned income changes projection without inflating actual income before it

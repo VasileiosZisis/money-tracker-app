@@ -37,5 +37,6 @@ export async function updateAccountTimeZone(
   revalidatePath("/settings");
   revalidatePath("/dashboard");
   revalidatePath("/transactions");
+  revalidatePath("/insights");
   return actionSuccess();
 }

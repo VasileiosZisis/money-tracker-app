@@ -331,7 +331,7 @@ export function ImportWorkspace({ currentMonth }: { currentMonth: string }) {
           <CardHeader>
             <CardTitle>Upload CSV file</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col gap-4">
+          <CardContent className="flex flex-col gap-4 pt-4">
             <form onSubmit={handleFileSubmit} className="grid gap-4">
               <div className="space-y-2">
                 <Input
@@ -388,7 +388,7 @@ export function ImportWorkspace({ currentMonth }: { currentMonth: string }) {
               Imported rows become normal transactions after confirmation.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="flex flex-col gap-4 pt-4">
             <div className="rounded-xl border border-border/80 bg-background/60 p-4">
               <p className="text-sm font-medium text-muted-foreground">1. Preview</p>
               <p className="mt-2 text-sm leading-6 text-foreground">

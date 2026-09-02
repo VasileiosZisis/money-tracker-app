@@ -131,7 +131,7 @@ export default async function SettingsPage({
                 device.
               </CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
+            <CardContent className="grid gap-4 pt-4 sm:grid-cols-2">
               <div className="rounded-xl border border-border/80 bg-background/60 p-4">
                 <Globe2 className="size-5 text-muted-foreground" />
                 <p className="mt-4 text-sm font-semibold text-foreground">
@@ -252,7 +252,7 @@ export default async function SettingsPage({
                 selected month.
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col gap-4">
+            <CardContent className="flex flex-col gap-4 pt-4">
               <div className="rounded-xl border border-border/80 bg-background/60 p-4">
                 <div className="flex items-center gap-3">
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
@@ -304,7 +304,7 @@ export default async function SettingsPage({
           <CardHeader>
             <CardTitle>Appearance</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             <ThemeSettings />
           </CardContent>
         </Card>
