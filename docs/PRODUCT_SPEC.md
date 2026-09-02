@@ -136,14 +136,26 @@ All transaction operations are scoped to the authenticated user.
 
 ### Insights
 
-`/insights` is a historical spending workspace for one expense category at a
-time. It helps users understand normal category behavior and the financial
-context of previous months without presenting historical spending as a budget
-or amount available to spend.
+`/insights` is a historical analysis workspace. It helps users understand
+monthly cashflow and category behavior without presenting historical results as
+a budget, recommendation, or amount available to spend.
 
-Users can select an active or archived expense category and compare it across
-3, 6, or 12 completed months. The page also shows the current account-local
-month as an incomplete comparison. It includes:
+Users can compare 3, 6, or 12 completed months. The page also shows the current
+account-local month as an incomplete comparison. Its overall analysis remains
+available without selecting a category and includes:
+
+- a compact monthly income-versus-expenses trend chart with result context
+- typical monthly result using the median of eligible completed months
+- the break-even gap when that typical result is negative
+- positive, negative, and break-even completed-month counts
+
+The overall baseline starts with the user's first actual transaction. Completed
+months after that first activity remain part of the selected history, including
+months with no transactions. The current month does not contribute to the
+median, break-even gap, or outcome counts.
+
+Users can optionally select an active or archived expense category. Category
+analysis includes:
 
 - a monthly category-spending chart
 - typical monthly spend using the median of completed comparison months
@@ -529,7 +541,7 @@ Do not implement without an explicit product decision:
 - Category and subcategory relationships remain valid.
 - Transaction totals are correct for any selected month.
 - Insights calculations are user-scoped, Decimal-safe, and exclude the current
-  month from the typical-spend median.
+  month from typical-result and typical-spend medians.
 - Imported rows behave like manually created transactions.
 - Planned bills do not double-count paid or skipped monthly occurrences.
 - Planned income changes projection without inflating actual income before it

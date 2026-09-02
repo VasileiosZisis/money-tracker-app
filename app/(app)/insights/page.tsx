@@ -10,12 +10,17 @@ import {
   SpendingTrendsChart,
   type SpendingTrendChartPoint,
 } from "@/components/insights/spending-trends-chart";
+import {
+  MonthlyResultChart,
+  type MonthlyResultChartPoint,
+} from "@/components/insights/monthly-result-chart";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -27,6 +32,7 @@ import { shiftMonthKey } from "@/lib/balance/months";
 import { getAuthenticatedUserPreferences } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import {
+  buildMonthlyResultInsight,
   buildSpendingInsight,
   type InsightsPeriod,
 } from "@/lib/insights/spending-history";
@@ -62,6 +68,10 @@ function formatSignedMoney(formatter: Intl.NumberFormat, amount: string) {
 
 function isNegativeMoney(amount: string) {
   return new Prisma.Decimal(amount).lt(0);
+}
+
+function isPositiveMoney(amount: string) {
+  return new Prisma.Decimal(amount).gt(0);
 }
 
 function comparisonCopy(
@@ -124,7 +134,6 @@ function InsightsControls({
             <Select
               name="categoryId"
               defaultValue={selectedCategoryId ?? ""}
-              required
             >
               <option value="" disabled>
                 Select category
@@ -192,37 +201,256 @@ export default async function InsightsPage({
   );
   const rangeStartMonth = shiftMonthKey(currentMonth, -period);
   const rangeStart = getMonthRange(rangeStartMonth).start;
-  const rangeEndExclusive = getMonthRange(currentMonth).endExclusive;
 
-  const categories = await db.category.findMany({
-    where: {
-      userId: user.userId,
-      type: "EXPENSE",
-    },
-    select: {
-      id: true,
-      name: true,
-      isArchived: true,
-      createdAt: true,
-    },
-    orderBy: [{ isArchived: "asc" }, { name: "asc" }],
-  });
+  const [categories, firstActivityTransaction, transactions] = await Promise.all([
+    db.category.findMany({
+      where: {
+        userId: user.userId,
+        type: "EXPENSE",
+      },
+      select: {
+        id: true,
+        name: true,
+        isArchived: true,
+        createdAt: true,
+      },
+      orderBy: [{ isArchived: "asc" }, { name: "asc" }],
+    }),
+    db.transaction.findFirst({
+      where: {
+        userId: user.userId,
+        localDate: {
+          lte: currentLocalDate,
+        },
+      },
+      select: {
+        localDate: true,
+      },
+      orderBy: {
+        localDate: "asc",
+      },
+    }),
+    db.transaction.findMany({
+      where: {
+        userId: user.userId,
+        localDate: {
+          gte: rangeStart,
+          lte: currentLocalDate,
+        },
+      },
+      select: {
+        type: true,
+        amount: true,
+        localDate: true,
+        categoryId: true,
+      },
+    }),
+  ]);
 
   const selectedCategory = categories.find(
     (category) => category.id === requestedCategoryId,
   );
+  const monthlyResultInsight = buildMonthlyResultInsight({
+    transactions,
+    firstActivityMonth: firstActivityTransaction?.localDate.slice(0, 7) ?? null,
+    currentMonth,
+    period,
+  });
+  const insight = selectedCategory
+    ? buildSpendingInsight({
+        transactions,
+        categoryId: selectedCategory.id,
+        categoryCreatedMonth: getLocalDateInTimeZone(
+          user.timeZone,
+          selectedCategory.createdAt,
+        ).slice(0, 7),
+        currentMonth,
+        period,
+      })
+    : null;
+  const formatter = new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: user.currency,
+  });
+  const monthlyResultChartData: MonthlyResultChartPoint[] =
+    monthlyResultInsight.months.map((month) => ({
+      month: month.month,
+      shortLabel: formatShortMonth(month.month),
+      fullLabel: formatMonthLabel(month.month),
+      totalIncome: Number(month.totalIncome),
+      totalExpenses: Number(month.totalExpenses),
+      result: Number(month.result),
+      isCurrentMonth: month.isCurrentMonth,
+    }));
+  const comparison = insight
+    ? comparisonCopy(formatter, insight.differenceFromTypical)
+    : null;
+  const chartData: SpendingTrendChartPoint[] =
+    insight?.months.map((month) => ({
+      month: month.month,
+      shortLabel: formatShortMonth(month.month),
+      fullLabel: formatMonthLabel(month.month),
+      categorySpending: Number(month.categorySpending),
+      totalExpenses: Number(month.totalExpenses),
+      actualNet: Number(month.actualNet),
+      isCurrentMonth: month.isCurrentMonth,
+    })) ?? [];
+  const historyRows = insight ? [...insight.months].reverse() : [];
 
-  if (categories.length === 0) {
-    return (
-      <section className="flex flex-col gap-5">
-        <PageHeader title="Insights" />
+  return (
+    <section className="flex flex-col gap-5">
+      <PageHeader title="Insights" />
 
+      <InsightsControls
+        categories={categories}
+        period={period}
+        selectedCategoryId={selectedCategory?.id}
+      />
+
+      <Card>
+        <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <CardTitle>Monthly result</CardTitle>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <span className="size-2.5 rounded-full bg-success" />
+              Income
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="size-2.5 rounded-full bg-destructive" />
+              Expenses
+            </span>
+            <Badge variant="outline">Current month in progress</Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-2">
+          {monthlyResultChartData.length > 0 ? (
+            <MonthlyResultChart
+              currency={user.currency}
+              data={monthlyResultChartData}
+            />
+          ) : (
+            <EmptyState
+              icon={BarChart3}
+              title="No monthly activity yet"
+              description="Add income or expense transactions to establish a monthly result history."
+              action={(
+                <Link
+                  href={buildPathWithSearchParams("/transactions", {
+                    month: currentMonth,
+                  })}
+                  className={buttonVariants({ variant: "outline" })}
+                >
+                  View transactions
+                </Link>
+              )}
+            />
+          )}
+        </CardContent>
+        <CardFooter className="grid items-stretch gap-0 border-t border-border/70 px-4 pb-0 sm:grid-cols-3">
+          <div className="flex flex-col justify-between gap-3 py-3 sm:pr-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-medium text-muted-foreground">
+                Typical monthly result
+              </p>
+              {monthlyResultInsight.hasLimitedHistory ? (
+                <Badge variant="warning">Limited history</Badge>
+              ) : null}
+            </div>
+            <div>
+              <p
+                className={cn(
+                  "font-mono text-3xl font-semibold tracking-tight",
+                  monthlyResultInsight.typicalMonthlyResult !== null &&
+                    isNegativeMoney(monthlyResultInsight.typicalMonthlyResult)
+                    ? "text-destructive"
+                    : monthlyResultInsight.typicalMonthlyResult !== null &&
+                        isPositiveMoney(
+                          monthlyResultInsight.typicalMonthlyResult,
+                        )
+                      ? "text-success"
+                      : "text-foreground",
+                )}
+              >
+                {monthlyResultInsight.typicalMonthlyResult === null
+                  ? "—"
+                  : formatSignedMoney(
+                      formatter,
+                      monthlyResultInsight.typicalMonthlyResult,
+                    )}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {monthlyResultInsight.completedMonthCount === 0
+                  ? "Complete a month to establish a baseline."
+                  : `Median of ${monthlyResultInsight.completedMonthCount} completed ${
+                      monthlyResultInsight.completedMonthCount === 1
+                        ? "month"
+                        : "months"
+                    }.`}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col justify-between gap-3 border-t border-border/70 py-3 sm:border-l sm:border-t-0 sm:px-4">
+            <p className="text-sm font-medium text-muted-foreground">
+              Break-even gap
+            </p>
+            <div>
+              <p className="font-mono text-3xl font-semibold tracking-tight text-foreground">
+                {monthlyResultInsight.breakEvenGap === null
+                  ? "—"
+                  : formatter.format(Number(monthlyResultInsight.breakEvenGap))}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {monthlyResultInsight.breakEvenGap === null
+                  ? "Complete a month to establish a baseline."
+                  : isPositiveMoney(monthlyResultInsight.breakEvenGap)
+                    ? "Amount needed to bring the typical monthly result to zero."
+                    : "No typical shortfall in the selected period."}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col justify-between gap-3 border-t border-border/70 py-3 sm:border-l sm:border-t-0 sm:pl-4">
+            <p className="text-sm font-medium text-muted-foreground">
+              Month outcomes
+            </p>
+            <div>
+              <p className="font-mono text-2xl font-semibold tracking-tight">
+                <span className="text-success">
+                  {monthlyResultInsight.positiveMonthCount} positive
+                </span>
+                <span className="text-muted-foreground"> / </span>
+                <span className="text-destructive">
+                  {monthlyResultInsight.negativeMonthCount} negative
+                </span>
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {monthlyResultInsight.completedMonthCount === 0
+                  ? "No completed months in this baseline."
+                  : monthlyResultInsight.breakEvenMonthCount > 0
+                    ? `${monthlyResultInsight.breakEvenMonthCount} ${
+                        monthlyResultInsight.breakEvenMonthCount === 1
+                          ? "month"
+                          : "months"
+                      } at break-even.`
+                    : `${monthlyResultInsight.completedMonthCount} completed ${
+                        monthlyResultInsight.completedMonthCount === 1
+                          ? "month"
+                          : "months"
+                      }.`}
+              </p>
+            </div>
+          </div>
+        </CardFooter>
+      </Card>
+
+      {categories.length === 0 ? (
         <Card>
           <CardContent className="pt-4">
             <EmptyState
               icon={FolderOpen}
               title="Create an expense category first"
-              description="Insights compares actual expense transactions within a category."
+              description="Category insights compare actual expense transactions within a category."
               action={(
                 <Link
                   href="/categories"
@@ -234,86 +462,18 @@ export default async function InsightsPage({
             />
           </CardContent>
         </Card>
-      </section>
-    );
-  }
-
-  if (!selectedCategory) {
-    return (
-      <section className="flex flex-col gap-5">
-        <PageHeader title="Insights" />
-
-        <InsightsControls categories={categories} period={period} />
-
+      ) : !selectedCategory ? (
         <Card>
           <CardContent className="pt-4">
             <EmptyState
               icon={BarChart3}
               title="Select an expense category"
-              description="Choose a category and comparison period to view its monthly spending history."
+              description="Choose a category to view its monthly spending history."
             />
           </CardContent>
         </Card>
-      </section>
-    );
-  }
-
-  const transactions = await db.transaction.findMany({
-    where: {
-      userId: user.userId,
-      localDate: {
-        gte: rangeStart,
-        lt: rangeEndExclusive,
-      },
-    },
-    select: {
-      type: true,
-      amount: true,
-      localDate: true,
-      categoryId: true,
-    },
-  });
-
-  const categoryCreatedMonth = getLocalDateInTimeZone(
-    user.timeZone,
-    selectedCategory.createdAt,
-  ).slice(0, 7);
-  const insight = buildSpendingInsight({
-    transactions,
-    categoryId: selectedCategory.id,
-    categoryCreatedMonth,
-    currentMonth,
-    period,
-  });
-  const formatter = new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency: user.currency,
-  });
-  const comparison = comparisonCopy(
-    formatter,
-    insight.differenceFromTypical,
-  );
-  const chartData: SpendingTrendChartPoint[] = insight.months.map((month) => ({
-    month: month.month,
-    shortLabel: formatShortMonth(month.month),
-    fullLabel: formatMonthLabel(month.month),
-    categorySpending: Number(month.categorySpending),
-    totalExpenses: Number(month.totalExpenses),
-    actualNet: Number(month.actualNet),
-    isCurrentMonth: month.isCurrentMonth,
-  }));
-  const historyRows = [...insight.months].reverse();
-
-  return (
-    <section className="flex flex-col gap-5">
-      <PageHeader title="Insights" />
-
-      <InsightsControls
-        categories={categories}
-        period={period}
-        selectedCategoryId={selectedCategory.id}
-      />
-
+      ) : insight && comparison ? (
+        <>
       <Card>
         <CardHeader className="sm:flex-row sm:items-start sm:justify-between">
           <div className="flex flex-col gap-1.5">
@@ -544,6 +704,9 @@ export default async function InsightsPage({
           </div>
         </CardContent>
       </Card>
+
+        </>
+      ) : null}
 
     </section>
   );

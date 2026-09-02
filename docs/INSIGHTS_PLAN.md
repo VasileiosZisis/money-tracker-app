@@ -1,13 +1,72 @@
-# Insights V1 Implementation Plan
+# Insights Implementation Plan
+
+## Status
+
+Insights V1 and roadmap item 3 are implemented. The page provides account-wide
+monthly result and break-even analysis followed by optional category-level
+monthly spending trends and comparisons.
+
+This is the active implementation plan for extending `/insights`. Items listed
+after the implemented foundation are selected product work, but each milestone
+should be implemented and reviewed independently.
 
 ## Goal
 
-Add a focused historical spending workspace that helps users compare one
-expense category with its own recent completed-month behavior. Insights remains
-descriptive: it explains what happened without creating a category budget or
-claiming that historical headroom is safe to spend.
+Build a focused historical analysis workspace that helps users understand:
 
-## Locked behavior
+- what happened to their income, spending, and monthly result
+- how those values changed over time
+- which categories contributed to a change
+- whether a month or category followed the user's usual pattern
+- how large a recurring shortfall is before the user decides what to change
+
+Insights remains descriptive. It explains past behavior without turning
+historical spending into a budget, a recommendation, or an amount that is safe
+to spend.
+
+## Product boundary
+
+Use this test when deciding whether a feature belongs on Insights:
+
+- If it explains what happened, how it changed, or what contributed to it, it
+  belongs on Insights.
+- If it asks the user to choose what should happen next, it belongs in a future
+  `Spending Plan` workspace.
+- If it helps the user act during the current month, it generally belongs on
+  the Dashboard.
+- If it lets the user inspect or edit individual records, it belongs on
+  Transactions.
+
+Insights may later provide a contextual `Create a spending plan` action, but it
+must not contain editable category targets, budget allocations, envelopes, or
+automatic prescriptions. A historically low-spending month is evidence, not a
+recommended target.
+
+The intended product loop is:
+
+```text
+Observe -> Understand -> Decide -> Act -> Review
+Insights                  Spending Plan   Dashboard   Insights
+```
+
+## Roadmap overview
+
+1. Monthly spending trend - implemented
+2. Category comparison - implemented
+3. Monthly result and break-even analysis - implemented
+4. Spending composition
+5. Drivers of change
+6. Income and spending consistency
+7. Unusual months with transaction drill-down
+8. Longer-term patterns when sufficient history exists
+
+These are capabilities, not necessarily eight permanent page sections. Related
+capabilities should share controls and visualizations where that produces a
+clearer page. Contextual observations should only render when relevant.
+
+## Implemented foundation
+
+### 1. Monthly spending trend
 
 - `/insights` is an authenticated, setup-gated App Router page.
 - The page analyzes one user-owned expense category at a time, including
@@ -17,36 +76,205 @@ claiming that historical headroom is safe to spend.
 - The selected period means the requested number of completed calendar months
   plus the current account-local month shown as an incomplete comparison.
 - If `categoryId` is missing or invalid, keep the disabled `Select category`
-  option selected and show a category-selection empty state. Do not calculate
-  or display insights until the user chooses a valid category.
+  option selected and show a category-selection empty state.
+- The chart shows actual selected-category spending by month. The current month
+  is visually quieter and marked as in progress.
+
+### 2. Category comparison
+
 - Typical monthly spend is the median category spend across available completed
-  months in the selected period. Months from the category's creation month
-  onward count, including zero-spend months. The current month never contributes
-  to the median.
-- Fewer than three available completed months is labeled `Limited history`;
-  one or two months still produce a transparent median, while zero months make
-  the typical comparison unavailable.
-- Monthly values use actual transactions only. All aggregation uses Prisma
-  `Decimal`; numeric conversion is restricted to chart display data.
-- Each monthly row shows selected-category spend, total actual expense, and
-  actual net. The current row is labeled `In progress`; completed rows use
-  `Month-end net` context.
+  months in the selected period.
+- Months from the category's creation month onward count, including zero-spend
+  months. The current month never contributes to the median.
+- Fewer than three available completed months is labeled `Limited history`.
+  One or two months still produce a transparent median; zero months make the
+  typical comparison unavailable.
+- Summary metrics show Typical month, This month, and Compared with typical.
+- Monthly context shows selected-category spend, total actual expense, and
+  actual net.
 - Every monthly row links to `/transactions` with `month`, `type=EXPENSE`, and
   `categoryId` filters.
 
-## Page composition
+## Selected implementation milestones
 
-1. `Insights` heading.
-2. Compact GET controls for category and comparison period.
-3. `Spending trends` card with a monthly bar chart; the current month is visibly
-   incomplete.
-4. Three metrics: Typical month, This month, and Compared with typical.
-5. Responsive monthly-history table/cards with transaction drill-down links.
+### Roadmap item 3: Monthly result and break-even analysis - implemented
 
-## Out of scope
+Purpose: show whether the user's overall monthly cashflow is usually positive
+or negative and quantify a recurring shortfall without prescribing a solution.
 
-- Category budgets or allocations
-- Forecasted category spending or category run-rate warnings
-- Prescriptive recommendations
-- Arbitrary side-by-side month comparison
-- Cross-category rankings, typical ranges, or income insights
+Include:
+
+- actual monthly income, expenses, and result
+- positive-month and negative-month counts for the selected completed period
+- a typical completed-month result
+- a break-even gap when the typical result is negative
+- the current month as clearly incomplete context, excluded from the completed-
+  month baseline
+
+The monthly result is actual income minus actual expense. The break-even gap is
+the amount required to bring a negative typical monthly result to zero. It must
+be presented as diagnostic context, not as a required spending cut and not as a
+replacement for Safe to spend.
+
+Data requirement: at least one completed month can produce a result. Fewer than
+three completed months must retain limited-history context.
+
+### Roadmap item 4: Spending composition
+
+Purpose: answer where the user's money went during the selected period.
+
+Include:
+
+- expense totals by category
+- each category's share of actual expenses
+- a ranked but neutral presentation of the largest contributors
+- archived categories when they contain activity in the selected period
+
+Composition uses actual expense transactions only. It must not imply that a
+large category is automatically problematic.
+
+Data requirement: at least one expense transaction in the selected period.
+Otherwise, show a focused empty state rather than a zero-filled chart.
+
+### Roadmap item 5: Drivers of change
+
+Purpose: explain which categories contributed to an increase or decrease in
+total spending between comparable periods.
+
+Include:
+
+- the total expense change between the two periods
+- per-category absolute change
+- each category's contribution to the overall change
+- clear handling of categories that appear in only one comparison period
+
+The periods must be comparable and complete. Current partial-month data must not
+be compared directly with a completed month unless the UI explicitly labels a
+same-stage comparison. Initial implementation should prefer completed periods.
+
+Data requirement: two comparable periods containing actual transaction data.
+The implementation specification must lock the comparison-period control before
+coding this milestone.
+
+### Roadmap item 6: Income and spending consistency
+
+Purpose: distinguish stable patterns from irregular income or expenses and help
+explain whether negative results come from lower income, higher spending, or
+both.
+
+Include:
+
+- typical income and typical total spending
+- observed ranges across completed months
+- neutral consistency or variability context
+- category-level variability where it adds useful detail
+
+Consistency must be deterministic, explainable, and robust to outliers. Labels
+must describe variation without judging it as good or bad.
+
+Data requirement: at least three completed months. With less history, keep the
+section unavailable rather than assigning a stability label.
+
+### Roadmap item 7: Unusual months and investigation
+
+Purpose: call attention to months that differ meaningfully from the user's own
+history and make their cause easy to investigate.
+
+Include contextual observations such as:
+
+- an unusually high or low total-expense month
+- an unusually high or low category month
+- a month with an unusually low income or monthly result
+- a restrained link to Transactions with the relevant month, type, category,
+  and subcategory filters where applicable
+
+Detection must use a documented deterministic rule. It must not use AI, hidden
+scoring, or prescriptive language. The exact threshold and minimum sample size
+must be locked in the implementation specification before coding.
+
+Data requirement: enough completed history to establish the selected rule's
+baseline. Until that threshold is met, omit unusual-month claims.
+
+### Roadmap item 8: Longer-term patterns
+
+Purpose: reveal durable changes that are difficult to see in a short monthly
+window.
+
+Potential supported comparisons include:
+
+- recent three completed months versus the previous three
+- recent year versus the previous year
+- sustained category increases or decreases
+- recurring seasonal patterns
+
+Only show a comparison when both sides contain sufficient completed history.
+Seasonal or year-over-year claims require at least two comparable annual periods.
+Shorter histories should keep the existing 3, 6, and 12-month views without
+extrapolating a long-term pattern.
+
+The precise first set of longer-term comparisons should be selected after the
+earlier milestones show which additional context is most useful.
+
+## Shared data and calculation rules
+
+- Use actual transactions only unless a future milestone explicitly states
+  otherwise.
+- Scope every query to the authenticated user.
+- Use the user's IANA time zone for current-month and completed-month boundaries.
+- Aggregate money with Prisma `Decimal`; convert to JavaScript numbers only for
+  serialized chart display data.
+- Keep the current incomplete month visually and mathematically distinct from
+  completed-month baselines.
+- Include archived categories when they contain relevant historical activity.
+- Do not turn missing data into a zero unless a zero-spend month is valid under
+  the specific metric's documented rules.
+- Prefer medians or another explicitly documented robust baseline when a
+  `typical` value could be distorted by outliers.
+- Label limited history and unavailable comparisons directly.
+- Every claim shown to the user must be reproducible from visible data and a
+  deterministic calculation.
+
+## Page composition direction
+
+Grow the page as a small number of coherent analysis sections rather than a
+wall of independent cards:
+
+1. Shared category and completed-period controls.
+2. Overview: monthly result, break-even gap, and income/expense trend.
+3. Categories: spending trend, comparison, composition, and change drivers.
+4. Patterns: consistency, unusual months, and longer-term changes when eligible.
+5. Investigation: contextual links into the existing Transactions filters.
+
+The existing category trend remains useful, but the overview should eventually
+give the user an overall financial result before asking them to investigate a
+specific category. Responsive behavior, card hierarchy, chart colors, money
+typography, and empty states must continue to follow `docs/DESIGN_SYSTEM.md`.
+
+## Explicitly outside the Insights page
+
+- Category budgets, limits, allocations, or envelopes
+- Editable spending targets
+- Automatically selecting targets from historical lows
+- Prescriptive recommendations about what the user should cut
+- Safe-to-spend or forecast calculations
+- Transaction creation, editing, or deletion
+- Category management
+- AI-generated explanations or anomaly detection
+
+Those boundaries do not prevent Insights from describing a break-even gap or
+linking to a future Spending Plan. They prevent the analysis workspace from
+becoming the planning or execution workspace itself.
+
+## Implementation order
+
+Implement and review one milestone at a time:
+
+1. Spending composition
+2. Drivers of change
+3. Income and spending consistency
+4. Unusual-month detection and transaction drill-down
+5. Longer-term patterns
+
+Each milestone should include deterministic calculation tests, server-side
+user scoping, limited-data and empty states, responsive presentation, and any
+required product-document updates before the next milestone begins.

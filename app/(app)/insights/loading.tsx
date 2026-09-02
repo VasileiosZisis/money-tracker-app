@@ -1,5 +1,10 @@
 import { PageHeader } from "@/components/app-shell/page-header";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function InsightsLoading() {
@@ -21,7 +26,20 @@ export default function InsightsLoading() {
       <Card>
         <CardHeader className="gap-2">
           <Skeleton className="h-5 w-36" />
-          <Skeleton className="h-4 w-72 max-w-full" />
+        </CardHeader>
+        <CardContent className="pt-2">
+          <Skeleton className="h-[200px] w-full" />
+        </CardContent>
+        <CardFooter className="grid gap-3 border-t border-border/70 py-3 sm:grid-cols-3">
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+        </CardFooter>
+      </Card>
+
+      <Card>
+        <CardHeader className="gap-2">
+          <Skeleton className="h-5 w-36" />
         </CardHeader>
         <CardContent className="pt-4">
           <Skeleton className="h-[320px] w-full" />

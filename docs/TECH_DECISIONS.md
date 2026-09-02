@@ -611,7 +611,8 @@ Insights-page interaction rules:
 - read Insights data directly in the server page; do not add a route handler or
   client-side data fetch
 - use URL-backed `categoryId` and `period=3|6|12` controls, with 6 completed
-  months as the default comparison window
+  months as the default comparison window; `categoryId` is optional so the
+  account-wide monthly-result analysis remains visible in the default state
 - query actual transactions only, always scoped to the authenticated user, and
   aggregate monetary values with Prisma `Decimal`
 - keep the Recharts component as the only required client boundary and pass it
