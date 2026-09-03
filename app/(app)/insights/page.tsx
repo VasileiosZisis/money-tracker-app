@@ -14,6 +14,7 @@ import {
   MonthlyResultChart,
   type MonthlyResultChartPoint,
 } from "@/components/insights/monthly-result-chart";
+import { SpendingComposition } from "@/components/insights/spending-composition";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -33,6 +34,7 @@ import { getAuthenticatedUserPreferences } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import {
   buildMonthlyResultInsight,
+  buildSpendingCompositionInsight,
   buildSpendingInsight,
   type InsightsPeriod,
 } from "@/lib/insights/spending-history";
@@ -81,7 +83,7 @@ function comparisonCopy(
   if (difference === null) {
     return {
       value: "—",
-      description: "Complete a month to establish a comparison.",
+      description: "Complete a month to establish a comparison",
     };
   }
 
@@ -90,7 +92,7 @@ function comparisonCopy(
   if (decimalDifference.eq(0)) {
     return {
       value: formatter.format(0),
-      description: "On your typical monthly spending.",
+      description: "On your typical monthly spending",
     };
   }
 
@@ -98,8 +100,8 @@ function comparisonCopy(
     value: formatter.format(Number(decimalDifference.abs().toString())),
     description:
       decimalDifference.gt(0)
-        ? "Above your typical monthly spending."
-        : "Below your typical monthly spending.",
+        ? "Above your typical monthly spending"
+        : "Below your typical monthly spending",
   };
 }
 
@@ -188,7 +190,7 @@ export default async function InsightsPage({
   ]);
 
   if (!user.timeZone) {
-    throw new Error("Account time zone is not configured.");
+    throw new Error("Account time zone is not configured");
   }
 
   const currentLocalDate = getLocalDateInTimeZone(user.timeZone);
@@ -256,6 +258,12 @@ export default async function InsightsPage({
     currentMonth,
     period,
   });
+  const spendingComposition = buildSpendingCompositionInsight({
+    transactions,
+    categories,
+    currentMonth,
+    period,
+  });
   const insight = selectedCategory
     ? buildSpendingInsight({
         transactions,
@@ -301,12 +309,6 @@ export default async function InsightsPage({
     <section className="flex flex-col gap-5">
       <PageHeader title="Insights" />
 
-      <InsightsControls
-        categories={categories}
-        period={period}
-        selectedCategoryId={selectedCategory?.id}
-      />
-
       <Card>
         <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle>Monthly result</CardTitle>
@@ -319,7 +321,6 @@ export default async function InsightsPage({
               <span className="size-2.5 rounded-full bg-destructive" />
               Expenses
             </span>
-            <Badge variant="outline">Current month in progress</Badge>
           </div>
         </CardHeader>
         <CardContent className="pt-2">
@@ -332,7 +333,7 @@ export default async function InsightsPage({
             <EmptyState
               icon={BarChart3}
               title="No monthly activity yet"
-              description="Add income or expense transactions to establish a monthly result history."
+              description="Add income or expense transactions to establish a monthly result history"
               action={(
                 <Link
                   href={buildPathWithSearchParams("/transactions", {
@@ -380,12 +381,12 @@ export default async function InsightsPage({
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
                 {monthlyResultInsight.completedMonthCount === 0
-                  ? "Complete a month to establish a baseline."
+                  ? "Complete a month to establish a baseline"
                   : `Median of ${monthlyResultInsight.completedMonthCount} completed ${
                       monthlyResultInsight.completedMonthCount === 1
                         ? "month"
                         : "months"
-                    }.`}
+                    }`}
               </p>
             </div>
           </div>
@@ -402,10 +403,10 @@ export default async function InsightsPage({
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
                 {monthlyResultInsight.breakEvenGap === null
-                  ? "Complete a month to establish a baseline."
+                  ? "Complete a month to establish a baseline"
                   : isPositiveMoney(monthlyResultInsight.breakEvenGap)
-                    ? "Amount needed to bring the typical monthly result to zero."
-                    : "No typical shortfall in the selected period."}
+                    ? "Amount needed to bring the typical monthly result to zero"
+                    : "No typical shortfall in the selected period"}
               </p>
             </div>
           </div>
@@ -426,22 +427,58 @@ export default async function InsightsPage({
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
                 {monthlyResultInsight.completedMonthCount === 0
-                  ? "No completed months in this baseline."
+                  ? "No completed months in this baseline"
                   : monthlyResultInsight.breakEvenMonthCount > 0
                     ? `${monthlyResultInsight.breakEvenMonthCount} ${
                         monthlyResultInsight.breakEvenMonthCount === 1
                           ? "month"
                           : "months"
-                      } at break-even.`
+                      } at break-even`
                     : `${monthlyResultInsight.completedMonthCount} completed ${
                         monthlyResultInsight.completedMonthCount === 1
                           ? "month"
                           : "months"
-                      }.`}
+                      }`}
               </p>
             </div>
           </div>
         </CardFooter>
+      </Card>
+
+      <InsightsControls
+        categories={categories}
+        period={period}
+        selectedCategoryId={selectedCategory?.id}
+      />
+
+      <Card>
+        <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <CardTitle>Spending composition</CardTitle>
+          {spendingComposition.categories.length > 0 ? (
+            <div className="flex items-baseline gap-2">
+              <span className="text-sm text-muted-foreground">
+                Total expenses
+              </span>
+              <span className="font-mono text-sm font-semibold text-foreground">
+                {formatter.format(Number(spendingComposition.totalExpenses))}
+              </span>
+            </div>
+          ) : null}
+        </CardHeader>
+        <CardContent className="pt-4">
+          {spendingComposition.categories.length > 0 ? (
+            <SpendingComposition
+              categories={spendingComposition.categories}
+              currency={user.currency}
+            />
+          ) : (
+            <EmptyState
+              icon={BarChart3}
+              title="No completed spending to break down"
+              description="Expense transactions from completed months will appear here"
+            />
+          )}
+        </CardContent>
       </Card>
 
       {categories.length === 0 ? (
@@ -450,7 +487,7 @@ export default async function InsightsPage({
             <EmptyState
               icon={FolderOpen}
               title="Create an expense category first"
-              description="Category insights compare actual expense transactions within a category."
+              description="Category insights compare actual expense transactions within a category"
               action={(
                 <Link
                   href="/categories"
@@ -468,18 +505,15 @@ export default async function InsightsPage({
             <EmptyState
               icon={BarChart3}
               title="Select an expense category"
-              description="Choose a category to view its monthly spending history."
+              description="Choose a category to view its monthly spending history"
             />
           </CardContent>
         </Card>
       ) : insight && comparison ? (
         <>
       <Card>
-        <CardHeader className="sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex flex-col gap-1.5">
-            <CardTitle>Spending trends</CardTitle>
-          </div>
-          <Badge variant="outline">Current month in progress</Badge>
+        <CardHeader>
+          <CardTitle>Spending trends</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
           {insight.hasCategorySpending ? (
@@ -492,7 +526,7 @@ export default async function InsightsPage({
             <EmptyState
               icon={BarChart3}
               title={`No ${selectedCategory.name} spending in this period`}
-              description="The monthly context below remains available, and new transactions will appear here automatically."
+              description="The monthly context below remains available, and new transactions will appear here automatically"
               action={(
                 <Link
                   href={buildPathWithSearchParams("/transactions", {
@@ -529,7 +563,7 @@ export default async function InsightsPage({
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
                 Median of {insight.completedMonthCount} completed {" "}
-                {insight.completedMonthCount === 1 ? "month" : "months"}.
+                {insight.completedMonthCount === 1 ? "month" : "months"}
               </p>
             </div>
           </CardContent>
@@ -545,7 +579,7 @@ export default async function InsightsPage({
                 {formatter.format(Number(insight.currentMonthSpending))}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Actual spending recorded so far.
+                Actual spending recorded so far
               </p>
             </div>
           </CardContent>

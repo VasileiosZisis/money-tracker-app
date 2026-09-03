@@ -253,15 +253,22 @@ Rules:
 
 - Insights is a historical comparison workspace, not a second dashboard and
   not a category-management surface.
-- Start with the page heading and one compact control row for expense category
-  and completed-month comparison period. Category selection is optional so the
-  overall result analysis remains visible in the default state.
-- Lead with one compact, full-width line chart comparing monthly income and
-  expenses. Keep the chart near 200px tall, show the result in its tooltip, and
+- After the page heading, lead with one compact, full-width line chart comparing
+  monthly income and expenses. Keep the chart near 200px tall, show the result
+  in its tooltip, and
   use an open, muted point plus `In progress` treatment for the current
   account-local month.
 - Integrate Typical monthly result, Break-even gap, and Month outcomes as a
   compact footer inside the same card instead of separate metric cards.
+- Follow the result card with one compact control row for expense category and
+  completed-month comparison period. Category selection is optional so the
+  overall result analysis remains visible in the default state.
+- Follow the controls with a full-width Spending composition card that remains
+  visible without a category selection. Show the completed period's total
+  expenses and every category with activity as a ranked horizontal-bar list.
+  Keep category totals and percentage shares visible, mark archived categories,
+  and use one neutral accent treatment rather than semantic success or warning
+  colors.
 - When an expense category is selected, follow the overview with the existing
   full-width category-spending chart and its Typical month, This month, and
   Compared with typical metrics. Historical category differences use neutral

@@ -2,9 +2,10 @@
 
 ## Status
 
-Insights V1 and roadmap item 3 are implemented. The page provides account-wide
-monthly result and break-even analysis followed by optional category-level
-monthly spending trends and comparisons.
+Insights V1 and roadmap items 3 and 4 are implemented. The page provides
+account-wide monthly result and break-even analysis, completed-period spending
+composition, and optional category-level monthly spending trends and
+comparisons.
 
 This is the active implementation plan for extending `/insights`. Items listed
 after the implemented foundation are selected product work, but each milestone
@@ -54,7 +55,7 @@ Insights                  Spending Plan   Dashboard   Insights
 1. Monthly spending trend - implemented
 2. Category comparison - implemented
 3. Monthly result and break-even analysis - implemented
-4. Spending composition
+4. Spending composition - implemented
 5. Drivers of change
 6. Income and spending consistency
 7. Unusual months with transaction drill-down
@@ -119,7 +120,7 @@ replacement for Safe to spend.
 Data requirement: at least one completed month can produce a result. Fewer than
 three completed months must retain limited-history context.
 
-### Roadmap item 4: Spending composition
+### Roadmap item 4: Spending composition - implemented
 
 Purpose: answer where the user's money went during the selected period.
 
@@ -135,6 +136,20 @@ large category is automatically problematic.
 
 Data requirement: at least one expense transaction in the selected period.
 Otherwise, show a focused empty state rather than a zero-filled chart.
+
+Implemented behavior:
+
+- composition uses the selected 3, 6, or 12 completed months and excludes the
+  current incomplete month
+- it remains visible without a category selection and is not filtered by the
+  optional category control
+- all categories with spending are shown in descending total order, with
+  alphabetical tie-breaking and no `Other` grouping
+- totals use Decimal arithmetic and percentage shares are displayed to one
+  decimal place
+- archived categories with activity remain visible and categories without
+  activity are omitted
+- the presentation uses neutral horizontal bars with visible totals and shares
 
 ### Roadmap item 5: Drivers of change
 
@@ -239,8 +254,8 @@ earlier milestones show which additional context is most useful.
 Grow the page as a small number of coherent analysis sections rather than a
 wall of independent cards:
 
-1. Shared category and completed-period controls.
-2. Overview: monthly result, break-even gap, and income/expense trend.
+1. Overview: monthly result, break-even gap, and income/expense trend.
+2. Shared category and completed-period controls.
 3. Categories: spending trend, comparison, composition, and change drivers.
 4. Patterns: consistency, unusual months, and longer-term changes when eligible.
 5. Investigation: contextual links into the existing Transactions filters.
@@ -269,11 +284,10 @@ becoming the planning or execution workspace itself.
 
 Implement and review one milestone at a time:
 
-1. Spending composition
-2. Drivers of change
-3. Income and spending consistency
-4. Unusual-month detection and transaction drill-down
-5. Longer-term patterns
+1. Drivers of change
+2. Income and spending consistency
+3. Unusual-month detection and transaction drill-down
+4. Longer-term patterns
 
 Each milestone should include deterministic calculation tests, server-side
 user scoping, limited-data and empty states, responsive presentation, and any

@@ -12,16 +12,8 @@ export default function InsightsLoading() {
     <div className="flex flex-col gap-5" aria-busy="true" aria-live="polite">
       <PageHeader
         title="Insights"
-        description="Loading your historical spending comparisons."
+        description="Loading your historical spending comparisons"
       />
-
-      <Card>
-        <CardContent className="grid gap-3 pt-4 sm:grid-cols-[minmax(220px,1fr)_minmax(190px,auto)_auto]">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-24" />
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader className="gap-2">
@@ -35,6 +27,27 @@ export default function InsightsLoading() {
           <Skeleton className="h-16 w-full" />
           <Skeleton className="h-16 w-full" />
         </CardFooter>
+      </Card>
+
+      <Card>
+        <CardContent className="grid gap-3 pt-4 sm:grid-cols-[minmax(220px,1fr)_minmax(190px,auto)_auto]">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-24" />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <Skeleton className="h-5 w-44" />
+          <Skeleton className="h-5 w-32" />
+        </CardHeader>
+        <CardContent className="grid gap-4 pt-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </CardContent>
       </Card>
 
       <Card>

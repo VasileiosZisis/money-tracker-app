@@ -154,6 +154,18 @@ months after that first activity remain part of the selected history, including
 months with no transactions. The current month does not contribute to the
 median, break-even gap, or outcome counts.
 
+The page also shows spending composition across the selected completed months,
+independently of category selection. It includes:
+
+- total actual expenses for the completed period
+- expense totals and percentage share by category
+- every category with activity, ranked from largest to smallest
+- archived categories when they contain spending in the completed period
+
+The current incomplete month is excluded from composition. Categories without
+spending are omitted, and a period without completed expenses shows an empty
+state instead of zero-filled category data.
+
 Users can optionally select an active or archived expense category. Category
 analysis includes:
 

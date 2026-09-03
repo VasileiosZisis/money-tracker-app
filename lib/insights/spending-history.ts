@@ -29,6 +29,25 @@ export type SpendingInsight = {
   hasCategorySpending: boolean;
 };
 
+export type SpendingCompositionCategory = {
+  categoryId: string;
+  categoryName: string;
+  isArchived: boolean;
+  total: string;
+  sharePercent: number;
+};
+
+export type SpendingCompositionInsight = {
+  totalExpenses: string;
+  categories: SpendingCompositionCategory[];
+};
+
+export type SpendingCompositionCategorySource = {
+  id: string;
+  name: string;
+  isArchived: boolean;
+};
+
 export type MonthlyResultMonth = {
   month: string;
   totalIncome: string;
@@ -79,6 +98,87 @@ function median(values: Prisma.Decimal[]) {
   }
 
   return lower.plus(upper).dividedBy(2);
+}
+
+export function buildSpendingCompositionInsight(params: {
+  transactions: SpendingInsightTransaction[];
+  categories: SpendingCompositionCategorySource[];
+  currentMonth: string;
+  period: InsightsPeriod;
+}): SpendingCompositionInsight {
+  const rangeStart = shiftMonthKey(params.currentMonth, -params.period);
+  const categoryById = new Map(
+    params.categories.map((category) => [category.id, category]),
+  );
+  const totalsByCategory = new Map<string, Prisma.Decimal>();
+
+  for (const transaction of params.transactions) {
+    const month = transaction.localDate.slice(0, 7);
+
+    if (
+      transaction.type !== "EXPENSE" ||
+      month < rangeStart ||
+      month >= params.currentMonth ||
+      !categoryById.has(transaction.categoryId)
+    ) {
+      continue;
+    }
+
+    const currentTotal =
+      totalsByCategory.get(transaction.categoryId) ?? new Prisma.Decimal(0);
+    totalsByCategory.set(
+      transaction.categoryId,
+      currentTotal.plus(transaction.amount),
+    );
+  }
+
+  const totalExpenses = Array.from(totalsByCategory.values()).reduce(
+    (total, categoryTotal) => total.plus(categoryTotal),
+    new Prisma.Decimal(0),
+  );
+  const categories = Array.from(totalsByCategory.entries())
+    .map(([categoryId, total]) => {
+      const category = categoryById.get(categoryId);
+
+      if (!category) {
+        return null;
+      }
+
+      return {
+        categoryId,
+        categoryName: category.name,
+        isArchived: category.isArchived,
+        total,
+      };
+    })
+    .filter((category) => category !== null)
+    .sort((left, right) => {
+      const amountComparison = right.total.comparedTo(left.total);
+
+      return amountComparison === 0
+        ? left.categoryName.localeCompare(right.categoryName)
+        : amountComparison;
+    })
+    .map((category) => ({
+      categoryId: category.categoryId,
+      categoryName: category.categoryName,
+      isArchived: category.isArchived,
+      total: moneyString(category.total),
+      sharePercent: totalExpenses.gt(0)
+        ? Number(
+            category.total
+              .dividedBy(totalExpenses)
+              .times(100)
+              .toDecimalPlaces(1)
+              .toString(),
+          )
+        : 0,
+    }));
+
+  return {
+    totalExpenses: moneyString(totalExpenses),
+    categories,
+  };
 }
 
 export function buildMonthlyResultInsight(params: {

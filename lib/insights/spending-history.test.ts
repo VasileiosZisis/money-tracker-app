@@ -5,6 +5,7 @@ import { Prisma } from "@/generated/prisma/client";
 
 import {
   buildMonthlyResultInsight,
+  buildSpendingCompositionInsight,
   buildSpendingInsight,
   type SpendingInsightTransaction,
 } from "@/lib/insights/spending-history";
@@ -328,4 +329,185 @@ test("keeps baselines unavailable without completed activity", () => {
   assert.equal(currentActivity.typicalMonthlyResult, null);
   assert.equal(currentActivity.breakEvenGap, null);
   assert.equal(currentActivity.positiveMonthCount, 0);
+});
+
+test("builds Decimal-safe composition from completed expense months", () => {
+  const insight = buildSpendingCompositionInsight({
+    currentMonth: "2026-07",
+    period: 3,
+    categories: [
+      { id: "food", name: "Food", isArchived: false },
+      { id: "travel", name: "Travel", isArchived: true },
+      { id: "unused", name: "Unused", isArchived: false },
+    ],
+    transactions: [
+      transaction({
+        type: "EXPENSE",
+        amount: "0.10",
+        localDate: "2026-04-01",
+        categoryId: "food",
+      }),
+      transaction({
+        type: "EXPENSE",
+        amount: "0.20",
+        localDate: "2026-05-01",
+        categoryId: "food",
+      }),
+      transaction({
+        type: "EXPENSE",
+        amount: "0.70",
+        localDate: "2026-06-01",
+        categoryId: "travel",
+      }),
+      transaction({
+        type: "INCOME",
+        amount: "100.00",
+        localDate: "2026-05-01",
+        categoryId: "food",
+      }),
+      transaction({
+        type: "EXPENSE",
+        amount: "50.00",
+        localDate: "2026-03-31",
+        categoryId: "food",
+      }),
+      transaction({
+        type: "EXPENSE",
+        amount: "75.00",
+        localDate: "2026-07-01",
+        categoryId: "travel",
+      }),
+    ],
+  });
+
+  assert.equal(insight.totalExpenses, "1.00");
+  assert.deepEqual(insight.categories, [
+    {
+      categoryId: "travel",
+      categoryName: "Travel",
+      isArchived: true,
+      total: "0.70",
+      sharePercent: 70,
+    },
+    {
+      categoryId: "food",
+      categoryName: "Food",
+      isArchived: false,
+      total: "0.30",
+      sharePercent: 30,
+    },
+  ]);
+});
+
+test("sorts equal composition totals alphabetically and rounds shares", () => {
+  const insight = buildSpendingCompositionInsight({
+    currentMonth: "2026-07",
+    period: 6,
+    categories: [
+      { id: "travel", name: "Travel", isArchived: false },
+      { id: "food", name: "Food", isArchived: false },
+      { id: "housing", name: "Housing", isArchived: false },
+    ],
+    transactions: [
+      transaction({
+        type: "EXPENSE",
+        amount: "1.00",
+        localDate: "2026-06-01",
+        categoryId: "travel",
+      }),
+      transaction({
+        type: "EXPENSE",
+        amount: "1.00",
+        localDate: "2026-06-02",
+        categoryId: "food",
+      }),
+      transaction({
+        type: "EXPENSE",
+        amount: "1.00",
+        localDate: "2026-06-03",
+        categoryId: "housing",
+      }),
+    ],
+  });
+
+  assert.deepEqual(
+    insight.categories.map((category) => [
+      category.categoryName,
+      category.sharePercent,
+    ]),
+    [
+      ["Food", 33.3],
+      ["Housing", 33.3],
+      ["Travel", 33.3],
+    ],
+  );
+});
+
+test("uses the selected completed-month boundary for every supported period", () => {
+  for (const period of [3, 6, 12] as const) {
+    const startMonth =
+      period === 3 ? "2026-04" : period === 6 ? "2026-01" : "2025-07";
+    const beforeStartMonth =
+      period === 3 ? "2026-03" : period === 6 ? "2025-12" : "2025-06";
+    const insight = buildSpendingCompositionInsight({
+      currentMonth: "2026-07",
+      period,
+      categories: [{ id: "food", name: "Food", isArchived: false }],
+      transactions: [
+        transaction({
+          type: "EXPENSE",
+          amount: "10.00",
+          localDate: `${startMonth}-01`,
+          categoryId: "food",
+        }),
+        transaction({
+          type: "EXPENSE",
+          amount: "20.00",
+          localDate: `${beforeStartMonth}-28`,
+          categoryId: "food",
+        }),
+      ],
+    });
+
+    assert.equal(insight.totalExpenses, "10.00");
+    assert.equal(insight.categories[0]?.sharePercent, 100);
+  }
+});
+
+test("returns an empty composition without completed expense activity", () => {
+  const noExpenses = buildSpendingCompositionInsight({
+    currentMonth: "2026-07",
+    period: 12,
+    categories: [{ id: "food", name: "Food", isArchived: false }],
+    transactions: [
+      transaction({
+        type: "INCOME",
+        amount: "100.00",
+        localDate: "2026-06-01",
+        categoryId: "food",
+      }),
+    ],
+  });
+  const currentMonthOnly = buildSpendingCompositionInsight({
+    currentMonth: "2026-07",
+    period: 12,
+    categories: [{ id: "food", name: "Food", isArchived: false }],
+    transactions: [
+      transaction({
+        type: "EXPENSE",
+        amount: "100.00",
+        localDate: "2026-07-01",
+        categoryId: "food",
+      }),
+    ],
+  });
+
+  assert.deepEqual(noExpenses, {
+    totalExpenses: "0.00",
+    categories: [],
+  });
+  assert.deepEqual(currentMonthOnly, {
+    totalExpenses: "0.00",
+    categories: [],
+  });
 });
