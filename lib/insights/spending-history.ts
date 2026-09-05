@@ -48,6 +48,34 @@ export type SpendingCompositionCategorySource = {
   isArchived: boolean;
 };
 
+export type SpendingChangeWindow = 1 | 3 | 6;
+
+export type SpendingChangeCategory = {
+  categoryId: string;
+  categoryName: string;
+  isArchived: boolean;
+  previousMonthlyAverage: string;
+  recentMonthlyAverage: string;
+  change: string;
+  contributionPercent: number | null;
+};
+
+export type SpendingChangeInsight = {
+  availableWindows: SpendingChangeWindow[];
+  window: SpendingChangeWindow | null;
+  availableTargetMonths: string[];
+  selectedTargetMonth: string | null;
+  previousStartMonth: string | null;
+  previousEndMonth: string | null;
+  recentStartMonth: string | null;
+  recentEndMonth: string | null;
+  previousMonthlyAverage: string | null;
+  recentMonthlyAverage: string | null;
+  averageMonthlyChange: string | null;
+  categories: SpendingChangeCategory[];
+  hasExpenseActivity: boolean;
+};
+
 export type MonthlyResultMonth = {
   month: string;
   totalIncome: string;
@@ -76,6 +104,10 @@ type DecimalMonth = {
 
 function moneyString(value: Prisma.Decimal) {
   return value.toDecimalPlaces(2).toFixed(2);
+}
+
+function preciseAverageString(value: Prisma.Decimal) {
+  return value.decimalPlaces() <= 2 ? value.toFixed(2) : value.toString();
 }
 
 function median(values: Prisma.Decimal[]) {
@@ -178,6 +210,219 @@ export function buildSpendingCompositionInsight(params: {
   return {
     totalExpenses: moneyString(totalExpenses),
     categories,
+  };
+}
+
+export function buildSpendingChangeInsight(params: {
+  transactions: SpendingInsightTransaction[];
+  categories: SpendingCompositionCategorySource[];
+  firstActivityMonth: string | null;
+  currentMonth: string;
+  requestedWindow?: string | number;
+  requestedTargetMonth?: string;
+}): SpendingChangeInsight {
+  const supportedWindows: SpendingChangeWindow[] = [1, 3, 6];
+  const firstActivityMonth =
+    params.firstActivityMonth && params.firstActivityMonth < params.currentMonth
+      ? params.firstActivityMonth
+      : null;
+  const latestCompletedMonth = shiftMonthKey(params.currentMonth, -1);
+  const earliestQueriedTargetMonth = shiftMonthKey(params.currentMonth, -11);
+  const earliestActivityTargetMonth = firstActivityMonth
+    ? shiftMonthKey(firstActivityMonth, 1)
+    : null;
+  const firstAvailableTargetMonth = earliestActivityTargetMonth
+    ? earliestActivityTargetMonth > earliestQueriedTargetMonth
+      ? earliestActivityTargetMonth
+      : earliestQueriedTargetMonth
+    : null;
+  const availableTargetMonths =
+    firstAvailableTargetMonth &&
+    firstAvailableTargetMonth <= latestCompletedMonth
+      ? listInclusiveMonths(
+          firstAvailableTargetMonth,
+          latestCompletedMonth,
+        ).reverse()
+      : [];
+  const availableWindows = firstActivityMonth
+    ? supportedWindows.filter(
+        (window) =>
+          shiftMonthKey(params.currentMonth, -(window * 2)) >=
+          firstActivityMonth,
+      )
+    : [];
+  const requestedWindow = Number(params.requestedWindow);
+  const selectedWindow = availableWindows.includes(
+    requestedWindow as SpendingChangeWindow,
+  )
+    ? (requestedWindow as SpendingChangeWindow)
+    : availableWindows.includes(3)
+      ? 3
+      : availableWindows.includes(1)
+        ? 1
+        : null;
+
+  if (!selectedWindow) {
+    return {
+      availableWindows,
+      window: null,
+      availableTargetMonths,
+      selectedTargetMonth: null,
+      previousStartMonth: null,
+      previousEndMonth: null,
+      recentStartMonth: null,
+      recentEndMonth: null,
+      previousMonthlyAverage: null,
+      recentMonthlyAverage: null,
+      averageMonthlyChange: null,
+      categories: [],
+      hasExpenseActivity: false,
+    };
+  }
+
+  const selectedTargetMonth =
+    selectedWindow === 1
+      ? params.requestedTargetMonth &&
+        availableTargetMonths.includes(params.requestedTargetMonth)
+        ? params.requestedTargetMonth
+        : (availableTargetMonths[0] ?? null)
+      : null;
+  const recentEndMonth =
+    selectedWindow === 1 && selectedTargetMonth
+      ? selectedTargetMonth
+      : latestCompletedMonth;
+  const recentStartMonth = shiftMonthKey(
+    recentEndMonth,
+    -(selectedWindow - 1),
+  );
+  const previousEndMonth = shiftMonthKey(recentStartMonth, -1);
+  const previousStartMonth = shiftMonthKey(
+    previousEndMonth,
+    -(selectedWindow - 1),
+  );
+  const categoryById = new Map(
+    params.categories.map((category) => [category.id, category]),
+  );
+  const previousTotals = new Map<string, Prisma.Decimal>();
+  const recentTotals = new Map<string, Prisma.Decimal>();
+
+  for (const transaction of params.transactions) {
+    if (
+      transaction.type !== "EXPENSE" ||
+      !categoryById.has(transaction.categoryId)
+    ) {
+      continue;
+    }
+
+    const month = transaction.localDate.slice(0, 7);
+    const totals =
+      month >= previousStartMonth && month <= previousEndMonth
+        ? previousTotals
+        : month >= recentStartMonth && month <= recentEndMonth
+          ? recentTotals
+          : null;
+
+    if (!totals) {
+      continue;
+    }
+
+    const currentTotal =
+      totals.get(transaction.categoryId) ?? new Prisma.Decimal(0);
+    totals.set(transaction.categoryId, currentTotal.plus(transaction.amount));
+  }
+
+  const previousPeriodExpenses = Array.from(previousTotals.values()).reduce(
+    (total, categoryTotal) => total.plus(categoryTotal),
+    new Prisma.Decimal(0),
+  );
+  const recentPeriodExpenses = Array.from(recentTotals.values()).reduce(
+    (total, categoryTotal) => total.plus(categoryTotal),
+    new Prisma.Decimal(0),
+  );
+  const windowDivisor = new Prisma.Decimal(selectedWindow);
+  const previousMonthlyAverage = previousPeriodExpenses.dividedBy(windowDivisor);
+  const recentMonthlyAverage = recentPeriodExpenses.dividedBy(windowDivisor);
+  const averageMonthlyChange = recentMonthlyAverage.minus(
+    previousMonthlyAverage,
+  );
+  const changedCategoryIds = new Set([
+    ...previousTotals.keys(),
+    ...recentTotals.keys(),
+  ]);
+  const categories = Array.from(changedCategoryIds)
+    .map((categoryId) => {
+      const category = categoryById.get(categoryId);
+
+      if (!category) {
+        return null;
+      }
+
+      const previousMonthlyAverage = (
+        previousTotals.get(categoryId) ?? new Prisma.Decimal(0)
+      ).dividedBy(windowDivisor);
+      const recentMonthlyAverage = (
+        recentTotals.get(categoryId) ?? new Prisma.Decimal(0)
+      ).dividedBy(windowDivisor);
+      const change = recentMonthlyAverage.minus(previousMonthlyAverage);
+
+      if (change.eq(0)) {
+        return null;
+      }
+
+      return {
+        categoryId,
+        categoryName: category.name,
+        isArchived: category.isArchived,
+        previousMonthlyAverage,
+        recentMonthlyAverage,
+        change,
+      };
+    })
+    .filter((category) => category !== null)
+    .sort((left, right) => {
+      const amountComparison = right.change
+        .abs()
+        .comparedTo(left.change.abs());
+
+      return amountComparison === 0
+        ? left.categoryName.localeCompare(right.categoryName)
+        : amountComparison;
+    })
+    .map((category) => ({
+      categoryId: category.categoryId,
+      categoryName: category.categoryName,
+      isArchived: category.isArchived,
+      previousMonthlyAverage: preciseAverageString(
+        category.previousMonthlyAverage,
+      ),
+      recentMonthlyAverage: preciseAverageString(category.recentMonthlyAverage),
+      change: preciseAverageString(category.change),
+      contributionPercent: averageMonthlyChange.eq(0)
+        ? null
+        : Number(
+            category.change
+              .dividedBy(averageMonthlyChange)
+              .times(100)
+              .toDecimalPlaces(1)
+              .toString(),
+          ),
+    }));
+
+  return {
+    availableWindows,
+    window: selectedWindow,
+    availableTargetMonths,
+    selectedTargetMonth,
+    previousStartMonth,
+    previousEndMonth,
+    recentStartMonth,
+    recentEndMonth,
+    previousMonthlyAverage: preciseAverageString(previousMonthlyAverage),
+    recentMonthlyAverage: preciseAverageString(recentMonthlyAverage),
+    averageMonthlyChange: preciseAverageString(averageMonthlyChange),
+    categories,
+    hasExpenseActivity:
+      previousPeriodExpenses.gt(0) || recentPeriodExpenses.gt(0),
   };
 }
 

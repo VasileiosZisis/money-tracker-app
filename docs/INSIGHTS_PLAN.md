@@ -2,10 +2,10 @@
 
 ## Status
 
-Insights V1 and roadmap items 3 and 4 are implemented. The page provides
+Insights V1 and roadmap items 3, 4, and 5 are implemented. The page provides
 account-wide monthly result and break-even analysis, completed-period spending
-composition, and optional category-level monthly spending trends and
-comparisons.
+composition, equal-window change drivers, and optional category-level monthly
+spending trends and comparisons.
 
 This is the active implementation plan for extending `/insights`. Items listed
 after the implemented foundation are selected product work, but each milestone
@@ -56,7 +56,7 @@ Insights                  Spending Plan   Dashboard   Insights
 2. Category comparison - implemented
 3. Monthly result and break-even analysis - implemented
 4. Spending composition - implemented
-5. Drivers of change
+5. Drivers of change - implemented
 6. Income and spending consistency
 7. Unusual months with transaction drill-down
 8. Longer-term patterns when sufficient history exists
@@ -151,7 +151,7 @@ Implemented behavior:
   activity are omitted
 - the presentation uses neutral horizontal bars with visible totals and shares
 
-### Roadmap item 5: Drivers of change
+### Roadmap item 5: Drivers of change - implemented
 
 Purpose: explain which categories contributed to an increase or decrease in
 total spending between comparable periods.
@@ -159,7 +159,7 @@ total spending between comparable periods.
 Include:
 
 - the total expense change between the two periods
-- per-category absolute change
+- signed per-category change, ranked by absolute magnitude
 - each category's contribution to the overall change
 - clear handling of categories that appear in only one comparison period
 
@@ -167,9 +167,36 @@ The periods must be comparable and complete. Current partial-month data must not
 be compared directly with a completed month unless the UI explicitly labels a
 same-stage comparison. Initial implementation should prefer completed periods.
 
-Data requirement: two comparable periods containing actual transaction data.
-The implementation specification must lock the comparison-period control before
-coding this milestone.
+Data requirement: both consecutive equal-length periods must begin on or after
+the user's first recorded activity. At least one period must contain actual
+expense activity to show category drivers.
+
+Implemented behavior:
+
+- `changeWindow=1|3|6` compares the latest completed months with the
+  immediately preceding equal-length period; 3 months is the default, with a
+  fallback to 1 month when 3 months is not yet eligible
+- in month-to-month mode, `changeMonth=YYYY-MM` selects the newer month and the
+  prior calendar month is derived automatically; missing or invalid values
+  default to the latest eligible pair
+- the month-to-month selector exposes the latest eleven valid pairs from the
+  bounded twelve-completed-month history, newest first; 3- and 6-month windows
+  ignore `changeMonth` and remain pinned to the latest completed month
+- 6 months becomes available only after twelve completed tracked months; the
+  current incomplete month is always excluded
+- Drivers is independent of the shared 3, 6, or 12-month Insights period; one
+  user-scoped query covers the latest twelve completed months plus the current
+  month for every Insights calculation
+- comparisons begin only when both periods are on or after the user's first
+  recorded activity; later zero-expense months remain part of the averages
+- period totals are divided by the selected window length with Decimal
+  arithmetic; signed category changes and contribution percentages compare
+  average monthly expenses, and contribution is unavailable when the overall
+  average change is zero
+- changed categories are sorted by absolute change, categories present on only
+  one side use zero for the other side, and archived categories remain visible
+- the category-independent presentation shows both date ranges, compact
+  monthly averages, and neutral zero-centered horizontal change bars
 
 ### Roadmap item 6: Income and spending consistency
 
@@ -217,15 +244,14 @@ window.
 
 Potential supported comparisons include:
 
-- recent three completed months versus the previous three
 - recent year versus the previous year
-- sustained category increases or decreases
-- recurring seasonal patterns
+- sustained category increases or decreases across several successive windows
+- recurring seasonal patterns across comparable years
 
 Only show a comparison when both sides contain sufficient completed history.
 Seasonal or year-over-year claims require at least two comparable annual periods.
-Shorter histories should keep the existing 3, 6, and 12-month views without
-extrapolating a long-term pattern.
+Shorter histories should use the existing Drivers equal-window comparison and
+3, 6, and 12-month views without extrapolating a long-term pattern.
 
 The precise first set of longer-term comparisons should be selected after the
 earlier milestones show which additional context is most useful.
@@ -284,10 +310,9 @@ becoming the planning or execution workspace itself.
 
 Implement and review one milestone at a time:
 
-1. Drivers of change
-2. Income and spending consistency
-3. Unusual-month detection and transaction drill-down
-4. Longer-term patterns
+1. Income and spending consistency
+2. Unusual-month detection and transaction drill-down
+3. Longer-term patterns
 
 Each milestone should include deterministic calculation tests, server-side
 user scoping, limited-data and empty states, responsive presentation, and any

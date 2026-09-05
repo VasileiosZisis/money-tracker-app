@@ -51,6 +51,23 @@ export default function InsightsLoading() {
       </Card>
 
       <Card>
+        <CardHeader className="gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <Skeleton className="h-5 w-36" />
+          <div className="flex flex-wrap gap-2">
+            <Skeleton className="h-10 w-44" />
+            <Skeleton className="h-10 w-64" />
+            <Skeleton className="h-10 w-20" />
+          </div>
+        </CardHeader>
+        <CardContent className="grid gap-5 pt-4">
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-14 w-full" />
+          <Skeleton className="h-14 w-full" />
+          <Skeleton className="h-14 w-full" />
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader className="gap-2">
           <Skeleton className="h-5 w-36" />
         </CardHeader>

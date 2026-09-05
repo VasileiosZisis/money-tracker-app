@@ -269,6 +269,15 @@ Rules:
   Keep category totals and percentage shares visible, mark archived categories,
   and use one neutral accent treatment rather than semantic success or warning
   colors.
+- Follow composition with a full-width Drivers of change card. Keep its
+  1, 3, or 6-month comparison-length selector within the card. When
+  month-to-month is selected, show a second compact selector containing
+  consecutive pairs such as `August 2026 vs July 2026`; hide it for longer
+  windows. Present the previous and recent date ranges, their average monthly
+  expenses, and the signed average monthly change as a compact summary. Use a
+  zero-centered horizontal visualization for category changes between the two
+  monthly averages. Distinguish increases from decreases with restrained
+  chart-series colors rather than semantic success or destructive treatments.
 - When an expense category is selected, follow the overview with the existing
   full-width category-spending chart and its Typical month, This month, and
   Compared with typical metrics. Historical category differences use neutral

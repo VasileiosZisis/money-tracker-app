@@ -14,6 +14,7 @@ import {
   MonthlyResultChart,
   type MonthlyResultChartPoint,
 } from "@/components/insights/monthly-result-chart";
+import { SpendingChangeDrivers } from "@/components/insights/spending-change-drivers";
 import { SpendingComposition } from "@/components/insights/spending-composition";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -34,9 +35,11 @@ import { getAuthenticatedUserPreferences } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import {
   buildMonthlyResultInsight,
+  buildSpendingChangeInsight,
   buildSpendingCompositionInsight,
   buildSpendingInsight,
   type InsightsPeriod,
+  type SpendingChangeWindow,
 } from "@/lib/insights/spending-history";
 import {
   buildPathWithSearchParams,
@@ -62,8 +65,48 @@ function formatShortMonth(month: string) {
   }).format(new Date(Date.UTC(year, (monthNumber ?? 1) - 1, 1)));
 }
 
+function formatCompletedMonthRange(startMonth: string, endMonth: string) {
+  return startMonth === endMonth
+    ? formatMonthLabel(startMonth)
+    : `${formatMonthLabel(startMonth)} – ${formatMonthLabel(endMonth)}`;
+}
+
+function formatChangeWindow(window: SpendingChangeWindow) {
+  if (window === 1) {
+    return "Month to month";
+  }
+
+  return `${window} months vs previous ${window}`;
+}
+
+function formatMonthPair(targetMonth: string) {
+  return `${formatMonthLabel(targetMonth)} vs ${formatMonthLabel(
+    shiftMonthKey(targetMonth, -1),
+  )}`;
+}
+
 function formatSignedMoney(formatter: Intl.NumberFormat, amount: string) {
   const decimalAmount = new Prisma.Decimal(amount);
+
+  if (decimalAmount.eq(0)) {
+    return formatter.format(0);
+  }
+
+  const maximumFractionDigits =
+    formatter.resolvedOptions().maximumFractionDigits;
+  const roundedAbsoluteAmount = decimalAmount
+    .abs()
+    .toDecimalPlaces(maximumFractionDigits);
+
+  if (roundedAbsoluteAmount.eq(0)) {
+    const minimumDisplayUnit = new Prisma.Decimal(
+      `1e-${maximumFractionDigits}`,
+    );
+    const sign = decimalAmount.gt(0) ? "+" : "−";
+
+    return `${sign}<${formatter.format(Number(minimumDisplayUnit.toString()))}`;
+  }
+
   const prefix = decimalAmount.gt(0) ? "+" : "";
   return `${prefix}${formatter.format(Number(decimalAmount.toString()))}`;
 }
@@ -115,10 +158,14 @@ function InsightsControls({
   categories,
   period,
   selectedCategoryId,
+  selectedChangeWindow,
+  selectedChangeMonth,
 }: {
   categories: ExpenseCategoryOption[];
   period: InsightsPeriod;
   selectedCategoryId?: string;
+  selectedChangeWindow?: SpendingChangeWindow;
+  selectedChangeMonth?: string;
 }) {
   const activeCategories = categories.filter((category) => !category.isArchived);
   const archivedCategories = categories.filter((category) => category.isArchived);
@@ -131,6 +178,20 @@ function InsightsControls({
           method="get"
           className="grid gap-3 sm:grid-cols-[minmax(220px,1fr)_minmax(190px,auto)_auto] sm:items-end"
         >
+          {selectedChangeWindow ? (
+            <input
+              type="hidden"
+              name="changeWindow"
+              value={selectedChangeWindow}
+            />
+          ) : null}
+          {selectedChangeWindow === 1 && selectedChangeMonth ? (
+            <input
+              type="hidden"
+              name="changeMonth"
+              value={selectedChangeMonth}
+            />
+          ) : null}
           <label className="grid gap-1.5 text-sm font-medium text-foreground">
             Expense category
             <Select
@@ -201,7 +262,13 @@ export default async function InsightsPage({
   const requestedCategoryId = firstSearchParamValue(
     resolvedSearchParams.categoryId,
   );
-  const rangeStartMonth = shiftMonthKey(currentMonth, -period);
+  const requestedChangeWindow = firstSearchParamValue(
+    resolvedSearchParams.changeWindow,
+  );
+  const requestedChangeMonth = firstSearchParamValue(
+    resolvedSearchParams.changeMonth,
+  );
+  const rangeStartMonth = shiftMonthKey(currentMonth, -12);
   const rangeStart = getMonthRange(rangeStartMonth).start;
 
   const [categories, firstActivityTransaction, transactions] = await Promise.all([
@@ -263,6 +330,14 @@ export default async function InsightsPage({
     categories,
     currentMonth,
     period,
+  });
+  const spendingChange = buildSpendingChangeInsight({
+    transactions,
+    categories,
+    firstActivityMonth: firstActivityTransaction?.localDate.slice(0, 7) ?? null,
+    currentMonth,
+    requestedWindow: requestedChangeWindow,
+    requestedTargetMonth: requestedChangeMonth,
   });
   const insight = selectedCategory
     ? buildSpendingInsight({
@@ -449,6 +524,8 @@ export default async function InsightsPage({
         categories={categories}
         period={period}
         selectedCategoryId={selectedCategory?.id}
+        selectedChangeWindow={spendingChange.window ?? undefined}
+        selectedChangeMonth={spendingChange.selectedTargetMonth ?? undefined}
       />
 
       <Card>
@@ -477,6 +554,157 @@ export default async function InsightsPage({
               title="No completed spending to break down"
               description="Expense transactions from completed months will appear here"
             />
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <CardTitle>Drivers of change</CardTitle>
+          {spendingChange.window ? (
+            <form
+              action="/insights"
+              method="get"
+              className="flex flex-col gap-2 sm:flex-row sm:items-end"
+            >
+              <input type="hidden" name="period" value={period} />
+              {selectedCategory ? (
+                <input
+                  type="hidden"
+                  name="categoryId"
+                  value={selectedCategory.id}
+                />
+              ) : null}
+              <label className="grid gap-1.5 text-sm font-medium text-foreground">
+                Comparison length
+                <Select
+                  name="changeWindow"
+                  defaultValue={String(spendingChange.window)}
+                >
+                  {spendingChange.availableWindows.map((window) => (
+                    <option key={window} value={window}>
+                      {formatChangeWindow(window)}
+                    </option>
+                  ))}
+                </Select>
+              </label>
+              {spendingChange.window === 1 &&
+              spendingChange.selectedTargetMonth ? (
+                <label className="grid gap-1.5 text-sm font-medium text-foreground">
+                  Compare
+                  <Select
+                    name="changeMonth"
+                    defaultValue={spendingChange.selectedTargetMonth}
+                  >
+                    {spendingChange.availableTargetMonths.map((month) => (
+                      <option key={month} value={month}>
+                        {formatMonthPair(month)}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+              ) : null}
+              <Button type="submit" variant="outline">
+                Apply
+              </Button>
+            </form>
+          ) : null}
+        </CardHeader>
+        <CardContent className="pt-4">
+          {!spendingChange.window ||
+          !spendingChange.previousStartMonth ||
+          !spendingChange.previousEndMonth ||
+          !spendingChange.recentStartMonth ||
+          !spendingChange.recentEndMonth ||
+          spendingChange.previousMonthlyAverage === null ||
+          spendingChange.recentMonthlyAverage === null ||
+          spendingChange.averageMonthlyChange === null ? (
+            <EmptyState
+              icon={BarChart3}
+              title="Not enough completed history"
+              description="Complete two consecutive tracked months to compare spending changes"
+            />
+          ) : !spendingChange.hasExpenseActivity ? (
+            <EmptyState
+              icon={BarChart3}
+              title="No spending in either period"
+              description="Expense transactions in completed months will appear here"
+            />
+          ) : (
+            <div className="grid gap-5">
+              <div className="grid overflow-hidden rounded-xl border border-border/70 sm:grid-cols-3">
+                <div className="grid gap-1 p-3">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    {formatCompletedMonthRange(
+                      spendingChange.previousStartMonth,
+                      spendingChange.previousEndMonth,
+                    )}
+                  </p>
+                  <p className="font-mono text-xl font-semibold text-foreground">
+                    {formatter.format(
+                      Number(spendingChange.previousMonthlyAverage),
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Previous period monthly average
+                  </p>
+                </div>
+                <div className="grid gap-1 border-t border-border/70 p-3 sm:border-l sm:border-t-0">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    {formatCompletedMonthRange(
+                      spendingChange.recentStartMonth,
+                      spendingChange.recentEndMonth,
+                    )}
+                  </p>
+                  <p className="font-mono text-xl font-semibold text-foreground">
+                    {formatter.format(
+                      Number(spendingChange.recentMonthlyAverage),
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Recent period monthly average
+                  </p>
+                </div>
+                <div className="grid gap-1 border-t border-border/70 p-3 sm:border-l sm:border-t-0">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Average monthly change
+                  </p>
+                  <p className="font-mono text-xl font-semibold text-foreground">
+                    {formatSignedMoney(
+                      formatter,
+                      spendingChange.averageMonthlyChange,
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {isPositiveMoney(spendingChange.averageMonthlyChange)
+                      ? "Increase in monthly expenses"
+                      : isNegativeMoney(spendingChange.averageMonthlyChange)
+                        ? "Decrease in monthly expenses"
+                        : "No change in monthly expenses"}
+                  </p>
+                </div>
+              </div>
+
+              {spendingChange.categories.length > 0 ? (
+                <div className="grid gap-3">
+                  <SpendingChangeDrivers
+                    categories={spendingChange.categories}
+                    currency={user.currency}
+                  />
+                  {!isPositiveMoney(spendingChange.averageMonthlyChange) &&
+                  !isNegativeMoney(spendingChange.averageMonthlyChange) ? (
+                    <p className="text-xs text-muted-foreground">
+                      Contribution percentages are unavailable when average
+                      monthly expenses are unchanged
+                    </p>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-border/70 bg-background/55 p-4 text-sm text-muted-foreground">
+                  Category spending was unchanged
+                </div>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>

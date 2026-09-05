@@ -610,11 +610,27 @@ Insights-page interaction rules:
 
 - read Insights data directly in the server page; do not add a route handler or
   client-side data fetch
-- use URL-backed `categoryId` and `period=3|6|12` controls, with 6 completed
-  months as the default comparison window; `categoryId` is optional so the
-  account-wide monthly-result analysis remains visible in the default state
+- use URL-backed `categoryId`, `period=3|6|12`, `changeWindow=1|3|6`, and
+  `changeMonth=YYYY-MM` controls, with 6 completed months as the default shared
+  Insights period and 3 months as the default Drivers window; `categoryId` is
+  optional so account-wide analysis remains visible in the default state
+- normalize `changeWindow` to an eligible equal-length comparison, falling
+  back from the default 3 months to 1 month when necessary; the recent window
+  always ends at the latest completed account-local month and the preceding
+  window is immediately adjacent
+- apply `changeMonth` only to month-to-month mode, treating it as the newer
+  completed month and deriving its immediately preceding month; normalize
+  missing or invalid values to the latest eligible pair and expose at most the
+  latest eleven pairs from the bounded transaction result
+- keep Drivers independent of the shared Insights period and query one bounded
+  range containing the latest 12 completed months plus the current month; each
+  Insights calculation applies its own completed-period boundaries to that
+  shared transaction result
 - query actual transactions only, always scoped to the authenticated user, and
-  aggregate monetary values with Prisma `Decimal`
+  aggregate monetary values and period averages with Prisma `Decimal`
+- preserve the Decimal precision of average values and changes through the
+  server-rendered presentation contract so sub-cent averages retain their true
+  sign; round only their formatted currency display
 - keep the Recharts component as the only required client boundary and pass it
   plain serialized display data
 - link monthly rows to the existing Transactions filter contract using `month`,

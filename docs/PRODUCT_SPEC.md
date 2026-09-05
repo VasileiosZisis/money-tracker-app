@@ -166,6 +166,29 @@ The current incomplete month is excluded from composition. Categories without
 spending are omitted, and a period without completed expenses shows an empty
 state instead of zero-filled category data.
 
+Drivers of change compares the latest completed months with the immediately
+preceding equal-length period and remains available without selecting a
+category. It defaults to the latest three completed months versus the previous
+three, falls back to one-versus-one when needed, and offers six-versus-six once
+twelve completed tracked months exist. Month-to-month mode also lets the user
+choose from the latest eleven valid consecutive completed-month pairs within
+the bounded Insights history. It includes:
+
+- previous-period and recent-period average monthly expenses
+- the signed change between those monthly averages
+- signed expense changes by category, ranked by absolute magnitude
+- each changed category's contribution to the overall expense change
+- archived categories and categories appearing in only one compared period
+
+Tracked months without expenses remain part of each period's average. The
+current incomplete month and periods beginning before tracking started are
+unavailable. Drivers uses its own 1, 3, or 6-month comparison length rather
+than the shared Insights period. Historical month selection applies only to
+month-to-month mode; 3- and 6-month comparisons always end with the latest
+completed month. When the average monthly total is unchanged but category
+allocation moved, the category changes remain visible and contribution
+percentages are unavailable.
+
 Users can optionally select an active or archived expense category. Category
 analysis includes:
 
