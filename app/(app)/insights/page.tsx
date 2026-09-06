@@ -17,6 +17,7 @@ import {
 import { IncomeSpendingConsistency } from "@/components/insights/income-spending-consistency";
 import { SpendingChangeDrivers } from "@/components/insights/spending-change-drivers";
 import { SpendingComposition } from "@/components/insights/spending-composition";
+import { UnusualMonths } from "@/components/insights/unusual-months";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -43,6 +44,7 @@ import {
   type InsightsPeriod,
   type SpendingChangeWindow,
 } from "@/lib/insights/spending-history";
+import { buildUnusualMonthsInsight } from "@/lib/insights/unusual-months";
 import {
   buildPathWithSearchParams,
   firstSearchParamValue,
@@ -256,7 +258,8 @@ export default async function InsightsPage({
     throw new Error("Account time zone is not configured");
   }
 
-  const currentLocalDate = getLocalDateInTimeZone(user.timeZone);
+  const accountTimeZone = user.timeZone;
+  const currentLocalDate = getLocalDateInTimeZone(accountTimeZone);
   const currentMonth = currentLocalDate.slice(0, 7);
   const period = normalizePeriod(
     firstSearchParamValue(resolvedSearchParams.period),
@@ -333,6 +336,21 @@ export default async function InsightsPage({
     currentMonth,
     period,
   });
+  const unusualMonths = buildUnusualMonthsInsight({
+    transactions,
+    categories: categories.map((category) => ({
+      id: category.id,
+      name: category.name,
+      isArchived: category.isArchived,
+      createdMonth: getLocalDateInTimeZone(
+        accountTimeZone,
+        category.createdAt,
+      ).slice(0, 7),
+    })),
+    firstActivityMonth: firstActivityTransaction?.localDate.slice(0, 7) ?? null,
+    currentMonth,
+    period,
+  });
   const spendingComposition = buildSpendingCompositionInsight({
     transactions,
     categories,
@@ -352,7 +370,7 @@ export default async function InsightsPage({
         transactions,
         categoryId: selectedCategory.id,
         categoryCreatedMonth: getLocalDateInTimeZone(
-          user.timeZone,
+          accountTimeZone,
           selectedCategory.createdAt,
         ).slice(0, 7),
         currentMonth,
@@ -721,6 +739,8 @@ export default async function InsightsPage({
         insight={incomeSpendingConsistency}
         currency={user.currency}
       />
+
+      <UnusualMonths insight={unusualMonths} currency={user.currency} />
 
       {categories.length === 0 ? (
         <Card>

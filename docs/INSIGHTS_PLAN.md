@@ -2,10 +2,11 @@
 
 ## Status
 
-Insights V1 and roadmap items 3, 4, 5, and 6 are implemented. The page provides
+Insights V1 and roadmap items 3, 4, 5, 6, and 7 are implemented. The page provides
 account-wide monthly result and break-even analysis, completed-period spending
-composition, equal-window change drivers, income and spending consistency, and
-optional category-level monthly spending trends and comparisons.
+composition, equal-window change drivers, income and spending consistency,
+unusual-month investigation, and optional category-level monthly spending
+trends and comparisons.
 
 This is the active implementation plan for extending `/insights`. Items listed
 after the implemented foundation are selected product work, but each milestone
@@ -58,7 +59,7 @@ Insights                  Spending Plan   Dashboard   Insights
 4. Spending composition - implemented
 5. Drivers of change - implemented
 6. Income and spending consistency - implemented
-7. Unusual months with transaction drill-down
+7. Unusual months with transaction drill-down - implemented
 8. Longer-term patterns when sufficient history exists
 
 These are capabilities, not necessarily eight permanent page sections. Related
@@ -234,7 +235,7 @@ Implemented behavior:
   user-scoped transaction result without another query
 - category-level variability is deferred to later pattern analysis
 
-### Roadmap item 7: Unusual months and investigation
+### Roadmap item 7: Unusual months and investigation - implemented
 
 Purpose: call attention to months that differ meaningfully from the user's own
 history and make their cause easy to investigate.
@@ -253,6 +254,30 @@ must be locked in the implementation specification before coding.
 
 Data requirement: enough completed history to establish the selected rule's
 baseline. Until that threshold is met, omit unusual-month claims.
+
+Implemented behavior:
+
+- the card uses the shared 3, 6, or 12 completed-month period, begins no earlier
+  than first account activity, excludes the current incomplete month, and stays
+  independent of the optional category selection and Drivers controls
+- detection requires at least six eligible completed months and uses strict
+  Tukey fences at `Q1 - 1.5 x IQR` and `Q3 + 1.5 x IQR`, with linearly
+  interpolated quartiles
+- a fence-crossing value must also differ from its Decimal median by at least
+  25%; when that median is zero, any non-zero fence-crossing difference is
+  material
+- total expenses may be identified as unusually high or low; income and monthly
+  result only produce low findings; expense categories may produce high or low
+  findings after at least six eligible months and three months with activity
+- category history starts no earlier than account tracking and the category's
+  account-local creation month, retains later zero-spend months, and includes
+  archived categories with qualifying activity
+- findings are grouped newest first, show actual and typical amounts with
+  neutral labels, and link to the applicable Transactions month, type, and
+  category filters
+- insufficient history and a sufficient history with no findings use distinct
+  focused empty states; no AI scoring, prescriptions, persistence, extra query,
+  route handler, or client-side fetch is added
 
 ### Roadmap item 8: Longer-term patterns
 
@@ -327,8 +352,7 @@ becoming the planning or execution workspace itself.
 
 Implement and review one milestone at a time:
 
-1. Unusual-month detection and transaction drill-down
-2. Longer-term patterns
+1. Longer-term patterns
 
 Each milestone should include deterministic calculation tests, server-side
 user scoping, limited-data and empty states, responsive presentation, and any

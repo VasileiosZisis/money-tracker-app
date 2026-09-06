@@ -206,6 +206,29 @@ included, while the current incomplete month is excluded. With fewer than
 three eligible completed months, the section shows an insufficient-history
 state instead of variation labels.
 
+Unusual months uses the shared 3, 6, or 12 completed-month period and remains
+independent of category selection. With at least six eligible completed months,
+it identifies:
+
+- unusually high or low total spending
+- unusually low income or monthly result
+- unusually high or low spending within established expense categories
+
+Detection uses linearly interpolated quartiles and Tukey fences: a value must
+fall below `Q1 - 1.5 x IQR` or above `Q3 + 1.5 x IQR`, and must differ from the
+median by at least 25%. When the median is zero, any non-zero difference that
+crosses the fence satisfies the materiality rule. Category observations also
+require at least six eligible months and spending activity in at least three of
+them. Category history begins no earlier than account tracking and the
+category's account-local creation month; valid later zero-spend months remain
+included.
+
+The current incomplete month is excluded. Findings are descriptive, use neutral
+styling, show the actual and median amounts, and link to the relevant month,
+transaction type, and category filters on Transactions. When the selected
+history is too short or no values cross the rule, the card shows a focused
+neutral state rather than making an unusual-month claim.
+
 Users can optionally select an active or archived expense category. Category
 analysis includes:
 

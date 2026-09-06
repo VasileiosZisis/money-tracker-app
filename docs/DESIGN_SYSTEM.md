@@ -284,6 +284,12 @@ Rules:
   typical monthly amount, observed range, and middle-50% range. Follow them
   with compact negative-result context counts. Do not use success, warning, or
   destructive treatments for Low, Moderate, High, or Intermittent variation.
+- Follow consistency with a full-width Unusual months card that remains visible
+  without a category selection. Group findings by completed month, show neutral
+  Higher than usual or Lower than usual badges, and keep actual and typical
+  amounts visible. Each finding uses a restrained outline action into the
+  relevant filtered Transactions view. Use focused insufficient-history and
+  no-unusual-month empty states instead of placeholder rows.
 - When an expense category is selected, follow the overview with the existing
   full-width category-spending chart and its Typical month, This month, and
   Compared with typical metrics. Historical category differences use neutral

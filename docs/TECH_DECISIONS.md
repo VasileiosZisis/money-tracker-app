@@ -638,6 +638,17 @@ Insights-page interaction rules:
 - keep consistency unavailable below three completed months, distinguish
   intermittent activity from an all-zero history, and classify negative-result
   context against the income and expense medians without claiming causation
+- detect unusual completed months only when the shared period contains at least
+  six eligible months; use linearly interpolated quartiles and strict Tukey
+  fences at `Q1 - 1.5 x IQR` and `Q3 + 1.5 x IQR`, plus an absolute difference
+  from the median of at least 25% to suppress immaterial flat-series deviations
+- when an unusual-month median is zero, treat any non-zero fence-crossing
+  difference as material; category-level detection also requires at least three
+  months with expense activity and retains valid zero months after category
+  tracking begins at the category's account-local creation month
+- keep unusual-month calculation in the existing server-rendered Insights data
+  flow and link each finding to the existing Transactions `month`, `type`, and
+  `categoryId` filters without adding a query, route handler, or client fetch
 - keep the Recharts component as the only required client boundary and pass it
   plain serialized display data
 - link monthly rows to the existing Transactions filter contract using `month`,
