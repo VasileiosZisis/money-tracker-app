@@ -2,10 +2,10 @@
 
 ## Status
 
-Insights V1 and roadmap items 3, 4, and 5 are implemented. The page provides
+Insights V1 and roadmap items 3, 4, 5, and 6 are implemented. The page provides
 account-wide monthly result and break-even analysis, completed-period spending
-composition, equal-window change drivers, and optional category-level monthly
-spending trends and comparisons.
+composition, equal-window change drivers, income and spending consistency, and
+optional category-level monthly spending trends and comparisons.
 
 This is the active implementation plan for extending `/insights`. Items listed
 after the implemented foundation are selected product work, but each milestone
@@ -57,7 +57,7 @@ Insights                  Spending Plan   Dashboard   Insights
 3. Monthly result and break-even analysis - implemented
 4. Spending composition - implemented
 5. Drivers of change - implemented
-6. Income and spending consistency
+6. Income and spending consistency - implemented
 7. Unusual months with transaction drill-down
 8. Longer-term patterns when sufficient history exists
 
@@ -198,7 +198,7 @@ Implemented behavior:
 - the category-independent presentation shows both date ranges, compact
   monthly averages, and neutral zero-centered horizontal change bars
 
-### Roadmap item 6: Income and spending consistency
+### Roadmap item 6: Income and spending consistency - implemented
 
 Purpose: distinguish stable patterns from irregular income or expenses and help
 explain whether negative results come from lower income, higher spending, or
@@ -216,6 +216,23 @@ must describe variation without judging it as good or bad.
 
 Data requirement: at least three completed months. With less history, keep the
 section unavailable rather than assigning a stability label.
+
+Implemented behavior:
+
+- consistency uses the selected 3, 6, or 12 completed months, beginning no
+  earlier than the user's first recorded activity and excluding the current
+  incomplete month
+- typical income and spending use Decimal-safe medians; the observed range and
+  linearly interpolated lower and upper quartiles remain visible context
+- quartile variation is `(Q3 - Q1) / (Q3 + Q1)`: at most 10% is Low, over 10%
+  through 25% is Moderate, and above 25% is High
+- a zero middle-half range with some activity is Intermittent; a history made
+  entirely of zeroes is labeled as no recorded income or spending
+- negative-result months are classified as below-typical income only,
+  above-typical spending only, both patterns, or neither pattern
+- the category-independent card uses neutral labels and reuses the existing
+  user-scoped transaction result without another query
+- category-level variability is deferred to later pattern analysis
 
 ### Roadmap item 7: Unusual months and investigation
 
@@ -310,9 +327,8 @@ becoming the planning or execution workspace itself.
 
 Implement and review one milestone at a time:
 
-1. Income and spending consistency
-2. Unusual-month detection and transaction drill-down
-3. Longer-term patterns
+1. Unusual-month detection and transaction drill-down
+2. Longer-term patterns
 
 Each milestone should include deterministic calculation tests, server-side
 user scoping, limited-data and empty states, responsive presentation, and any

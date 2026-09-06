@@ -14,6 +14,7 @@ import {
   MonthlyResultChart,
   type MonthlyResultChartPoint,
 } from "@/components/insights/monthly-result-chart";
+import { IncomeSpendingConsistency } from "@/components/insights/income-spending-consistency";
 import { SpendingChangeDrivers } from "@/components/insights/spending-change-drivers";
 import { SpendingComposition } from "@/components/insights/spending-composition";
 import { PageHeader } from "@/components/app-shell/page-header";
@@ -34,6 +35,7 @@ import { shiftMonthKey } from "@/lib/balance/months";
 import { getAuthenticatedUserPreferences } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import {
+  buildIncomeSpendingConsistencyInsight,
   buildMonthlyResultInsight,
   buildSpendingChangeInsight,
   buildSpendingCompositionInsight,
@@ -320,6 +322,12 @@ export default async function InsightsPage({
     (category) => category.id === requestedCategoryId,
   );
   const monthlyResultInsight = buildMonthlyResultInsight({
+    transactions,
+    firstActivityMonth: firstActivityTransaction?.localDate.slice(0, 7) ?? null,
+    currentMonth,
+    period,
+  });
+  const incomeSpendingConsistency = buildIncomeSpendingConsistencyInsight({
     transactions,
     firstActivityMonth: firstActivityTransaction?.localDate.slice(0, 7) ?? null,
     currentMonth,
@@ -708,6 +716,11 @@ export default async function InsightsPage({
           )}
         </CardContent>
       </Card>
+
+      <IncomeSpendingConsistency
+        insight={incomeSpendingConsistency}
+        currency={user.currency}
+      />
 
       {categories.length === 0 ? (
         <Card>

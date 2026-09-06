@@ -95,6 +95,39 @@ export type MonthlyResultInsight = {
   hasLimitedHistory: boolean;
 };
 
+export type ConsistencyVariationLevel =
+  | "LOW"
+  | "MODERATE"
+  | "HIGH"
+  | "INTERMITTENT"
+  | "NO_ACTIVITY";
+
+export type IncomeSpendingConsistencyMetric = {
+  typical: string;
+  minimum: string;
+  maximum: string;
+  lowerQuartile: string;
+  upperQuartile: string;
+  variationPercent: string | null;
+  variationLevel: ConsistencyVariationLevel;
+};
+
+export type NegativeResultContext = {
+  totalMonthCount: number;
+  belowTypicalIncomeOnlyCount: number;
+  aboveTypicalSpendingOnlyCount: number;
+  bothCount: number;
+  neitherCount: number;
+};
+
+export type IncomeSpendingConsistencyInsight = {
+  completedMonthCount: number;
+  hasSufficientHistory: boolean;
+  income: IncomeSpendingConsistencyMetric | null;
+  expenses: IncomeSpendingConsistencyMetric | null;
+  negativeResults: NegativeResultContext | null;
+};
+
 type DecimalMonth = {
   month: string;
   categorySpending: Prisma.Decimal;
@@ -106,8 +139,77 @@ function moneyString(value: Prisma.Decimal) {
   return value.toDecimalPlaces(2).toFixed(2);
 }
 
-function preciseAverageString(value: Prisma.Decimal) {
+function preciseMoneyString(value: Prisma.Decimal) {
   return value.decimalPlaces() <= 2 ? value.toFixed(2) : value.toString();
+}
+
+function quartile(values: Prisma.Decimal[], quartileNumber: 1 | 3) {
+  if (values.length === 0) {
+    return null;
+  }
+
+  const ordered = [...values].sort((left, right) => left.comparedTo(right));
+  const scaledIndex = (ordered.length - 1) * quartileNumber;
+  const lowerIndex = Math.floor(scaledIndex / 4);
+  const remainder = scaledIndex % 4;
+  const lower = ordered[lowerIndex];
+  const upper = ordered[Math.ceil(scaledIndex / 4)];
+
+  if (!lower || !upper) {
+    return null;
+  }
+
+  if (remainder === 0) {
+    return lower;
+  }
+
+  return lower.plus(upper.minus(lower).times(remainder).dividedBy(4));
+}
+
+function buildConsistencyMetric(
+  values: Prisma.Decimal[],
+): IncomeSpendingConsistencyMetric | null {
+  if (values.length === 0) {
+    return null;
+  }
+
+  const ordered = [...values].sort((left, right) => left.comparedTo(right));
+  const typical = median(ordered);
+  const lowerQuartile = quartile(ordered, 1);
+  const upperQuartile = quartile(ordered, 3);
+  const minimum = ordered[0];
+  const maximum = ordered.at(-1);
+
+  if (!typical || !lowerQuartile || !upperQuartile || !minimum || !maximum) {
+    return null;
+  }
+
+  const quartileSum = lowerQuartile.plus(upperQuartile);
+  const variationPercent = quartileSum.eq(0)
+    ? null
+    : upperQuartile
+        .minus(lowerQuartile)
+        .dividedBy(quartileSum)
+        .times(100);
+  const variationLevel: ConsistencyVariationLevel = maximum.eq(0)
+    ? "NO_ACTIVITY"
+    : variationPercent === null
+      ? "INTERMITTENT"
+      : variationPercent.lte(10)
+        ? "LOW"
+        : variationPercent.lte(25)
+          ? "MODERATE"
+          : "HIGH";
+
+  return {
+    typical: preciseMoneyString(typical),
+    minimum: preciseMoneyString(minimum),
+    maximum: preciseMoneyString(maximum),
+    lowerQuartile: preciseMoneyString(lowerQuartile),
+    upperQuartile: preciseMoneyString(upperQuartile),
+    variationPercent: variationPercent?.toString() ?? null,
+    variationLevel,
+  };
 }
 
 function median(values: Prisma.Decimal[]) {
@@ -392,11 +494,11 @@ export function buildSpendingChangeInsight(params: {
       categoryId: category.categoryId,
       categoryName: category.categoryName,
       isArchived: category.isArchived,
-      previousMonthlyAverage: preciseAverageString(
+      previousMonthlyAverage: preciseMoneyString(
         category.previousMonthlyAverage,
       ),
-      recentMonthlyAverage: preciseAverageString(category.recentMonthlyAverage),
-      change: preciseAverageString(category.change),
+      recentMonthlyAverage: preciseMoneyString(category.recentMonthlyAverage),
+      change: preciseMoneyString(category.change),
       contributionPercent: averageMonthlyChange.eq(0)
         ? null
         : Number(
@@ -417,9 +519,9 @@ export function buildSpendingChangeInsight(params: {
     previousEndMonth,
     recentStartMonth,
     recentEndMonth,
-    previousMonthlyAverage: preciseAverageString(previousMonthlyAverage),
-    recentMonthlyAverage: preciseAverageString(recentMonthlyAverage),
-    averageMonthlyChange: preciseAverageString(averageMonthlyChange),
+    previousMonthlyAverage: preciseMoneyString(previousMonthlyAverage),
+    recentMonthlyAverage: preciseMoneyString(recentMonthlyAverage),
+    averageMonthlyChange: preciseMoneyString(averageMonthlyChange),
     categories,
     hasExpenseActivity:
       previousPeriodExpenses.gt(0) || recentPeriodExpenses.gt(0),
@@ -512,6 +614,128 @@ export function buildMonthlyResultInsight(params: {
     breakEvenMonthCount: completedResults.filter((result) => result.eq(0)).length,
     completedMonthCount: completedMonths.length,
     hasLimitedHistory: completedMonths.length < 3,
+  };
+}
+
+export function buildIncomeSpendingConsistencyInsight(params: {
+  transactions: SpendingInsightTransaction[];
+  firstActivityMonth: string | null;
+  currentMonth: string;
+  period: InsightsPeriod;
+}): IncomeSpendingConsistencyInsight {
+  const rangeStart = shiftMonthKey(params.currentMonth, -params.period);
+  const firstActivityMonth =
+    params.firstActivityMonth && params.firstActivityMonth < params.currentMonth
+      ? params.firstActivityMonth
+      : null;
+
+  if (!firstActivityMonth) {
+    return {
+      completedMonthCount: 0,
+      hasSufficientHistory: false,
+      income: null,
+      expenses: null,
+      negativeResults: null,
+    };
+  }
+
+  const activityStartMonth =
+    firstActivityMonth > rangeStart ? firstActivityMonth : rangeStart;
+  const completedEndMonth = shiftMonthKey(params.currentMonth, -1);
+  const monthKeys = listInclusiveMonths(
+    activityStartMonth,
+    completedEndMonth,
+  );
+  const monthMap = new Map<string, DecimalMonth>(
+    monthKeys.map((month) => [
+      month,
+      {
+        month,
+        categorySpending: new Prisma.Decimal(0),
+        totalIncome: new Prisma.Decimal(0),
+        totalExpenses: new Prisma.Decimal(0),
+      },
+    ]),
+  );
+
+  for (const transaction of params.transactions) {
+    const month = transaction.localDate.slice(0, 7);
+    const bucket = monthMap.get(month);
+
+    if (!bucket) {
+      continue;
+    }
+
+    if (transaction.type === "INCOME") {
+      bucket.totalIncome = bucket.totalIncome.plus(transaction.amount);
+    } else {
+      bucket.totalExpenses = bucket.totalExpenses.plus(transaction.amount);
+    }
+  }
+
+  const completedMonths = Array.from(monthMap.values());
+
+  if (completedMonths.length < 3) {
+    return {
+      completedMonthCount: completedMonths.length,
+      hasSufficientHistory: false,
+      income: null,
+      expenses: null,
+      negativeResults: null,
+    };
+  }
+
+  const incomeValues = completedMonths.map((month) => month.totalIncome);
+  const expenseValues = completedMonths.map((month) => month.totalExpenses);
+  const typicalIncome = median(incomeValues);
+  const typicalExpenses = median(expenseValues);
+  const income = buildConsistencyMetric(incomeValues);
+  const expenses = buildConsistencyMetric(expenseValues);
+
+  if (!typicalIncome || !typicalExpenses || !income || !expenses) {
+    return {
+      completedMonthCount: completedMonths.length,
+      hasSufficientHistory: false,
+      income: null,
+      expenses: null,
+      negativeResults: null,
+    };
+  }
+
+  const negativeResults: NegativeResultContext = {
+    totalMonthCount: 0,
+    belowTypicalIncomeOnlyCount: 0,
+    aboveTypicalSpendingOnlyCount: 0,
+    bothCount: 0,
+    neitherCount: 0,
+  };
+
+  for (const month of completedMonths) {
+    if (!month.totalIncome.minus(month.totalExpenses).lt(0)) {
+      continue;
+    }
+
+    negativeResults.totalMonthCount += 1;
+    const hasBelowTypicalIncome = month.totalIncome.lt(typicalIncome);
+    const hasAboveTypicalSpending = month.totalExpenses.gt(typicalExpenses);
+
+    if (hasBelowTypicalIncome && hasAboveTypicalSpending) {
+      negativeResults.bothCount += 1;
+    } else if (hasBelowTypicalIncome) {
+      negativeResults.belowTypicalIncomeOnlyCount += 1;
+    } else if (hasAboveTypicalSpending) {
+      negativeResults.aboveTypicalSpendingOnlyCount += 1;
+    } else {
+      negativeResults.neitherCount += 1;
+    }
+  }
+
+  return {
+    completedMonthCount: completedMonths.length,
+    hasSufficientHistory: true,
+    income,
+    expenses,
+    negativeResults,
   };
 }
 

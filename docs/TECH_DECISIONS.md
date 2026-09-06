@@ -631,6 +631,13 @@ Insights-page interaction rules:
 - preserve the Decimal precision of average values and changes through the
   server-rendered presentation contract so sub-cent averages retain their true
   sign; round only their formatted currency display
+- compute income and spending consistency from eligible completed months in
+  the shared Insights period, using Decimal medians and linearly interpolated
+  quartiles; classify the coefficient `(Q3 - Q1) / (Q3 + Q1)` as Low at 10%
+  or less, Moderate above 10% through 25%, and High above 25%
+- keep consistency unavailable below three completed months, distinguish
+  intermittent activity from an all-zero history, and classify negative-result
+  context against the income and expense medians without claiming causation
 - keep the Recharts component as the only required client boundary and pass it
   plain serialized display data
 - link monthly rows to the existing Transactions filter contract using `month`,

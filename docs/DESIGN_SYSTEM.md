@@ -278,6 +278,12 @@ Rules:
   zero-centered horizontal visualization for category changes between the two
   monthly averages. Distinguish increases from decreases with restrained
   chart-series colors rather than semantic success or destructive treatments.
+- Follow Drivers with a full-width Income and spending consistency card that
+  remains visible without a category selection. Use two responsive nested
+  panels for Income and Spending, each showing a neutral variation badge,
+  typical monthly amount, observed range, and middle-50% range. Follow them
+  with compact negative-result context counts. Do not use success, warning, or
+  destructive treatments for Low, Moderate, High, or Intermittent variation.
 - When an expense category is selected, follow the overview with the existing
   full-width category-spending chart and its Typical month, This month, and
   Compared with typical metrics. Historical category differences use neutral

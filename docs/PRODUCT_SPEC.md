@@ -189,6 +189,23 @@ completed month. When the average monthly total is unchanged but category
 allocation moved, the category changes remain visible and contribution
 percentages are unavailable.
 
+Income and spending consistency uses the shared 3, 6, or 12 completed-month
+period and remains available without selecting a category. With at least three
+eligible completed months, it shows:
+
+- median monthly income and spending
+- observed minimum-to-maximum and middle-50% ranges
+- neutral Low, Moderate, High, Intermittent, or no-activity variation context
+- counts describing whether negative-result months coincided with
+  below-typical income, above-typical spending, both, or neither
+
+Variation uses the Decimal-safe coefficient `(Q3 - Q1) / (Q3 + Q1)`, with Low
+at 10% or less, Moderate above 10% through 25%, and High above 25%. Quartiles
+use linear interpolation. Valid zero-activity months after tracking began are
+included, while the current incomplete month is excluded. With fewer than
+three eligible completed months, the section shows an insufficient-history
+state instead of variation labels.
+
 Users can optionally select an active or archived expense category. Category
 analysis includes:
 

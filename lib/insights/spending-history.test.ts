@@ -4,6 +4,7 @@ import test from "node:test";
 import { Prisma } from "@/generated/prisma/client";
 
 import {
+  buildIncomeSpendingConsistencyInsight,
   buildMonthlyResultInsight,
   buildSpendingChangeInsight,
   buildSpendingCompositionInsight,
@@ -1113,4 +1114,402 @@ test("returns explicit empty and insufficient-history change states", () => {
   assert.deepEqual(insufficientHistory.availableWindows, []);
   assert.equal(currentMonthOnly.window, null);
   assert.equal(currentMonthOnly.hasExpenseActivity, false);
+});
+
+test("calculates Decimal-safe medians and interpolated quartiles", () => {
+  const evenInsight = buildIncomeSpendingConsistencyInsight({
+    currentMonth: "2026-05",
+    firstActivityMonth: "2026-01",
+    period: 6,
+    transactions: ["100.00", "200.00", "300.00", "400.00"].flatMap(
+      (amount, index) => {
+        const month = `2026-${String(index + 1).padStart(2, "0")}`;
+
+        return [
+          transaction({
+            type: "INCOME",
+            amount,
+            localDate: `${month}-01`,
+            categoryId: "income",
+          }),
+          transaction({
+            type: "EXPENSE",
+            amount,
+            localDate: `${month}-02`,
+            categoryId: "expense",
+          }),
+        ];
+      },
+    ),
+  });
+  const oddInsight = buildIncomeSpendingConsistencyInsight({
+    currentMonth: "2026-06",
+    firstActivityMonth: "2026-01",
+    period: 6,
+    transactions: ["100.00", "200.00", "300.00", "400.00", "500.00"].map(
+      (amount, index) =>
+        transaction({
+          type: "INCOME",
+          amount,
+          localDate: `2026-${String(index + 1).padStart(2, "0")}-01`,
+          categoryId: "income",
+        }),
+    ),
+  });
+
+  assert.deepEqual(evenInsight.income, {
+    typical: "250.00",
+    minimum: "100.00",
+    maximum: "400.00",
+    lowerQuartile: "175.00",
+    upperQuartile: "325.00",
+    variationPercent: "30",
+    variationLevel: "HIGH",
+  });
+  assert.equal(oddInsight.income?.typical, "300.00");
+  assert.equal(oddInsight.income?.lowerQuartile, "200.00");
+  assert.equal(oddInsight.income?.upperQuartile, "400.00");
+  assert.equal(
+    new Prisma.Decimal(oddInsight.income?.variationPercent ?? 0).eq(
+      new Prisma.Decimal(100).dividedBy(3),
+    ),
+    true,
+  );
+});
+
+test("preserves Decimal precision in consistency quartiles and variation", () => {
+  const insight = buildIncomeSpendingConsistencyInsight({
+    currentMonth: "2026-05",
+    firstActivityMonth: "2026-01",
+    period: 6,
+    transactions: ["0.10", "0.20", "0.30", "0.40"].map((amount, index) =>
+      transaction({
+        type: "INCOME",
+        amount,
+        localDate: `2026-${String(index + 1).padStart(2, "0")}-01`,
+        categoryId: "income",
+      }),
+    ),
+  });
+
+  assert.equal(insight.income?.typical, "0.25");
+  assert.equal(insight.income?.lowerQuartile, "0.175");
+  assert.equal(insight.income?.upperQuartile, "0.325");
+  assert.equal(insight.income?.variationPercent, "30");
+});
+
+test("applies the quartile-variation label boundaries", () => {
+  const boundaryInsight = buildIncomeSpendingConsistencyInsight({
+    currentMonth: "2026-06",
+    firstActivityMonth: "2026-01",
+    period: 6,
+    transactions: [
+      ...["80", "90", "100", "110", "120"].map((amount, index) =>
+        transaction({
+          type: "INCOME",
+          amount,
+          localDate: `2026-${String(index + 1).padStart(2, "0")}-01`,
+          categoryId: "income",
+        }),
+      ),
+      ...["50", "75", "100", "125", "150"].map((amount, index) =>
+        transaction({
+          type: "EXPENSE",
+          amount,
+          localDate: `2026-${String(index + 1).padStart(2, "0")}-02`,
+          categoryId: "expense",
+        }),
+      ),
+    ],
+  });
+  const aboveBoundaryInsight = buildIncomeSpendingConsistencyInsight({
+    currentMonth: "2026-06",
+    firstActivityMonth: "2026-01",
+    period: 6,
+    transactions: ["50", "74", "100", "126", "150"].map(
+      (amount, index) =>
+        transaction({
+          type: "INCOME",
+          amount,
+          localDate: `2026-${String(index + 1).padStart(2, "0")}-01`,
+          categoryId: "income",
+        }),
+    ),
+  });
+  const immediatelyAboveBoundaries = buildIncomeSpendingConsistencyInsight({
+    currentMonth: "2026-06",
+    firstActivityMonth: "2026-01",
+    period: 6,
+    transactions: [
+      ...["800", "899", "1000", "1101", "1200"].map((amount, index) =>
+        transaction({
+          type: "INCOME",
+          amount,
+          localDate: `2026-${String(index + 1).padStart(2, "0")}-01`,
+          categoryId: "income",
+        }),
+      ),
+      ...["700", "749", "1000", "1251", "1300"].map((amount, index) =>
+        transaction({
+          type: "EXPENSE",
+          amount,
+          localDate: `2026-${String(index + 1).padStart(2, "0")}-02`,
+          categoryId: "expense",
+        }),
+      ),
+    ],
+  });
+
+  assert.equal(boundaryInsight.income?.variationPercent, "10");
+  assert.equal(boundaryInsight.income?.variationLevel, "LOW");
+  assert.equal(boundaryInsight.expenses?.variationPercent, "25");
+  assert.equal(boundaryInsight.expenses?.variationLevel, "MODERATE");
+  assert.equal(aboveBoundaryInsight.income?.variationPercent, "26");
+  assert.equal(aboveBoundaryInsight.income?.variationLevel, "HIGH");
+  assert.equal(immediatelyAboveBoundaries.income?.variationPercent, "10.1");
+  assert.equal(immediatelyAboveBoundaries.income?.variationLevel, "MODERATE");
+  assert.equal(immediatelyAboveBoundaries.expenses?.variationPercent, "25.1");
+  assert.equal(immediatelyAboveBoundaries.expenses?.variationLevel, "HIGH");
+});
+
+test("distinguishes intermittent activity from no recorded activity", () => {
+  const insight = buildIncomeSpendingConsistencyInsight({
+    currentMonth: "2026-07",
+    firstActivityMonth: "2026-01",
+    period: 6,
+    transactions: [
+      transaction({
+        type: "INCOME",
+        amount: "100.00",
+        localDate: "2026-06-01",
+        categoryId: "income",
+      }),
+    ],
+  });
+
+  assert.equal(insight.income?.variationLevel, "INTERMITTENT");
+  assert.equal(insight.income?.variationPercent, null);
+  assert.equal(insight.expenses?.variationLevel, "NO_ACTIVITY");
+  assert.equal(insight.expenses?.variationPercent, null);
+});
+
+test("uses selected completed-period boundaries and excludes the current month", () => {
+  const transactions = [
+    transaction({
+      type: "INCOME",
+      amount: "900.00",
+      localDate: "2026-03-01",
+      categoryId: "income",
+    }),
+    transaction({
+      type: "INCOME",
+      amount: "200.00",
+      localDate: "2026-04-01",
+      categoryId: "income",
+    }),
+    transaction({
+      type: "INCOME",
+      amount: "999.00",
+      localDate: "2026-07-01",
+      categoryId: "income",
+    }),
+  ];
+  const threeMonths = buildIncomeSpendingConsistencyInsight({
+    currentMonth: "2026-07",
+    firstActivityMonth: "2025-01",
+    period: 3,
+    transactions,
+  });
+  const sixMonths = buildIncomeSpendingConsistencyInsight({
+    currentMonth: "2026-07",
+    firstActivityMonth: "2025-01",
+    period: 6,
+    transactions,
+  });
+  const twelveMonths = buildIncomeSpendingConsistencyInsight({
+    currentMonth: "2026-07",
+    firstActivityMonth: "2025-01",
+    period: 12,
+    transactions,
+  });
+
+  assert.equal(threeMonths.completedMonthCount, 3);
+  assert.equal(threeMonths.income?.maximum, "200.00");
+  assert.equal(sixMonths.completedMonthCount, 6);
+  assert.equal(twelveMonths.completedMonthCount, 12);
+});
+
+test("starts consistency history at first activity and retains later zero months", () => {
+  const insight = buildIncomeSpendingConsistencyInsight({
+    currentMonth: "2026-07",
+    firstActivityMonth: "2026-04",
+    period: 6,
+    transactions: [
+      transaction({
+        type: "INCOME",
+        amount: "999.00",
+        localDate: "2026-03-01",
+        categoryId: "income",
+      }),
+      transaction({
+        type: "INCOME",
+        amount: "100.00",
+        localDate: "2026-04-01",
+        categoryId: "income",
+      }),
+      transaction({
+        type: "EXPENSE",
+        amount: "50.00",
+        localDate: "2026-04-02",
+        categoryId: "expense",
+      }),
+      transaction({
+        type: "INCOME",
+        amount: "300.00",
+        localDate: "2026-06-01",
+        categoryId: "income",
+      }),
+      transaction({
+        type: "EXPENSE",
+        amount: "400.00",
+        localDate: "2026-06-02",
+        categoryId: "expense",
+      }),
+    ],
+  });
+
+  assert.equal(insight.completedMonthCount, 3);
+  assert.equal(insight.income?.typical, "100.00");
+  assert.equal(insight.income?.maximum, "300.00");
+  assert.deepEqual(insight.negativeResults, {
+    totalMonthCount: 1,
+    belowTypicalIncomeOnlyCount: 0,
+    aboveTypicalSpendingOnlyCount: 1,
+    bothCount: 0,
+    neitherCount: 0,
+  });
+});
+
+test("uses quartiles rather than observed extremes for variation", () => {
+  const insight = buildIncomeSpendingConsistencyInsight({
+    currentMonth: "2026-06",
+    firstActivityMonth: "2026-01",
+    period: 6,
+    transactions: ["100", "100", "100", "100", "1000"].map(
+      (amount, index) =>
+        transaction({
+          type: "INCOME",
+          amount,
+          localDate: `2026-${String(index + 1).padStart(2, "0")}-01`,
+          categoryId: "income",
+        }),
+    ),
+  });
+
+  assert.equal(insight.income?.minimum, "100.00");
+  assert.equal(insight.income?.maximum, "1000.00");
+  assert.equal(insight.income?.lowerQuartile, "100.00");
+  assert.equal(insight.income?.upperQuartile, "100.00");
+  assert.equal(insight.income?.variationPercent, "0");
+  assert.equal(insight.income?.variationLevel, "LOW");
+});
+
+test("classifies every negative-result context against typical values", () => {
+  const monthlyValues = [
+    ["50", "120"],
+    ["100", "150"],
+    ["50", "150"],
+    ["100", "120"],
+    ["100", "120"],
+    ["150", "90"],
+    ["150", "90"],
+  ];
+  const insight = buildIncomeSpendingConsistencyInsight({
+    currentMonth: "2026-08",
+    firstActivityMonth: "2026-01",
+    period: 12,
+    transactions: monthlyValues.flatMap(([income, expenses], index) => {
+      const month = `2026-${String(index + 1).padStart(2, "0")}`;
+
+      return [
+        transaction({
+          type: "INCOME",
+          amount: income ?? "0",
+          localDate: `${month}-01`,
+          categoryId: "income",
+        }),
+        transaction({
+          type: "EXPENSE",
+          amount: expenses ?? "0",
+          localDate: `${month}-02`,
+          categoryId: "expense",
+        }),
+      ];
+    }),
+  });
+
+  assert.equal(insight.income?.typical, "100.00");
+  assert.equal(insight.expenses?.typical, "120.00");
+  assert.deepEqual(insight.negativeResults, {
+    totalMonthCount: 5,
+    belowTypicalIncomeOnlyCount: 1,
+    aboveTypicalSpendingOnlyCount: 1,
+    bothCount: 1,
+    neitherCount: 2,
+  });
+});
+
+test("returns no-negative and insufficient consistency states", () => {
+  const noNegativeResults = buildIncomeSpendingConsistencyInsight({
+    currentMonth: "2026-04",
+    firstActivityMonth: "2026-01",
+    period: 3,
+    transactions: ["01", "02", "03"].flatMap((month) => [
+      transaction({
+        type: "INCOME",
+        amount: "200.00",
+        localDate: `2026-${month}-01`,
+        categoryId: "income",
+      }),
+      transaction({
+        type: "EXPENSE",
+        amount: "100.00",
+        localDate: `2026-${month}-02`,
+        categoryId: "expense",
+      }),
+    ]),
+  });
+  const noCompletedHistory = buildIncomeSpendingConsistencyInsight({
+    currentMonth: "2026-04",
+    firstActivityMonth: null,
+    period: 12,
+    transactions: [],
+  });
+  const oneCompletedMonth = buildIncomeSpendingConsistencyInsight({
+    currentMonth: "2026-04",
+    firstActivityMonth: "2026-03",
+    period: 12,
+    transactions: [],
+  });
+  const twoCompletedMonths = buildIncomeSpendingConsistencyInsight({
+    currentMonth: "2026-04",
+    firstActivityMonth: "2026-02",
+    period: 12,
+    transactions: [
+      transaction({
+        type: "EXPENSE",
+        amount: "999.00",
+        localDate: "2026-04-01",
+        categoryId: "expense",
+      }),
+    ],
+  });
+
+  assert.equal(noNegativeResults.negativeResults?.totalMonthCount, 0);
+  assert.equal(noCompletedHistory.completedMonthCount, 0);
+  assert.equal(noCompletedHistory.hasSufficientHistory, false);
+  assert.equal(oneCompletedMonth.completedMonthCount, 1);
+  assert.equal(oneCompletedMonth.income, null);
+  assert.equal(twoCompletedMonths.completedMonthCount, 2);
+  assert.equal(twoCompletedMonths.expenses, null);
 });
