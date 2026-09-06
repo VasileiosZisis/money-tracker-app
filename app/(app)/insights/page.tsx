@@ -18,6 +18,7 @@ import { IncomeSpendingConsistency } from "@/components/insights/income-spending
 import { SpendingChangeDrivers } from "@/components/insights/spending-change-drivers";
 import { SpendingComposition } from "@/components/insights/spending-composition";
 import { UnusualMonths } from "@/components/insights/unusual-months";
+import { YearOverYearPatterns } from "@/components/insights/year-over-year-patterns";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -35,6 +36,7 @@ import { getLocalDateInTimeZone } from "@/lib/dates/time-zone";
 import { shiftMonthKey } from "@/lib/balance/months";
 import { getAuthenticatedUserPreferences } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import { buildLongTermPatternsInsight } from "@/lib/insights/long-term-patterns";
 import {
   buildIncomeSpendingConsistencyInsight,
   buildMonthlyResultInsight,
@@ -273,7 +275,7 @@ export default async function InsightsPage({
   const requestedChangeMonth = firstSearchParamValue(
     resolvedSearchParams.changeMonth,
   );
-  const rangeStartMonth = shiftMonthKey(currentMonth, -12);
+  const rangeStartMonth = shiftMonthKey(currentMonth, -24);
   const rangeStart = getMonthRange(rangeStartMonth).start;
 
   const [categories, firstActivityTransaction, transactions] = await Promise.all([
@@ -321,6 +323,15 @@ export default async function InsightsPage({
     }),
   ]);
 
+  const historicalCategorySources = categories.map((category) => ({
+    id: category.id,
+    name: category.name,
+    isArchived: category.isArchived,
+    createdMonth: getLocalDateInTimeZone(
+      accountTimeZone,
+      category.createdAt,
+    ).slice(0, 7),
+  }));
   const selectedCategory = categories.find(
     (category) => category.id === requestedCategoryId,
   );
@@ -338,18 +349,16 @@ export default async function InsightsPage({
   });
   const unusualMonths = buildUnusualMonthsInsight({
     transactions,
-    categories: categories.map((category) => ({
-      id: category.id,
-      name: category.name,
-      isArchived: category.isArchived,
-      createdMonth: getLocalDateInTimeZone(
-        accountTimeZone,
-        category.createdAt,
-      ).slice(0, 7),
-    })),
+    categories: historicalCategorySources,
     firstActivityMonth: firstActivityTransaction?.localDate.slice(0, 7) ?? null,
     currentMonth,
     period,
+  });
+  const longTermPatterns = buildLongTermPatternsInsight({
+    transactions,
+    categories: historicalCategorySources,
+    firstActivityMonth: firstActivityTransaction?.localDate.slice(0, 7) ?? null,
+    currentMonth,
   });
   const spendingComposition = buildSpendingCompositionInsight({
     transactions,
@@ -741,6 +750,11 @@ export default async function InsightsPage({
       />
 
       <UnusualMonths insight={unusualMonths} currency={user.currency} />
+
+      <YearOverYearPatterns
+        insight={longTermPatterns}
+        currency={user.currency}
+      />
 
       {categories.length === 0 ? (
         <Card>

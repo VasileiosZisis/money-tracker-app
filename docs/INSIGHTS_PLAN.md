@@ -2,11 +2,11 @@
 
 ## Status
 
-Insights V1 and roadmap items 3, 4, 5, 6, and 7 are implemented. The page provides
+Insights V1 and roadmap items 3 through 8 are implemented. The page provides
 account-wide monthly result and break-even analysis, completed-period spending
 composition, equal-window change drivers, income and spending consistency,
-unusual-month investigation, and optional category-level monthly spending
-trends and comparisons.
+unusual-month investigation, year-over-year patterns, and optional
+category-level monthly spending trends and comparisons.
 
 This is the active implementation plan for extending `/insights`. Items listed
 after the implemented foundation are selected product work, but each milestone
@@ -60,7 +60,7 @@ Insights                  Spending Plan   Dashboard   Insights
 5. Drivers of change - implemented
 6. Income and spending consistency - implemented
 7. Unusual months with transaction drill-down - implemented
-8. Longer-term patterns when sufficient history exists
+8. Longer-term patterns when sufficient history exists - implemented
 
 These are capabilities, not necessarily eight permanent page sections. Related
 capabilities should share controls and visualizations where that produces a
@@ -185,9 +185,9 @@ Implemented behavior:
   ignore `changeMonth` and remain pinned to the latest completed month
 - 6 months becomes available only after twelve completed tracked months; the
   current incomplete month is always excluded
-- Drivers is independent of the shared 3, 6, or 12-month Insights period; one
-  user-scoped query covers the latest twelve completed months plus the current
-  month for every Insights calculation
+- Drivers is independent of the shared 3, 6, or 12-month Insights period; the
+  shared user-scoped query covers the latest twenty-four completed months plus
+  the current month, while Drivers applies its own twelve-month boundary
 - comparisons begin only when both periods are on or after the user's first
   recorded activity; later zero-expense months remain part of the averages
 - period totals are divided by the selected window length with Decimal
@@ -279,7 +279,7 @@ Implemented behavior:
   focused empty states; no AI scoring, prescriptions, persistence, extra query,
   route handler, or client-side fetch is added
 
-### Roadmap item 8: Longer-term patterns
+### Roadmap item 8: Longer-term patterns - implemented
 
 Purpose: reveal durable changes that are difficult to see in a short monthly
 window.
@@ -295,8 +295,32 @@ Seasonal or year-over-year claims require at least two comparable annual periods
 Shorter histories should use the existing Drivers equal-window comparison and
 3, 6, and 12-month views without extrapolating a long-term pattern.
 
-The precise first set of longer-term comparisons should be selected after the
-earlier milestones show which additional context is most useful.
+Implemented behavior:
+
+- the first long-term comparison uses the latest twelve completed months versus
+  the immediately preceding twelve completed months; it is independent of the
+  shared period, optional category, and Drivers controls
+- both complete trailing years must begin on or after first account activity;
+  later zero-activity months remain included and the current month is excluded
+- annual income, expenses, and result use actual transactions and Decimal
+  totals; income and spending include signed amount and percentage changes,
+  while result uses a signed amount only
+- percentage change is unavailable when the previous total is zero
+- every category with a non-zero tracked annual spending change is ranked by
+  absolute change with alphabetical tie-breaking; archived and one-sided
+  categories remain visible
+- category totals begin at the account-local creation month; categories without
+  two full tracked years are labeled `Partial history` and omit percentage
+  change without hiding their recorded contribution
+- the presentation uses compact annual summary panels followed by neutral
+  zero-centered category bars; insufficient account history and unchanged
+  category totals have distinct states
+- the existing authenticated query expands to twenty-four completed months plus
+  current, with no schema, persistence, route handler, Server Action, or client
+  fetch changes
+
+Sustained successive-window and seasonal pattern detection remain future
+enhancements rather than part of this first longer-term implementation.
 
 ## Shared data and calculation rules
 
@@ -348,12 +372,8 @@ Those boundaries do not prevent Insights from describing a break-even gap or
 linking to a future Spending Plan. They prevent the analysis workspace from
 becoming the planning or execution workspace itself.
 
-## Implementation order
+## Implementation status
 
-Implement and review one milestone at a time:
-
-1. Longer-term patterns
-
-Each milestone should include deterministic calculation tests, server-side
-user scoping, limited-data and empty states, responsive presentation, and any
-required product-document updates before the next milestone begins.
+The selected Insights roadmap is implemented through item 8. Future additions
+should be selected as new milestones and retain deterministic calculation tests,
+server-side user scoping, limited-data states, and responsive presentation.

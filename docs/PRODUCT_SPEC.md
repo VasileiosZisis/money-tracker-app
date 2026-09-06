@@ -229,6 +229,30 @@ transaction type, and category filters on Transactions. When the selected
 history is too short or no values cross the rule, the card shows a focused
 neutral state rather than making an unusual-month claim.
 
+Year-over-year patterns compares the latest 12 completed months with the
+immediately preceding 12 completed months. It remains independent of the shared
+Insights period, category selection, and Drivers controls, and requires 24
+completed tracked months. It shows:
+
+- previous and recent annual income, spending, and result totals
+- signed annual changes, plus percentage changes for income and spending when a
+  non-zero previous total exists
+- every expense category with a non-zero tracked annual change, ranked by
+  absolute change with alphabetical tie-breaking
+
+Category rows include archived categories and categories active on only one
+side. A category created after the previous trailing year began remains visible
+with `Partial history`; transactions before its account-local creation month do
+not enter its category totals, and its percentage change is unavailable. A
+fully comparable category with zero previous spending also omits the percentage
+rather than displaying an infinite increase.
+
+The comparison uses actual transactions and Decimal arithmetic, includes valid
+zero-activity months after account tracking began, and excludes the current
+incomplete month. With less than 24 completed tracked months it shows an
+insufficient-history state. When annual summary data is available but category
+totals are unchanged, the summary remains visible with a focused category state.
+
 Users can optionally select an active or archived expense category. Category
 analysis includes:
 

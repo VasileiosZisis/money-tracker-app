@@ -623,9 +623,10 @@ Insights-page interaction rules:
   missing or invalid values to the latest eligible pair and expose at most the
   latest eleven pairs from the bounded transaction result
 - keep Drivers independent of the shared Insights period and query one bounded
-  range containing the latest 12 completed months plus the current month; each
+  range containing the latest 24 completed months plus the current month; each
   Insights calculation applies its own completed-period boundaries to that
-  shared transaction result
+  shared transaction result, while Drivers continues using only its latest
+  twelve completed months
 - query actual transactions only, always scoped to the authenticated user, and
   aggregate monetary values and period averages with Prisma `Decimal`
 - preserve the Decimal precision of average values and changes through the
@@ -649,6 +650,16 @@ Insights-page interaction rules:
 - keep unusual-month calculation in the existing server-rendered Insights data
   flow and link each finding to the existing Transactions `month`, `type`, and
   `categoryId` filters without adding a query, route handler, or client fetch
+- compare long-term patterns as two adjacent trailing 12-completed-month windows
+  ending with the latest completed account-local month; require all 24 months
+  to be on or after first account activity and keep the current month excluded
+- aggregate annual income, expenses, results, signed changes, and category
+  spending with Decimal arithmetic; percentage changes are unavailable for
+  result, zero previous totals, and categories with partial history
+- include every category with a non-zero tracked annual change and begin its
+  totals at the category's account-local creation month; retain newer categories
+  with a neutral partial-history label rather than extending their baseline
+  backward
 - keep the Recharts component as the only required client boundary and pass it
   plain serialized display data
 - link monthly rows to the existing Transactions filter contract using `month`,

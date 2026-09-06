@@ -290,6 +290,12 @@ Rules:
   amounts visible. Each finding uses a restrained outline action into the
   relevant filtered Transactions view. Use focused insufficient-history and
   no-unusual-month empty states instead of placeholder rows.
+- Follow Unusual months with a full-width Year-over-year patterns card. Show the
+  two trailing-year ranges, then three responsive panels for annual Income,
+  Spending, and Result totals and changes. Present every changed category with
+  a neutral zero-centered change bar, previous-to-recent annual totals, and
+  outline Archived or Partial history badges where applicable. Percentage
+  unavailability is neutral context, not a warning state.
 - When an expense category is selected, follow the overview with the existing
   full-width category-spending chart and its Typical month, This month, and
   Compared with typical metrics. Historical category differences use neutral

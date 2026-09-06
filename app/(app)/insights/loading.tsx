@@ -94,6 +94,22 @@ export default function InsightsLoading() {
 
       <Card>
         <CardHeader className="gap-2">
+          <Skeleton className="h-5 w-48" />
+          <Skeleton className="h-4 w-80 max-w-full" />
+        </CardHeader>
+        <CardContent className="grid gap-5 pt-4">
+          <div className="grid gap-4 lg:grid-cols-3">
+            <Skeleton className="h-36 w-full" />
+            <Skeleton className="h-36 w-full" />
+            <Skeleton className="h-36 w-full" />
+          </div>
+          <Skeleton className="h-14 w-full" />
+          <Skeleton className="h-14 w-full" />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="gap-2">
           <Skeleton className="h-5 w-36" />
         </CardHeader>
         <CardContent className="pt-4">
