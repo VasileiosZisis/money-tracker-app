@@ -73,14 +73,14 @@ function ConsistencyMetricPanel({
   return (
     <div className="grid gap-4 rounded-xl border border-border/70 bg-background/55 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h4 className="text-sm font-semibold text-foreground">{title}</h4>
-        <Badge variant="outline">
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        <Badge variant="outline" className="text-sm">
           {variationLabel(metric.variationLevel, subject)}
         </Badge>
       </div>
 
       <div>
-        <p className="text-xs font-medium text-muted-foreground">
+        <p className="text-sm font-medium text-muted-foreground">
           Typical monthly {subject}
         </p>
         <p className="mt-1 font-mono text-2xl font-semibold tracking-tight text-foreground">
@@ -90,14 +90,14 @@ function ConsistencyMetricPanel({
 
       <dl className="grid gap-3 text-sm sm:grid-cols-2">
         <div>
-          <dt className="text-xs text-muted-foreground">Observed range</dt>
+          <dt className="text-sm text-muted-foreground">Observed range</dt>
           <dd className="mt-1 font-mono font-medium text-foreground">
             {formatter.format(Number(metric.minimum))} –{" "}
             {formatter.format(Number(metric.maximum))}
           </dd>
         </div>
         <div>
-          <dt className="text-xs text-muted-foreground">Middle 50%</dt>
+          <dt className="text-sm text-muted-foreground">Middle 50%</dt>
           <dd className="mt-1 font-mono font-medium text-foreground">
             {formatter.format(Number(metric.lowerQuartile))} –{" "}
             {formatter.format(Number(metric.upperQuartile))}
@@ -105,7 +105,7 @@ function ConsistencyMetricPanel({
         </div>
       </dl>
 
-      <p className="text-xs text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         {variationDescription(metric)}
       </p>
     </div>
@@ -115,9 +115,11 @@ function ConsistencyMetricPanel({
 export function IncomeSpendingConsistency({
   insight,
   currency,
+  historyPeriodLabel,
 }: {
   insight: IncomeSpendingConsistencyInsight;
   currency: string;
+  historyPeriodLabel: string;
 }) {
   const formatter = new Intl.NumberFormat(undefined, {
     style: "currency",
@@ -127,9 +129,12 @@ export function IncomeSpendingConsistency({
   return (
     <Card>
       <CardHeader className="gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <CardTitle>Income and spending consistency</CardTitle>
+        <CardTitle className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span className="text-muted-foreground">History Period:</span>
+          <span>{historyPeriodLabel}</span>
+        </CardTitle>
         {insight.completedMonthCount > 0 ? (
-          <span className="text-xs text-muted-foreground">
+          <span className="text-sm text-muted-foreground">
             {insight.completedMonthCount} completed{" "}
             {insight.completedMonthCount === 1 ? "month" : "months"}
           </span>
@@ -164,10 +169,10 @@ export function IncomeSpendingConsistency({
 
             <div className="grid gap-3 rounded-xl border border-border/70 bg-background/55 p-4">
               <div>
-                <h4 className="text-sm font-semibold text-foreground">
+                <h3 className="text-sm font-semibold text-foreground">
                   Negative-result context
-                </h4>
-                <p className="mt-1 text-xs text-muted-foreground">
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground">
                   {insight.negativeResults.totalMonthCount === 0
                     ? "No negative-result months in this period"
                     : `${insight.negativeResults.totalMonthCount} negative-result ${
@@ -181,7 +186,7 @@ export function IncomeSpendingConsistency({
               {insight.negativeResults.totalMonthCount > 0 ? (
                 <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   <div>
-                    <dt className="text-xs text-muted-foreground">
+                    <dt className="text-sm text-muted-foreground">
                       Below-typical income only
                     </dt>
                     <dd className="mt-1 font-mono text-xl font-semibold text-foreground">
@@ -189,7 +194,7 @@ export function IncomeSpendingConsistency({
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-muted-foreground">
+                    <dt className="text-sm text-muted-foreground">
                       Above-typical spending only
                     </dt>
                     <dd className="mt-1 font-mono text-xl font-semibold text-foreground">
@@ -197,7 +202,7 @@ export function IncomeSpendingConsistency({
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-muted-foreground">
+                    <dt className="text-sm text-muted-foreground">
                       Both patterns
                     </dt>
                     <dd className="mt-1 font-mono text-xl font-semibold text-foreground">
@@ -205,7 +210,7 @@ export function IncomeSpendingConsistency({
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-muted-foreground">
+                    <dt className="text-sm text-muted-foreground">
                       Neither pattern
                     </dt>
                     <dd className="mt-1 font-mono text-xl font-semibold text-foreground">

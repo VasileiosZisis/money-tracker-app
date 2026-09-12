@@ -56,7 +56,7 @@ export function SpendingChangeDrivers({
 
   return (
     <div className="grid gap-3">
-      <div className="ml-7 grid grid-cols-2 text-xs text-muted-foreground">
+      <div className="ml-7 grid grid-cols-2 text-sm text-muted-foreground">
         <span className="pr-2 text-right">Decrease</span>
         <span className="pl-2">Increase</span>
       </div>
@@ -70,14 +70,14 @@ export function SpendingChangeDrivers({
             <li key={category.categoryId} className="grid gap-2">
               <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-4">
                 <div className="flex min-w-0 items-center gap-2">
-                  <span className="w-5 shrink-0 text-right font-mono text-xs text-muted-foreground">
+                  <span className="w-5 shrink-0 text-right font-mono text-sm text-muted-foreground">
                     {index + 1}
                   </span>
                   <span className="truncate text-sm font-medium text-foreground">
                     {category.categoryName}
                   </span>
                   {category.isArchived ? (
-                    <Badge variant="outline" className="shrink-0">
+                    <Badge variant="outline" className="shrink-0 text-sm">
                       Archived
                     </Badge>
                   ) : null}
@@ -88,13 +88,13 @@ export function SpendingChangeDrivers({
                     <p className="font-mono text-sm font-semibold text-foreground">
                       {formatSignedMoney(formatter, category.change)}
                     </p>
-                    <p className="text-xs text-muted-foreground">Change</p>
+                    <p className="text-sm text-muted-foreground">Change</p>
                   </div>
                   <div>
                     <p className="font-mono text-sm font-semibold text-foreground">
                       {formatSignedPercent(category.contributionPercent)}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
                       Contribution
                     </p>
                   </div>
@@ -126,7 +126,7 @@ export function SpendingChangeDrivers({
                 </div>
               </div>
 
-              <p className="ml-7 text-xs text-muted-foreground">
+              <p className="ml-7 text-sm text-muted-foreground">
                 Monthly average: {formatter.format(
                   Number(category.previousMonthlyAverage),
                 )} to {formatter.format(Number(category.recentMonthlyAverage))}

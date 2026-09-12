@@ -6,7 +6,6 @@ import {
   Card,
   CardContent,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatMonthLabel } from "@/lib/dates/month";
@@ -44,16 +43,16 @@ function AnnualMetricPanel({
 }) {
   return (
     <div className="grid gap-3 rounded-xl border border-border/70 bg-background/55 p-4">
-      <h4 className="text-sm font-semibold text-foreground">{title}</h4>
+      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <p className="text-xs text-muted-foreground">Previous</p>
+          <p className="text-sm text-muted-foreground">Previous</p>
           <p className="mt-1 font-mono text-base font-semibold text-foreground">
             {formatter.format(Number(metric.previousTotal))}
           </p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">Recent</p>
+          <p className="text-sm text-muted-foreground">Recent</p>
           <p className="mt-1 font-mono text-base font-semibold text-foreground">
             {formatter.format(Number(metric.recentTotal))}
           </p>
@@ -63,14 +62,14 @@ function AnnualMetricPanel({
         <p className="font-mono text-sm font-semibold text-foreground">
           {formatSignedMoney(formatter, metric.change)}
           {showPercentage ? (
-            <span className="ml-2 text-xs font-medium text-muted-foreground">
+            <span className="ml-2 text-sm font-medium text-muted-foreground">
               {metric.changePercent === null
                 ? "Percentage unavailable"
                 : formatLongTermChangePercent(metric.changePercent)}
             </span>
           ) : null}
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">Annual change</p>
+        <p className="mt-1 text-sm text-muted-foreground">Annual change</p>
       </div>
     </div>
   );
@@ -95,10 +94,9 @@ export function YearOverYearPatterns({
 
   return (
     <Card>
-      <CardHeader className="gap-2">
-        <CardTitle>Year-over-year patterns</CardTitle>
-        {insight.hasSufficientHistory ? (
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+      {insight.hasSufficientHistory ? (
+        <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-end">
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
             <span>
               Previous: {formatRange(
                 insight.previousStartMonth,
@@ -112,8 +110,8 @@ export function YearOverYearPatterns({
               )}
             </span>
           </div>
-        ) : null}
-      </CardHeader>
+        </CardHeader>
+      ) : null}
       <CardContent className="pt-4">
         {!insight.hasSufficientHistory ||
         !insight.income ||
@@ -148,9 +146,9 @@ export function YearOverYearPatterns({
             </div>
 
             <div className="grid gap-3">
-              <h4 className="text-sm font-semibold text-foreground">
+              <h3 className="text-sm font-semibold text-foreground">
                 Category changes
-              </h4>
+              </h3>
               {insight.categories.length === 0 ? (
                 <div className="rounded-xl border border-border/70 bg-background/55 p-4 text-sm text-muted-foreground">
                   Category spending was unchanged between the trailing years
@@ -168,17 +166,21 @@ export function YearOverYearPatterns({
                       <li key={category.categoryId} className="grid gap-2">
                         <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-4">
                           <div className="flex min-w-0 flex-wrap items-center gap-2">
-                            <span className="w-5 shrink-0 text-right font-mono text-xs text-muted-foreground">
+                            <span className="w-5 shrink-0 text-right font-mono text-sm text-muted-foreground">
                               {index + 1}
                             </span>
                             <span className="truncate text-sm font-medium text-foreground">
                               {category.categoryName}
                             </span>
                             {category.isArchived ? (
-                              <Badge variant="outline">Archived</Badge>
+                              <Badge variant="outline" className="text-sm">
+                                Archived
+                              </Badge>
                             ) : null}
                             {category.hasPartialHistory ? (
-                              <Badge variant="outline">Partial history</Badge>
+                              <Badge variant="outline" className="text-sm">
+                                Partial history
+                              </Badge>
                             ) : null}
                           </div>
                           <div className="ml-7 grid grid-cols-2 gap-5 sm:ml-0 sm:text-right">
@@ -186,7 +188,7 @@ export function YearOverYearPatterns({
                               <p className="font-mono text-sm font-semibold text-foreground">
                                 {formatSignedMoney(formatter, category.change)}
                               </p>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-sm text-muted-foreground">
                                 Change
                               </p>
                             </div>
@@ -196,7 +198,7 @@ export function YearOverYearPatterns({
                                   category.changePercent,
                                 )}
                               </p>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-sm text-muted-foreground">
                                 Percentage
                               </p>
                             </div>
@@ -228,7 +230,7 @@ export function YearOverYearPatterns({
                           </div>
                         </div>
 
-                        <p className="ml-7 text-xs text-muted-foreground">
+                        <p className="ml-7 text-sm text-muted-foreground">
                           Annual spending: {formatter.format(
                             Number(category.previousTotal),
                           )} to {formatter.format(Number(category.recentTotal))}

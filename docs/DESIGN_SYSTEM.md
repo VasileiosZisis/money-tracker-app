@@ -253,53 +253,63 @@ Rules:
 
 - Insights is a historical comparison workspace, not a second dashboard and
   not a category-management surface.
-- After the page heading, lead with one compact, full-width line chart comparing
-  monthly income and expenses. Keep the chart near 200px tall, show the result
-  in its tooltip, and
-  use an open, muted point plus `In progress` treatment for the current
-  account-local month.
+- Do not repeat a page title below the contextual app bar. Organize the workspace
+  as peer Dashboard-style sections with accessible external headings in this
+  order: Monthly result, Spending composition, Income and spending consistency,
+  Unusual months, Category Spending Trends, Drivers of change, and Year-over-year
+  patterns. Retain a visually hidden `Insights` level-one heading for document
+  structure, and do not repeat section titles inside their cards.
+- Lead Monthly result with the shared History Period control, followed by one
+  compact, full-width line chart comparing monthly income and expenses. Keep the
+  chart near 200px tall, show the result in its tooltip, and use an open, muted
+  point plus `In progress` treatment for the current account-local month.
 - Integrate Typical monthly result, Break-even gap, and Month outcomes as a
   compact footer inside the same card instead of separate metric cards.
-- Follow the result card with one compact control row for expense category and
-  completed-month comparison period. Category selection is optional so the
-  overall result analysis remains visible in the default state.
-- Follow the controls with a full-width Spending composition card that remains
+- The 3, 6, or 12-month History Period applies to Monthly result, Spending
+  composition, Income and spending consistency, Unusual months, and Category
+  Spending Trends. Show `History Period:` at the far left of each primary card
+  header, using the shared card-title styling, and keep the card's legend,
+  exact completed-month range, legend, total, or completed-month count on the
+  same row when present. Render the range immediately beside `History Period:`
+  with the same card-title styling, using muted foreground for the label and
+  standard foreground for the range. Drivers and
+  Year-over-year retain their independent controls and ranges without this
+  shared-period label. Do not repeat the completed-month range outside the
+  cards. The range describes the completed baseline even where current-month
+  context remains visible.
+- Follow Monthly result with a full-width Spending composition card that remains
   visible without a category selection. Show the completed period's total
   expenses and every category with activity as a ranked horizontal-bar list.
   Keep category totals and percentage shares visible, mark archived categories,
   and use one neutral accent treatment rather than semantic success or warning
   colors.
-- Follow composition with a full-width Drivers of change card. Keep its
+- Follow composition with Income and spending consistency, then Unusual months.
+  Consistency uses two responsive nested panels for Income and Spending, each
+  showing a neutral variation badge, typical monthly amount, observed range,
+  and middle-50% range, followed by compact negative-result context counts. Do
+  not use success, warning, or destructive treatments for variation levels.
+  Unusual-month findings remain grouped by completed month with neutral labels,
+  actual and typical amounts, and restrained Transactions links.
+- Place the Expense category control directly below the Category Spending Trends
+  heading. It affects only the category trend, Typical month, This month,
+  Compared with typical, and Monthly history. Category selection remains
+  optional and does not filter the preceding account-wide sections.
+- Follow Category Spending Trends with Drivers of change. Keep its
   1, 3, or 6-month comparison-length selector within the card. When
   month-to-month is selected, show a second compact selector containing
   consecutive pairs such as `August 2026 vs July 2026`; hide it for longer
-  windows. Present the previous and recent date ranges, their average monthly
+  windows. Keep the selector labels visually hidden while retaining accessible
+  names. Present the previous and recent date ranges, their average monthly
   expenses, and the signed average monthly change as a compact summary. Use a
   zero-centered horizontal visualization for category changes between the two
   monthly averages. Distinguish increases from decreases with restrained
   chart-series colors rather than semantic success or destructive treatments.
-- Follow Drivers with a full-width Income and spending consistency card that
-  remains visible without a category selection. Use two responsive nested
-  panels for Income and Spending, each showing a neutral variation badge,
-  typical monthly amount, observed range, and middle-50% range. Follow them
-  with compact negative-result context counts. Do not use success, warning, or
-  destructive treatments for Low, Moderate, High, or Intermittent variation.
-- Follow consistency with a full-width Unusual months card that remains visible
-  without a category selection. Group findings by completed month, show neutral
-  Higher than usual or Lower than usual badges, and keep actual and typical
-  amounts visible. Each finding uses a restrained outline action into the
-  relevant filtered Transactions view. Use focused insufficient-history and
-  no-unusual-month empty states instead of placeholder rows.
-- Follow Unusual months with a full-width Year-over-year patterns card. Show the
+- End with a full-width Year-over-year patterns card. Show the
   two trailing-year ranges, then three responsive panels for annual Income,
   Spending, and Result totals and changes. Present every changed category with
   a neutral zero-centered change bar, previous-to-recent annual totals, and
   outline Archived or Partial history badges where applicable. Percentage
   unavailability is neutral context, not a warning state.
-- When an expense category is selected, follow the overview with the existing
-  full-width category-spending chart and its Typical month, This month, and
-  Compared with typical metrics. Historical category differences use neutral
-  descriptive copy, not success/destructive judgment.
 - Present monthly context as a compact desktop table that becomes stacked cards
   on mobile. Money values remain mono and each month provides a restrained link
   to its filtered Transactions view.

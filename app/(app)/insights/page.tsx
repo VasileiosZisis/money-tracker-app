@@ -19,7 +19,6 @@ import { SpendingChangeDrivers } from "@/components/insights/spending-change-dri
 import { SpendingComposition } from "@/components/insights/spending-composition";
 import { UnusualMonths } from "@/components/insights/unusual-months";
 import { YearOverYearPatterns } from "@/components/insights/year-over-year-patterns";
-import { PageHeader } from "@/components/app-shell/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -47,6 +46,11 @@ import {
   type SpendingChangeWindow,
 } from "@/lib/insights/spending-history";
 import { buildUnusualMonthsInsight } from "@/lib/insights/unusual-months";
+import {
+  getCompletedInsightsPeriodRange,
+  getPreservedInsightsParams,
+  type InsightsControlScope,
+} from "@/lib/insights/view-state";
 import {
   buildPathWithSearchParams,
   firstSearchParamValue,
@@ -160,7 +164,97 @@ type ExpenseCategoryOption = {
   isArchived: boolean;
 };
 
-function InsightsControls({
+function InsightsSectionHeading({
+  id,
+  title,
+}: {
+  id: string;
+  title: string;
+}) {
+  return (
+    <h2
+      id={id}
+      className="text-3xl font-semibold tracking-tight text-foreground md:text-4xl"
+    >
+      {title}
+    </h2>
+  );
+}
+
+function PreservedInsightsFields({
+  changing,
+  period,
+  selectedCategoryId,
+  selectedChangeWindow,
+  selectedChangeMonth,
+}: {
+  changing: InsightsControlScope;
+  period: InsightsPeriod;
+  selectedCategoryId?: string;
+  selectedChangeWindow?: SpendingChangeWindow;
+  selectedChangeMonth?: string;
+}) {
+  const params = getPreservedInsightsParams(
+    {
+      period,
+      categoryId: selectedCategoryId,
+      changeWindow: selectedChangeWindow,
+      changeMonth: selectedChangeMonth,
+    },
+    changing,
+  );
+
+  return (
+    <>
+      {Object.entries(params).map(([name, value]) => (
+        <input key={name} type="hidden" name={name} value={value} />
+      ))}
+    </>
+  );
+}
+
+function HistoryPeriodControl({
+  period,
+  selectedCategoryId,
+  selectedChangeWindow,
+  selectedChangeMonth,
+}: {
+  period: InsightsPeriod;
+  selectedCategoryId?: string;
+  selectedChangeWindow?: SpendingChangeWindow;
+  selectedChangeMonth?: string;
+}) {
+  return (
+    <form
+      action="/insights"
+      method="get"
+      className="flex flex-wrap items-end gap-3"
+    >
+      <PreservedInsightsFields
+        changing="history"
+        period={period}
+        selectedCategoryId={selectedCategoryId}
+        selectedChangeWindow={selectedChangeWindow}
+        selectedChangeMonth={selectedChangeMonth}
+      />
+      <label className="grid text-sm font-medium text-foreground">
+        <span className="sr-only">History Period:</span>
+        <Select
+          name="period"
+          defaultValue={String(period)}
+          wrapperClassName="min-w-52"
+        >
+          <option value="3">3 completed months</option>
+          <option value="6">6 completed months</option>
+          <option value="12">12 completed months</option>
+        </Select>
+      </label>
+      <Button type="submit">Apply</Button>
+    </form>
+  );
+}
+
+function ExpenseCategoryControl({
   categories,
   period,
   selectedCategoryId,
@@ -177,72 +271,46 @@ function InsightsControls({
   const archivedCategories = categories.filter((category) => category.isArchived);
 
   return (
-    <Card>
-      <CardContent className="pt-4">
-        <form
-          action="/insights"
-          method="get"
-          className="grid gap-3 sm:grid-cols-[minmax(220px,1fr)_minmax(190px,auto)_auto] sm:items-end"
-        >
-          {selectedChangeWindow ? (
-            <input
-              type="hidden"
-              name="changeWindow"
-              value={selectedChangeWindow}
-            />
+    <form
+      action="/insights"
+      method="get"
+      className="flex flex-wrap items-end gap-3"
+    >
+      <PreservedInsightsFields
+        changing="category"
+        period={period}
+        selectedCategoryId={selectedCategoryId}
+        selectedChangeWindow={selectedChangeWindow}
+        selectedChangeMonth={selectedChangeMonth}
+      />
+      <label className="grid min-w-0 flex-1 gap-1.5 text-sm font-medium text-foreground sm:max-w-md">
+        Expense category
+        <Select name="categoryId" defaultValue={selectedCategoryId ?? ""}>
+          <option value="" disabled>
+            Select category
+          </option>
+          {activeCategories.length > 0 ? (
+            <optgroup label="Active categories">
+              {activeCategories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </optgroup>
           ) : null}
-          {selectedChangeWindow === 1 && selectedChangeMonth ? (
-            <input
-              type="hidden"
-              name="changeMonth"
-              value={selectedChangeMonth}
-            />
+          {archivedCategories.length > 0 ? (
+            <optgroup label="Archived categories">
+              {archivedCategories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name} (Archived)
+                </option>
+              ))}
+            </optgroup>
           ) : null}
-          <label className="grid gap-1.5 text-sm font-medium text-foreground">
-            Expense category
-            <Select
-              name="categoryId"
-              defaultValue={selectedCategoryId ?? ""}
-            >
-              <option value="" disabled>
-                Select category
-              </option>
-              {activeCategories.length > 0 ? (
-                <optgroup label="Active categories">
-                  {activeCategories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </optgroup>
-              ) : null}
-              {archivedCategories.length > 0 ? (
-                <optgroup label="Archived categories">
-                  {archivedCategories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name} (Archived)
-                    </option>
-                  ))}
-                </optgroup>
-              ) : null}
-            </Select>
-          </label>
-
-          <label className="grid gap-1.5 text-sm font-medium text-foreground">
-            Comparison period
-            <Select name="period" defaultValue={String(period)}>
-              <option value="3">3 completed months</option>
-              <option value="6">6 completed months</option>
-              <option value="12">12 completed months</option>
-            </Select>
-          </label>
-
-          <Button type="submit" size="lg">
-            Apply
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+        </Select>
+      </label>
+      <Button type="submit">Apply</Button>
+    </form>
   );
 }
 
@@ -414,15 +482,40 @@ export default async function InsightsPage({
       isCurrentMonth: month.isCurrentMonth,
     })) ?? [];
   const historyRows = insight ? [...insight.months].reverse() : [];
+  const completedPeriodRange = getCompletedInsightsPeriodRange(
+    currentMonth,
+    period,
+  );
+  const completedPeriodLabel = formatCompletedMonthRange(
+    completedPeriodRange.startMonth,
+    completedPeriodRange.endMonth,
+  );
 
   return (
-    <section className="flex flex-col gap-5">
-      <PageHeader title="Insights" />
+    <div className="flex flex-col gap-5">
+      <h1 className="sr-only">Insights</h1>
+      <section
+        aria-labelledby="monthly-result-heading"
+        className="flex flex-col gap-4"
+      >
+        <InsightsSectionHeading
+          id="monthly-result-heading"
+          title="Monthly result"
+        />
+        <HistoryPeriodControl
+          period={period}
+          selectedCategoryId={selectedCategory?.id}
+          selectedChangeWindow={spendingChange.window ?? undefined}
+          selectedChangeMonth={spendingChange.selectedTargetMonth ?? undefined}
+        />
 
-      <Card>
+        <Card>
         <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle>Monthly result</CardTitle>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+          <CardTitle className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="text-muted-foreground">History Period:</span>
+            <span>{completedPeriodLabel}</span>
+          </CardTitle>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
             <span className="flex items-center gap-1.5">
               <span className="size-2.5 rounded-full bg-success" />
               Income
@@ -464,7 +557,9 @@ export default async function InsightsPage({
                 Typical monthly result
               </p>
               {monthlyResultInsight.hasLimitedHistory ? (
-                <Badge variant="warning">Limited history</Badge>
+                <Badge variant="warning" className="text-sm">
+                  Limited history
+                </Badge>
               ) : null}
             </div>
             <div>
@@ -553,211 +648,107 @@ export default async function InsightsPage({
             </div>
           </div>
         </CardFooter>
-      </Card>
+        </Card>
+      </section>
 
-      <InsightsControls
-        categories={categories}
-        period={period}
-        selectedCategoryId={selectedCategory?.id}
-        selectedChangeWindow={spendingChange.window ?? undefined}
-        selectedChangeMonth={spendingChange.selectedTargetMonth ?? undefined}
-      />
-
-      <Card>
-        <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle>Spending composition</CardTitle>
-          {spendingComposition.categories.length > 0 ? (
-            <div className="flex items-baseline gap-2">
-              <span className="text-sm text-muted-foreground">
-                Total expenses
-              </span>
-              <span className="font-mono text-sm font-semibold text-foreground">
-                {formatter.format(Number(spendingComposition.totalExpenses))}
-              </span>
-            </div>
-          ) : null}
-        </CardHeader>
-        <CardContent className="pt-4">
-          {spendingComposition.categories.length > 0 ? (
-            <SpendingComposition
-              categories={spendingComposition.categories}
-              currency={user.currency}
-            />
-          ) : (
-            <EmptyState
-              icon={BarChart3}
-              title="No completed spending to break down"
-              description="Expense transactions from completed months will appear here"
-            />
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <CardTitle>Drivers of change</CardTitle>
-          {spendingChange.window ? (
-            <form
-              action="/insights"
-              method="get"
-              className="flex flex-col gap-2 sm:flex-row sm:items-end"
-            >
-              <input type="hidden" name="period" value={period} />
-              {selectedCategory ? (
-                <input
-                  type="hidden"
-                  name="categoryId"
-                  value={selectedCategory.id}
-                />
-              ) : null}
-              <label className="grid gap-1.5 text-sm font-medium text-foreground">
-                Comparison length
-                <Select
-                  name="changeWindow"
-                  defaultValue={String(spendingChange.window)}
-                >
-                  {spendingChange.availableWindows.map((window) => (
-                    <option key={window} value={window}>
-                      {formatChangeWindow(window)}
-                    </option>
-                  ))}
-                </Select>
-              </label>
-              {spendingChange.window === 1 &&
-              spendingChange.selectedTargetMonth ? (
-                <label className="grid gap-1.5 text-sm font-medium text-foreground">
-                  Compare
-                  <Select
-                    name="changeMonth"
-                    defaultValue={spendingChange.selectedTargetMonth}
-                  >
-                    {spendingChange.availableTargetMonths.map((month) => (
-                      <option key={month} value={month}>
-                        {formatMonthPair(month)}
-                      </option>
-                    ))}
-                  </Select>
-                </label>
-              ) : null}
-              <Button type="submit" variant="outline">
-                Apply
-              </Button>
-            </form>
-          ) : null}
-        </CardHeader>
-        <CardContent className="pt-4">
-          {!spendingChange.window ||
-          !spendingChange.previousStartMonth ||
-          !spendingChange.previousEndMonth ||
-          !spendingChange.recentStartMonth ||
-          !spendingChange.recentEndMonth ||
-          spendingChange.previousMonthlyAverage === null ||
-          spendingChange.recentMonthlyAverage === null ||
-          spendingChange.averageMonthlyChange === null ? (
-            <EmptyState
-              icon={BarChart3}
-              title="Not enough completed history"
-              description="Complete two consecutive tracked months to compare spending changes"
-            />
-          ) : !spendingChange.hasExpenseActivity ? (
-            <EmptyState
-              icon={BarChart3}
-              title="No spending in either period"
-              description="Expense transactions in completed months will appear here"
-            />
-          ) : (
-            <div className="grid gap-5">
-              <div className="grid overflow-hidden rounded-xl border border-border/70 sm:grid-cols-3">
-                <div className="grid gap-1 p-3">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    {formatCompletedMonthRange(
-                      spendingChange.previousStartMonth,
-                      spendingChange.previousEndMonth,
-                    )}
-                  </p>
-                  <p className="font-mono text-xl font-semibold text-foreground">
-                    {formatter.format(
-                      Number(spendingChange.previousMonthlyAverage),
-                    )}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Previous period monthly average
-                  </p>
-                </div>
-                <div className="grid gap-1 border-t border-border/70 p-3 sm:border-l sm:border-t-0">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    {formatCompletedMonthRange(
-                      spendingChange.recentStartMonth,
-                      spendingChange.recentEndMonth,
-                    )}
-                  </p>
-                  <p className="font-mono text-xl font-semibold text-foreground">
-                    {formatter.format(
-                      Number(spendingChange.recentMonthlyAverage),
-                    )}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Recent period monthly average
-                  </p>
-                </div>
-                <div className="grid gap-1 border-t border-border/70 p-3 sm:border-l sm:border-t-0">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Average monthly change
-                  </p>
-                  <p className="font-mono text-xl font-semibold text-foreground">
-                    {formatSignedMoney(
-                      formatter,
-                      spendingChange.averageMonthlyChange,
-                    )}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {isPositiveMoney(spendingChange.averageMonthlyChange)
-                      ? "Increase in monthly expenses"
-                      : isNegativeMoney(spendingChange.averageMonthlyChange)
-                        ? "Decrease in monthly expenses"
-                        : "No change in monthly expenses"}
-                  </p>
-                </div>
-              </div>
-
-              {spendingChange.categories.length > 0 ? (
-                <div className="grid gap-3">
-                  <SpendingChangeDrivers
-                    categories={spendingChange.categories}
-                    currency={user.currency}
-                  />
-                  {!isPositiveMoney(spendingChange.averageMonthlyChange) &&
-                  !isNegativeMoney(spendingChange.averageMonthlyChange) ? (
-                    <p className="text-xs text-muted-foreground">
-                      Contribution percentages are unavailable when average
-                      monthly expenses are unchanged
-                    </p>
-                  ) : null}
-                </div>
-              ) : (
-                <div className="rounded-xl border border-border/70 bg-background/55 p-4 text-sm text-muted-foreground">
-                  Category spending was unchanged
-                </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <IncomeSpendingConsistency
-        insight={incomeSpendingConsistency}
-        currency={user.currency}
-      />
-
-      <UnusualMonths insight={unusualMonths} currency={user.currency} />
-
-      <YearOverYearPatterns
-        insight={longTermPatterns}
-        currency={user.currency}
-      />
-
-      {categories.length === 0 ? (
+      <section
+        aria-labelledby="spending-composition-heading"
+        className="flex flex-col gap-4"
+      >
+        <InsightsSectionHeading
+          id="spending-composition-heading"
+          title="Spending composition"
+        />
         <Card>
+          <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="text-muted-foreground">History Period:</span>
+              <span>{completedPeriodLabel}</span>
+            </CardTitle>
+            {spendingComposition.categories.length > 0 ? (
+              <div className="flex items-baseline gap-2">
+                <span className="text-sm text-muted-foreground">
+                  Total expenses
+                </span>
+                <span className="font-mono text-sm font-semibold text-foreground">
+                  {formatter.format(Number(spendingComposition.totalExpenses))}
+                </span>
+              </div>
+            ) : null}
+          </CardHeader>
+          <CardContent className="pt-4">
+            {spendingComposition.categories.length > 0 ? (
+              <SpendingComposition
+                categories={spendingComposition.categories}
+                currency={user.currency}
+              />
+            ) : (
+              <EmptyState
+                icon={BarChart3}
+                title="No completed spending to break down"
+                description="Expense transactions from completed months will appear here"
+              />
+            )}
+          </CardContent>
+        </Card>
+      </section>
+
+      <section
+        aria-labelledby="income-spending-consistency-heading"
+        className="flex flex-col gap-4"
+      >
+        <InsightsSectionHeading
+          id="income-spending-consistency-heading"
+          title="Income and spending consistency"
+        />
+        <IncomeSpendingConsistency
+          insight={incomeSpendingConsistency}
+          currency={user.currency}
+          historyPeriodLabel={completedPeriodLabel}
+        />
+      </section>
+
+      <section
+        aria-labelledby="unusual-months-heading"
+        className="flex flex-col gap-4"
+      >
+        <InsightsSectionHeading
+          id="unusual-months-heading"
+          title="Unusual months"
+        />
+        <UnusualMonths
+          insight={unusualMonths}
+          currency={user.currency}
+          historyPeriodLabel={completedPeriodLabel}
+        />
+      </section>
+
+      <section
+        aria-labelledby="category-spending-heading"
+        className="flex flex-col gap-4"
+      >
+        <InsightsSectionHeading
+          id="category-spending-heading"
+          title="Category Spending Trends"
+        />
+        {categories.length > 0 ? (
+          <ExpenseCategoryControl
+            categories={categories}
+            period={period}
+            selectedCategoryId={selectedCategory?.id}
+            selectedChangeWindow={spendingChange.window ?? undefined}
+            selectedChangeMonth={spendingChange.selectedTargetMonth ?? undefined}
+          />
+        ) : null}
+
+        {categories.length === 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="text-muted-foreground">History Period:</span>
+              <span>{completedPeriodLabel}</span>
+            </CardTitle>
+          </CardHeader>
           <CardContent className="pt-4">
             <EmptyState
               icon={FolderOpen}
@@ -776,6 +767,12 @@ export default async function InsightsPage({
         </Card>
       ) : !selectedCategory ? (
         <Card>
+          <CardHeader>
+            <CardTitle className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="text-muted-foreground">History Period:</span>
+              <span>{completedPeriodLabel}</span>
+            </CardTitle>
+          </CardHeader>
           <CardContent className="pt-4">
             <EmptyState
               icon={BarChart3}
@@ -788,7 +785,10 @@ export default async function InsightsPage({
         <>
       <Card>
         <CardHeader>
-          <CardTitle>Spending trends</CardTitle>
+          <CardTitle className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="text-muted-foreground">History Period:</span>
+            <span>{completedPeriodLabel}</span>
+          </CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
           {insight.hasCategorySpending ? (
@@ -827,7 +827,9 @@ export default async function InsightsPage({
                 Typical month
               </p>
               {insight.hasLimitedHistory ? (
-                <Badge variant="warning">Limited history</Badge>
+                <Badge variant="warning" className="text-sm">
+                  Limited history
+                </Badge>
               ) : null}
             </div>
             <div>
@@ -885,7 +887,7 @@ export default async function InsightsPage({
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full border-collapse text-left text-sm">
               <thead>
-                <tr className="border-b border-border/80 text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                <tr className="border-b border-border/80 text-sm font-medium uppercase tracking-[0.08em] text-muted-foreground">
                   <th className="px-3 py-3">Month</th>
                   <th className="px-3 py-3">{selectedCategory.name}</th>
                   <th className="px-3 py-3">Total expenses</th>
@@ -912,7 +914,7 @@ export default async function InsightsPage({
                       <td className="px-3 py-3.5 font-medium text-foreground">
                         {formatMonthLabel(month.month)}
                         {month.isCurrentMonth ? (
-                          <span className="ml-2 text-xs font-normal text-muted-foreground">
+                          <span className="ml-2 text-sm font-normal text-muted-foreground">
                             In progress
                           </span>
                         ) : null}
@@ -964,7 +966,7 @@ export default async function InsightsPage({
                       {formatMonthLabel(month.month)}
                     </p>
                     {month.isCurrentMonth ? (
-                      <p className="text-xs text-muted-foreground">In progress</p>
+                      <p className="text-sm text-muted-foreground">In progress</p>
                     ) : null}
                   </div>
                   <p className="font-mono text-base font-semibold text-foreground">
@@ -973,13 +975,13 @@ export default async function InsightsPage({
                 </div>
                 <div className="grid grid-cols-2 gap-3 border-t border-border/60 pt-3 text-sm">
                   <div>
-                    <p className="text-xs text-muted-foreground">Total expenses</p>
+                    <p className="text-sm text-muted-foreground">Total expenses</p>
                     <p className="font-mono font-semibold text-foreground">
                       {formatter.format(Number(month.totalExpenses))}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
                       {month.isCurrentMonth ? "Current net" : "Month-end net"}
                     </p>
                     <p
@@ -1015,8 +1017,182 @@ export default async function InsightsPage({
       </Card>
 
         </>
-      ) : null}
+        ) : null}
+      </section>
 
-    </section>
+      <section
+        aria-labelledby="drivers-of-change-heading"
+        className="flex flex-col gap-4"
+      >
+        <InsightsSectionHeading
+          id="drivers-of-change-heading"
+          title="Drivers of change"
+        />
+
+        <Card>
+          <CardHeader className="gap-3 lg:flex-row lg:items-end">
+            {spendingChange.window ? (
+              <form
+                action="/insights"
+                method="get"
+                className="flex flex-col gap-2 sm:flex-row sm:items-end"
+              >
+                <PreservedInsightsFields
+                  changing="drivers"
+                  period={period}
+                  selectedCategoryId={selectedCategory?.id}
+                  selectedChangeWindow={spendingChange.window ?? undefined}
+                  selectedChangeMonth={spendingChange.selectedTargetMonth ?? undefined}
+                />
+                <label className="grid text-sm font-medium text-foreground">
+                  <span className="sr-only">Comparison length</span>
+                  <Select
+                    name="changeWindow"
+                    defaultValue={String(spendingChange.window)}
+                  >
+                    {spendingChange.availableWindows.map((window) => (
+                      <option key={window} value={window}>
+                        {formatChangeWindow(window)}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+                {spendingChange.window === 1 &&
+                spendingChange.selectedTargetMonth ? (
+                  <label className="grid text-sm font-medium text-foreground">
+                    <span className="sr-only">Compare</span>
+                    <Select
+                      name="changeMonth"
+                      defaultValue={spendingChange.selectedTargetMonth}
+                    >
+                      {spendingChange.availableTargetMonths.map((month) => (
+                        <option key={month} value={month}>
+                          {formatMonthPair(month)}
+                        </option>
+                      ))}
+                    </Select>
+                  </label>
+                ) : null}
+                <Button type="submit" variant="outline">
+                  Apply
+                </Button>
+              </form>
+            ) : null}
+          </CardHeader>
+          <CardContent className="pt-4">
+            {!spendingChange.window ||
+            !spendingChange.previousStartMonth ||
+            !spendingChange.previousEndMonth ||
+            !spendingChange.recentStartMonth ||
+            !spendingChange.recentEndMonth ||
+            spendingChange.previousMonthlyAverage === null ||
+            spendingChange.recentMonthlyAverage === null ||
+            spendingChange.averageMonthlyChange === null ? (
+              <EmptyState
+                icon={BarChart3}
+                title="Not enough completed history"
+                description="Complete two consecutive tracked months to compare spending changes"
+              />
+            ) : !spendingChange.hasExpenseActivity ? (
+              <EmptyState
+                icon={BarChart3}
+                title="No spending in either period"
+                description="Expense transactions in completed months will appear here"
+              />
+            ) : (
+              <div className="grid gap-5">
+                <div className="grid overflow-hidden rounded-xl border border-border/70 sm:grid-cols-3">
+                  <div className="grid gap-1 p-3">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {formatCompletedMonthRange(
+                        spendingChange.previousStartMonth,
+                        spendingChange.previousEndMonth,
+                      )}
+                    </p>
+                    <p className="font-mono text-xl font-semibold text-foreground">
+                      {formatter.format(
+                        Number(spendingChange.previousMonthlyAverage),
+                      )}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Previous period monthly average
+                    </p>
+                  </div>
+                  <div className="grid gap-1 border-t border-border/70 p-3 sm:border-l sm:border-t-0">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {formatCompletedMonthRange(
+                        spendingChange.recentStartMonth,
+                        spendingChange.recentEndMonth,
+                      )}
+                    </p>
+                    <p className="font-mono text-xl font-semibold text-foreground">
+                      {formatter.format(
+                        Number(spendingChange.recentMonthlyAverage),
+                      )}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Recent period monthly average
+                    </p>
+                  </div>
+                  <div className="grid gap-1 border-t border-border/70 p-3 sm:border-l sm:border-t-0">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Average monthly change
+                    </p>
+                    <p className="font-mono text-xl font-semibold text-foreground">
+                      {formatSignedMoney(
+                        formatter,
+                        spendingChange.averageMonthlyChange,
+                      )}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {isPositiveMoney(spendingChange.averageMonthlyChange)
+                        ? "Increase in monthly expenses"
+                        : isNegativeMoney(spendingChange.averageMonthlyChange)
+                          ? "Decrease in monthly expenses"
+                          : "No change in monthly expenses"}
+                    </p>
+                  </div>
+                </div>
+
+                {spendingChange.categories.length > 0 ? (
+                  <div className="grid gap-3">
+                    <SpendingChangeDrivers
+                      categories={spendingChange.categories}
+                      currency={user.currency}
+                    />
+                    {!isPositiveMoney(spendingChange.averageMonthlyChange) &&
+                    !isNegativeMoney(spendingChange.averageMonthlyChange) ? (
+                      <p className="text-sm text-muted-foreground">
+                        Contribution percentages are unavailable when average
+                        monthly expenses are unchanged
+                      </p>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-border/70 bg-background/55 p-4 text-sm text-muted-foreground">
+                    Category spending was unchanged
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </section>
+
+      <section
+        aria-labelledby="year-over-year-patterns-heading"
+        className="flex flex-col gap-4"
+      >
+        <InsightsSectionHeading
+          id="year-over-year-patterns-heading"
+          title="Year-over-year patterns"
+        />
+        <YearOverYearPatterns
+          insight={longTermPatterns}
+          currency={user.currency}
+        />
+      </section>
+
+    </div>
   );
 }

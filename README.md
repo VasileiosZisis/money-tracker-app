@@ -80,6 +80,23 @@ and do not change monthly totals, planned items, safe-to-spend, or forecasts.
 
 Total Balance is not bank-synced and is not a reconciliation system.
 
+### Analyze completed history
+
+The Insights workspace explains historical income, spending, and monthly
+results using actual transactions. It includes:
+
+- monthly result and break-even analysis
+- spending composition by category
+- income and spending consistency
+- unusual-month investigation with links to filtered transactions
+- category-specific spending trends and monthly history
+- configurable change drivers and trailing year-over-year patterns
+
+The shared history period covers 3, 6, or 12 completed months. Category
+selection affects only the category-specific analysis, while Drivers of change
+and Year-over-year patterns use their own comparison periods. Insights remains
+descriptive and does not create budgets or replace safe-to-spend.
+
 ## How planning works
 
 Actual income and expense totals come only from transactions. Active planned
@@ -108,6 +125,7 @@ to avoid double counting.
 | `/setup` | Required currency, account time zone, and optional default-category setup |
 | `/dashboard` | Monthly snapshot, planning metrics, Total Balance, and monthly planned-item actions |
 | `/transactions` | Transaction entry, filtering, editing, and deletion |
+| `/insights` | Historical cashflow, spending patterns, and category analysis |
 | `/categories` | Category and subcategory management |
 | `/planned` | Planned bill and planned income template management |
 | `/import` | CSV import preview and confirmation |

@@ -63,9 +63,11 @@ function formatMoney(
 export function UnusualMonths({
   insight,
   currency,
+  historyPeriodLabel,
 }: {
   insight: UnusualMonthsInsight;
   currency: string;
+  historyPeriodLabel: string;
 }) {
   const formatter = new Intl.NumberFormat(undefined, {
     style: "currency",
@@ -75,9 +77,12 @@ export function UnusualMonths({
   return (
     <Card>
       <CardHeader className="gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <CardTitle>Unusual months</CardTitle>
+        <CardTitle className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span className="text-muted-foreground">History Period:</span>
+          <span>{historyPeriodLabel}</span>
+        </CardTitle>
         {insight.completedMonthCount > 0 ? (
-          <span className="text-xs text-muted-foreground">
+          <span className="text-sm text-muted-foreground">
             {insight.completedMonthCount} completed{" "}
             {insight.completedMonthCount === 1 ? "month" : "months"}
           </span>
@@ -104,9 +109,9 @@ export function UnusualMonths({
                 className="overflow-hidden rounded-xl border border-border/70 bg-background/55"
               >
                 <div className="border-b border-border/70 px-4 py-3">
-                  <h4 className="text-sm font-semibold text-foreground">
+                  <h3 className="text-sm font-semibold text-foreground">
                     {formatMonthLabel(month.month)}
-                  </h4>
+                  </h3>
                 </div>
                 <ul className="divide-y divide-border/60">
                   {month.observations.map((observation) => {
@@ -125,16 +130,18 @@ export function UnusualMonths({
                             <p className="text-sm font-medium text-foreground">
                               {metricLabel(observation)}
                             </p>
-                            <Badge variant="outline">
+                            <Badge variant="outline" className="text-sm">
                               {observation.direction === "HIGH"
                                 ? "Higher than usual"
                                 : "Lower than usual"}
                             </Badge>
                             {observation.isArchivedCategory ? (
-                              <Badge variant="outline">Archived</Badge>
+                              <Badge variant="outline" className="text-sm">
+                                Archived
+                              </Badge>
                             ) : null}
                           </div>
-                          <p className="mt-1 text-xs text-muted-foreground">
+                          <p className="mt-1 text-sm text-muted-foreground">
                             Actual{" "}
                             <span className="font-mono font-medium text-foreground">
                               {formatMoney(

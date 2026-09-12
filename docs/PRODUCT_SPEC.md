@@ -140,6 +140,25 @@ All transaction operations are scoped to the authenticated user.
 monthly cashflow and category behavior without presenting historical results as
 a budget, recommendation, or amount available to spend.
 
+The contextual app bar identifies the route, so the content begins directly
+with peer analysis sections: Monthly result, Spending composition, Income and
+spending consistency, Unusual months, Category Spending Trends, Drivers of
+change, and Year-over-year patterns. Major section headings sit outside their
+cards.
+
+The URL-backed History Period control appears with Monthly result and applies to
+Monthly result, composition, consistency, unusual months, and category analysis.
+Each affected shared-period card shows the exact selected completed-month range
+immediately beside its `History Period:` label, using the same card-title styling;
+the range is not repeated outside the card. This header context is aligned at
+the far left of the row containing any legend, total, or completed-month
+count. Drivers and Year-over-year omit that shared-period label because they
+retain independent comparison controls and fixed ranges. The separate Expense category control
+appears only with Category Spending Trends and
+affects its trend, metrics, and monthly history. Both forms preserve the other
+Insights and Drivers selections; Drivers retains its own comparison controls and
+Year-over-year retains its fixed trailing-year ranges.
+
 Users can compare 3, 6, or 12 completed months. The page also shows the current
 account-local month as an incomplete comparison. Its overall analysis remains
 available without selecting a category and includes:

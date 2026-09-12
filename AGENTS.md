@@ -13,7 +13,8 @@ Before making changes, read in this order:
 4. `docs/PRODUCT_SPEC.md` — current implemented product behavior and scope.
 5. `docs/ROADMAP.md` when selecting or discussing future product work.
 6. The relevant active plan under `docs/` when implementing selected feature work.
-   `docs/INSIGHTS_PLAN.md` currently governs the selected Insights milestones.
+   There is currently no active implementation plan; completed plans are kept
+   under `docs/archive/`.
 
 Use each document for its stated responsibility. If requirements conflict,
 critical safeguards and execution/review rules here win, followed by technical

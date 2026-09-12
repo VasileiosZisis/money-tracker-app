@@ -19,14 +19,14 @@ export function SpendingComposition({
         <li key={category.categoryId} className="grid gap-2">
           <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
             <div className="flex min-w-0 items-center gap-2">
-              <span className="w-5 shrink-0 text-right font-mono text-xs text-muted-foreground">
+              <span className="w-5 shrink-0 text-right font-mono text-sm text-muted-foreground">
                 {index + 1}
               </span>
               <span className="truncate text-sm font-medium text-foreground">
                 {category.categoryName}
               </span>
               {category.isArchived ? (
-                <Badge variant="outline" className="shrink-0">
+                <Badge variant="outline" className="shrink-0 text-sm">
                   Archived
                 </Badge>
               ) : null}
@@ -35,7 +35,7 @@ export function SpendingComposition({
               <span className="font-mono text-sm font-semibold text-foreground">
                 {formatter.format(Number(category.total))}
               </span>
-              <span className="w-12 font-mono text-xs text-muted-foreground">
+              <span className="w-12 font-mono text-sm text-muted-foreground">
                 {category.sharePercent.toFixed(1)}%
               </span>
             </div>

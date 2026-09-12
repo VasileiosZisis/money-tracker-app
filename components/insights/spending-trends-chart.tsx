@@ -93,14 +93,14 @@ function SpendingTrendTooltip({
             {row.fullLabel}
           </p>
           {row.isCurrentMonth ? (
-            <p className="text-xs text-muted-foreground">In progress</p>
+            <p className="text-sm text-muted-foreground">In progress</p>
           ) : null}
         </div>
         <p className="font-mono text-sm font-semibold text-foreground">
           {valueFormatter.format(row.categorySpending)}
         </p>
       </div>
-      <div className="grid gap-2 border-t border-border/70 pt-2 text-xs">
+      <div className="grid gap-2 border-t border-border/70 pt-2 text-sm">
         <div className="flex items-center justify-between gap-4">
           <span className="text-muted-foreground">Total expenses</span>
           <span className="font-mono font-semibold text-foreground">
@@ -138,7 +138,7 @@ export function SpendingTrendsChart({
 
   return (
     <>
-      <ChartContainer config={chartConfig} className="h-[320px] w-full">
+      <ChartContainer config={chartConfig} className="h-[320px] w-full text-sm">
         <BarChart
           accessibilityLayer
           data={data}

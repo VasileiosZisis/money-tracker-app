@@ -8,9 +8,9 @@ composition, equal-window change drivers, income and spending consistency,
 unusual-month investigation, year-over-year patterns, and optional
 category-level monthly spending trends and comparisons.
 
-This is the active implementation plan for extending `/insights`. Items listed
-after the implemented foundation are selected product work, but each milestone
-should be implemented and reviewed independently.
+This completed plan is archived as a record of the implemented Insights work.
+It is no longer an active source of implementation scope; future additions must
+be selected from the roadmap and documented in a new active plan when needed.
 
 ## Goal
 
@@ -341,21 +341,35 @@ enhancements rather than part of this first longer-term implementation.
 - Every claim shown to the user must be reproducible from visible data and a
   deterministic calculation.
 
-## Page composition direction
+## Page composition
 
-Grow the page as a small number of coherent analysis sections rather than a
-wall of independent cards:
+The contextual app bar provides the page identity. The content uses peer,
+Dashboard-style analysis sections without a repeated page title or duplicated
+card titles, while retaining a visually hidden `Insights` level-one heading for
+assistive navigation:
 
-1. Overview: monthly result, break-even gap, and income/expense trend.
-2. Shared category and completed-period controls.
-3. Categories: spending trend, comparison, composition, and change drivers.
-4. Patterns: consistency, unusual months, and longer-term changes when eligible.
-5. Investigation: contextual links into the existing Transactions filters.
+1. Monthly result
+2. Spending composition
+3. Income and spending consistency
+4. Unusual months
+5. Category Spending Trends
+6. Drivers of change
+7. Year-over-year patterns
 
-The existing category trend remains useful, but the overview should eventually
-give the user an overall financial result before asking them to investigate a
-specific category. Responsive behavior, card hierarchy, chart colors, money
-typography, and empty states must continue to follow `docs/DESIGN_SYSTEM.md`.
+The URL-backed History Period control sits directly below Monthly result and
+applies to the first four sections plus Category Spending Trends. Each affected
+shared-period card shows its exact completed-month range immediately beside a
+left-aligned `History Period:` label with the same card-title styling. The range
+is not repeated outside the card, and the header remains on the same row as its
+legend, total, or completed-month count. Drivers and Year-over-year omit that shared-
+period label because their comparison periods are independent. The Expense
+category control sits directly below Category Spending Trends and affects only
+its trend, three comparison metrics, and monthly history. Drivers keeps its own
+comparison controls, and Year-over-year keeps its fixed trailing-year ranges.
+Every form preserves the other effective Insights selections.
+
+Responsive behavior, card hierarchy, chart colors, money typography, and empty
+states continue to follow `docs/DESIGN_SYSTEM.md`.
 
 ## Explicitly outside the Insights page
 

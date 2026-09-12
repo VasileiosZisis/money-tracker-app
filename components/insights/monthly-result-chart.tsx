@@ -87,10 +87,10 @@ function MonthlyResultTooltip({
       <div>
         <p className="text-sm font-semibold text-foreground">{row.fullLabel}</p>
         {row.isCurrentMonth ? (
-          <p className="text-xs text-muted-foreground">In progress</p>
+          <p className="text-sm text-muted-foreground">In progress</p>
         ) : null}
       </div>
-      <div className="grid gap-2 border-t border-border/70 pt-2 text-xs">
+      <div className="grid gap-2 border-t border-border/70 pt-2 text-sm">
         <div className="flex items-center justify-between gap-4">
           <span className="text-muted-foreground">Income</span>
           <span className="font-mono font-semibold text-foreground">
@@ -134,7 +134,7 @@ export function MonthlyResultChart({
     <>
       <ChartContainer
         config={chartConfig}
-        className="h-[200px] min-h-[200px] w-full"
+        className="h-[200px] min-h-[200px] w-full text-sm"
       >
         <LineChart
           accessibilityLayer
@@ -188,7 +188,7 @@ export function MonthlyResultChart({
       </ChartContainer>
 
       <div className="sr-only">
-        <h4>Monthly income, expenses, and result history</h4>
+        <h3>Monthly income, expenses, and result history</h3>
         <ul>
           {data.map((month) => (
             <li key={month.month}>
