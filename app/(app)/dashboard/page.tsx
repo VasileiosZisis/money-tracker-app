@@ -603,12 +603,12 @@ function MetricCard ({
   ) : null
 
   return (
-    <Card className={cn('h-full', className)}>
+    <Card className={cn('h-full min-w-0', className)}>
       <CardContent className='flex h-full flex-col gap-4 p-4'>
         <div className='flex items-center justify-between gap-3'>
           <div className='min-w-0 space-y-1.5'>
             {badgePlacement === 'title' ? (
-              <div className='flex min-w-0 items-center gap-1.5 whitespace-nowrap'>
+              <div className='flex min-w-0 flex-wrap items-center gap-1.5 sm:flex-nowrap sm:whitespace-nowrap'>
                 <p className='shrink-0 text-sm font-medium text-muted-foreground'>
                   {title}
                 </p>
@@ -1260,12 +1260,12 @@ export default async function DashboardPage ({
                   return (
                     <div
                       key={transaction.id}
-                      className='flex flex-col gap-3 rounded-xl border border-border/80 bg-background/60 p-3 md:flex-row md:items-center md:justify-between'
+                      className='grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 rounded-xl border border-border/80 bg-background/60 p-3'
                     >
                       <div className='flex min-w-0 items-start gap-3'>
                         <div
                           className={cn(
-                            'mt-1 flex size-9 items-center justify-center rounded-lg',
+                            'mt-1 flex size-9 shrink-0 items-center justify-center rounded-lg',
                             transaction.type === 'INCOME'
                               ? 'bg-success/10 text-success'
                               : 'bg-destructive/10 text-destructive'
@@ -1289,7 +1289,7 @@ export default async function DashboardPage ({
                         </div>
                       </div>
 
-                      <div className='flex items-center justify-between md:flex-col md:items-end'>
+                      <div className='flex shrink-0 flex-col items-end'>
                         <p className='text-sm font-medium text-muted-foreground'>
                           {formatLocalDate(transaction.localDate)}
                         </p>
@@ -1381,9 +1381,9 @@ export default async function DashboardPage ({
                     key={plannedIncome.id}
                     className='grid gap-3 rounded-xl border border-border/80 bg-background/60 p-3'
                   >
-                    <div className='flex flex-col gap-4 md:flex-row md:items-start md:justify-between'>
+                    <div className='grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3'>
                       <div className='flex min-w-0 items-start gap-3'>
-                        <div className='mt-1 flex size-9 items-center justify-center rounded-lg bg-success/10 text-success'>
+                        <div className='mt-1 flex size-9 shrink-0 items-center justify-center rounded-lg bg-success/10 text-success'>
                           <TrendingUp className='size-4.5' />
                         </div>
                         <div className='flex min-w-0 flex-col'>
@@ -1421,7 +1421,7 @@ export default async function DashboardPage ({
                         </div>
                       </div>
 
-                      <div className='flex items-center justify-between md:flex-col md:items-end'>
+                      <div className='flex shrink-0 flex-col items-end'>
                         <p className='text-sm font-medium text-muted-foreground'>
                           Expected day {plannedIncome.expectedDayOfMonth}
                         </p>
@@ -1626,9 +1626,9 @@ export default async function DashboardPage ({
                     key={plannedBill.id}
                     className='grid gap-3 rounded-xl border border-border/80 bg-background/60 p-3'
                   >
-                    <div className='flex flex-col gap-4 md:flex-row md:items-start md:justify-between'>
+                    <div className='grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3'>
                       <div className='flex min-w-0 items-start gap-3'>
-                        <div className='mt-1 flex size-9 items-center justify-center rounded-lg bg-accent text-accent-foreground'>
+                        <div className='mt-1 flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground'>
                           <CalendarClock className='size-4.5' />
                         </div>
                         <div className='flex min-w-0 flex-col'>
@@ -1667,7 +1667,7 @@ export default async function DashboardPage ({
                         </div>
                       </div>
 
-                      <div className='flex items-center justify-between md:flex-col md:items-end'>
+                      <div className='flex shrink-0 flex-col items-end'>
                         <p className='text-sm font-medium text-muted-foreground'>
                           {formatLocalDate(
                             `${selectedMonth}-${String(

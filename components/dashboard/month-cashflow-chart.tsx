@@ -2,6 +2,7 @@
 
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
+import { useNarrowChartLayout } from "@/components/dashboard/use-narrow-chart-layout";
 import {
   ChartContainer,
   ChartTooltip,
@@ -36,15 +37,33 @@ export function MonthCashflowChart({
   data,
   yAxisMax,
 }: MonthCashflowChartProps) {
+  const isNarrow = useNarrowChartLayout();
   const formatter = new Intl.NumberFormat(undefined, {
     style: "currency",
     currency,
     maximumFractionDigits: 0,
   });
+  const compactFormatter = new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency,
+    notation: "compact",
+    maximumFractionDigits: 1,
+  });
 
   return (
-    <ChartContainer config={chartConfig} className="h-[280px] w-full">
-      <LineChart accessibilityLayer data={data} margin={{ left: 12, right: 12, top: 12 }}>
+    <ChartContainer
+      config={chartConfig}
+      className="-mx-3 h-[280px] w-[calc(100%+1.5rem)] sm:mx-0 sm:w-full"
+    >
+      <LineChart
+        accessibilityLayer
+        data={data}
+        margin={
+          isNarrow
+            ? { left: 0, right: 0, top: 12 }
+            : { left: 12, right: 12, top: 12 }
+        }
+      >
         <CartesianGrid vertical={false} />
         <XAxis
           dataKey="label"
@@ -56,10 +75,12 @@ export function MonthCashflowChart({
         <YAxis
           tickLine={false}
           axisLine={false}
-          tickMargin={10}
-          width={72}
+          tickMargin={isNarrow ? 6 : 10}
+          width={isNarrow ? 56 : 72}
           domain={[0, yAxisMax]}
-          tickFormatter={(value) => formatter.format(value)}
+          tickFormatter={(value) =>
+            isNarrow ? compactFormatter.format(value) : formatter.format(value)
+          }
         />
         <ChartTooltip
           cursor={false}

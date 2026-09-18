@@ -353,7 +353,7 @@ export default async function TransactionsPage({
                     className="rounded-xl border border-border/80 bg-background/60 p-4"
                   >
                     <div className="space-y-4">
-                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                         <div className="flex min-w-0 items-start gap-3">
                           <div
                             className={cn(
@@ -388,7 +388,7 @@ export default async function TransactionsPage({
                           </div>
                         </div>
 
-                        <div className="flex flex-col sm:items-end">
+                        <div className="flex shrink-0 flex-col items-end">
                           <p className="text-sm font-medium text-muted-foreground">
                             {formatLocalDate(transaction.localDate)}
                           </p>

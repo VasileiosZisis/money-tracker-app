@@ -71,11 +71,11 @@ export function PageContextBar({
   }, [initialDateContext.localDate, router, timeZone]);
 
   return (
-    <div className="-mx-3 grid h-18 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 border-b border-sidebar-border bg-sidebar px-3 sm:-mx-5 sm:px-5">
+    <div className="-mx-3 grid h-18 shrink-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 border-b border-sidebar-border bg-sidebar px-3 sm:-mx-5 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:px-5">
       <div className="flex min-w-0 items-center gap-2.5">
-        <SidebarTrigger className="lg:hidden" />
+        <SidebarTrigger className="shrink-0 lg:hidden" />
         <p
-          className="truncate text-xl font-semibold tracking-tight text-foreground"
+          className="truncate text-base font-semibold tracking-tight text-foreground sm:text-xl"
           aria-label={`Current page: ${pageLabel}`}
         >
           {pageLabel}
@@ -83,13 +83,14 @@ export function PageContextBar({
       </div>
 
       <time
-        className="justify-self-center text-center text-xl font-semibold text-foreground"
+        className="justify-self-center whitespace-nowrap text-center text-sm font-semibold text-foreground sm:text-xl"
         dateTime={dateContext.localDate}
       >
-        {dateContext.dateLabel}
+        <span className="sm:hidden">{dateContext.shortDateLabel}</span>
+        <span className="hidden sm:inline">{dateContext.dateLabel}</span>
       </time>
 
-      <p className="justify-self-end text-right text-xl font-semibold text-foreground">
+      <p className="justify-self-end whitespace-nowrap text-right text-sm font-semibold text-foreground sm:text-xl">
         {dateContext.daysLeftLabel}
       </p>
     </div>

@@ -9,6 +9,7 @@ import {
   YAxis,
 } from "recharts";
 
+import { useNarrowChartLayout } from "@/components/dashboard/use-narrow-chart-layout";
 import {
   ChartContainer,
   ChartTooltip,
@@ -51,10 +52,17 @@ export function TotalBalanceChart({
   currency,
   data,
 }: TotalBalanceChartProps) {
+  const isNarrow = useNarrowChartLayout();
   const axisFormatter = new Intl.NumberFormat(undefined, {
     style: "currency",
     currency,
     maximumFractionDigits: 0,
+  });
+  const compactAxisFormatter = new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency,
+    notation: "compact",
+    maximumFractionDigits: 1,
   });
   const valueFormatter = new Intl.NumberFormat(undefined, {
     style: "currency",
@@ -62,11 +70,18 @@ export function TotalBalanceChart({
   });
 
   return (
-    <ChartContainer config={chartConfig} className="h-[300px] w-full">
+    <ChartContainer
+      config={chartConfig}
+      className="-mx-3 h-[300px] w-[calc(100%+1.5rem)] sm:mx-0 sm:w-full"
+    >
       <LineChart
         accessibilityLayer
         data={data}
-        margin={{ left: 12, right: 12, top: 12 }}
+        margin={
+          isNarrow
+            ? { left: 0, right: 0, top: 12 }
+            : { left: 12, right: 12, top: 12 }
+        }
       >
         <CartesianGrid vertical={false} />
         <ReferenceLine y={0} stroke="var(--border)" strokeDasharray="4 4" />
@@ -81,15 +96,19 @@ export function TotalBalanceChart({
         <YAxis
           tickLine={false}
           axisLine={false}
-          tickMargin={10}
-          width={76}
+          tickMargin={isNarrow ? 6 : 10}
+          width={isNarrow ? 56 : 76}
           domain={([dataMin, dataMax]) => {
             const minimum = Math.min(0, dataMin);
             const maximum = Math.max(0, dataMax);
 
             return minimum === maximum ? [-1, 1] : [minimum, maximum];
           }}
-          tickFormatter={(value) => axisFormatter.format(value)}
+          tickFormatter={(value) =>
+            isNarrow
+              ? compactAxisFormatter.format(value)
+              : axisFormatter.format(value)
+          }
         />
         <YAxis yAxisId="balanceChange" hide />
         <ChartTooltip

@@ -2,6 +2,7 @@ export type AccountDateContext = {
   localDate: string;
   currentMonth: string;
   dateLabel: string;
+  shortDateLabel: string;
   daysLeft: number;
   daysLeftLabel: string;
 };
@@ -14,6 +15,22 @@ type LocalDateParts = {
 
 function padNumber(value: number) {
   return String(value).padStart(2, "0");
+}
+
+function formatShortDateLabel(timeZone: string, instant: Date) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    day: "numeric",
+    month: "short",
+  }).formatToParts(instant);
+  const day = parts.find((part) => part.type === "day")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+
+  if (!day || !month) {
+    throw new Error("Could not format the local date for this time zone.");
+  }
+
+  return `${day} ${month.slice(0, 3)}`;
 }
 
 function getLocalDatePartsInTimeZone(
@@ -96,6 +113,7 @@ export function getAccountDateContext(
       month: "long",
       year: "numeric",
     }).format(instant),
+    shortDateLabel: formatShortDateLabel(timeZone, instant),
     daysLeft,
     daysLeftLabel: `${daysLeft} ${daysLeft === 1 ? "day" : "days"} left`,
   };

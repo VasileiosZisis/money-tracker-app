@@ -47,6 +47,7 @@ test("builds a complete account date context", () => {
       localDate: "2026-08-17",
       currentMonth: "2026-08",
       dateLabel: "17 August 2026",
+      shortDateLabel: "17 Aug",
       daysLeft: 14,
       daysLeftLabel: "14 days left",
     },

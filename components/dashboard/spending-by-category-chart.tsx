@@ -9,6 +9,7 @@ import {
   type BarShapeProps,
 } from "recharts";
 
+import { useNarrowChartLayout } from "@/components/dashboard/use-narrow-chart-layout";
 import {
   ChartContainer,
   ChartTooltip,
@@ -45,8 +46,10 @@ function getSegmentStyle(index: number) {
   };
 }
 
-function truncateLabel(value: string) {
-  return value.length > 18 ? `${value.slice(0, 17)}…` : value;
+function truncateLabel(value: string, maxLength = 18) {
+  return value.length > maxLength
+    ? `${value.slice(0, maxLength - 1)}…`
+    : value;
 }
 
 function StackedSpendingBar({
@@ -55,9 +58,12 @@ function StackedSpendingBar({
   width,
   height,
   payload,
+  background,
   isActive,
+  compact,
   valueFormatter,
 }: BarShapeProps & {
+  compact: boolean;
   valueFormatter: Intl.NumberFormat;
 }) {
   const row = payload as SpendingChartRow | undefined;
@@ -67,6 +73,8 @@ function StackedSpendingBar({
   }
 
   const clipPathId = `spending-category-${row.categoryId}`;
+  const plotX = background?.x ?? x;
+  const plotWidth = background?.width ?? width;
 
   return (
     <g>
@@ -117,14 +125,34 @@ function StackedSpendingBar({
         stroke={isActive ? "var(--foreground)" : "transparent"}
         strokeWidth={isActive ? 1.5 : 0}
       />
-      <text
-        x={x + width + 8}
-        y={y + height / 2}
-        className="fill-foreground font-mono text-[11px] font-semibold"
-        dominantBaseline="central"
-      >
-        {valueFormatter.format(row.total)}
-      </text>
+      {compact ? (
+        <>
+          <text
+            x={plotX}
+            y={y - 8}
+            className="fill-muted-foreground text-[11px] font-medium"
+          >
+            {truncateLabel(row.categoryName, 25)}
+          </text>
+          <text
+            x={plotX + plotWidth}
+            y={y - 8}
+            textAnchor="end"
+            className="fill-foreground font-mono text-[11px] font-semibold"
+          >
+            {valueFormatter.format(row.total)}
+          </text>
+        </>
+      ) : (
+        <text
+          x={x + width + 8}
+          y={y + height / 2}
+          className="fill-foreground font-mono text-[11px] font-semibold"
+          dominantBaseline="central"
+        >
+          {valueFormatter.format(row.total)}
+        </text>
+      )}
     </g>
   );
 }
@@ -198,6 +226,7 @@ export function SpendingByCategoryChart({
   currency,
   data,
 }: SpendingByCategoryChartProps) {
+  const isNarrow = useNarrowChartLayout();
   const axisFormatter = new Intl.NumberFormat(undefined, {
     style: "currency",
     currency,
@@ -207,20 +236,27 @@ export function SpendingByCategoryChart({
     style: "currency",
     currency,
   });
-  const chartHeight = Math.max(240, data.length * 52 + 48);
+  const chartHeight = Math.max(
+    240,
+    data.length * (isNarrow ? 56 : 52) + 48,
+  );
 
   return (
     <>
       <ChartContainer
         config={chartConfig}
-        className="w-full"
+        className="-mx-3 w-[calc(100%+1.5rem)] sm:mx-0 sm:w-full"
         style={{ height: chartHeight }}
       >
         <BarChart
           accessibilityLayer
           data={data}
           layout="vertical"
-          margin={{ left: 0, right: 104, top: 8, bottom: 8 }}
+          margin={
+            isNarrow
+              ? { left: 0, right: 0, top: 18, bottom: 8 }
+              : { left: 0, right: 104, top: 8, bottom: 8 }
+          }
         >
           <CartesianGrid horizontal={false} />
           <XAxis
@@ -234,11 +270,12 @@ export function SpendingByCategoryChart({
           <YAxis
             type="category"
             dataKey="categoryName"
+            hide={isNarrow}
             tickLine={false}
             axisLine={false}
             tickMargin={10}
             tick={{ fill: "var(--muted-foreground)", fontSize: 14 }}
-            width={116}
+            width={isNarrow ? 0 : 116}
             interval={0}
             tickFormatter={(value) => truncateLabel(String(value))}
           />
@@ -253,12 +290,13 @@ export function SpendingByCategoryChart({
           />
           <Bar
             dataKey="total"
-            barSize={24}
+            barSize={isNarrow ? 18 : 24}
             fill="var(--color-spending)"
             isAnimationActive={false}
             shape={(props: BarShapeProps) => (
               <StackedSpendingBar
                 {...props}
+                compact={isNarrow}
                 valueFormatter={valueFormatter}
               />
             )}
