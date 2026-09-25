@@ -50,6 +50,7 @@ import {
 import { ToastFeedback } from "@/components/ui/toast-feedback";
 import { getUserIdOrThrow } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import { getPlannedItemLifecycleChange } from "@/lib/planned-items";
 import {
   buildPathWithSearchParams,
   firstSearchParamValue,
@@ -296,11 +297,8 @@ export default async function PlannedPage({
   async function togglePlannedBillAction(formData: FormData) {
     "use server";
 
-    const nextIsActive = parseBooleanField(formData.get("nextIsActive"));
-    const result = await togglePlannedBillActive({
-      id: String(formData.get("id") ?? ""),
-      isActive: nextIsActive,
-    });
+    const lifecycleChange = getPlannedItemLifecycleChange("bill", formData);
+    const result = await togglePlannedBillActive(lifecycleChange.input);
 
     if (!result.ok) {
       redirect(
@@ -312,9 +310,7 @@ export default async function PlannedPage({
 
     redirect(
       buildPlannedViewUrl(selectedType, selectedStatus, {
-        success: nextIsActive
-          ? "Planned bill activated."
-          : "Planned bill deactivated.",
+        success: lifecycleChange.successMessage,
       }),
     );
   }
@@ -322,11 +318,8 @@ export default async function PlannedPage({
   async function togglePlannedIncomeAction(formData: FormData) {
     "use server";
 
-    const nextIsActive = parseBooleanField(formData.get("nextIsActive"));
-    const result = await togglePlannedIncomeActive({
-      id: String(formData.get("id") ?? ""),
-      isActive: nextIsActive,
-    });
+    const lifecycleChange = getPlannedItemLifecycleChange("income", formData);
+    const result = await togglePlannedIncomeActive(lifecycleChange.input);
 
     if (!result.ok) {
       redirect(
@@ -338,9 +331,7 @@ export default async function PlannedPage({
 
     redirect(
       buildPlannedViewUrl(selectedType, selectedStatus, {
-        success: nextIsActive
-          ? "Planned income activated."
-          : "Planned income deactivated.",
+        success: lifecycleChange.successMessage,
       }),
     );
   }
@@ -602,8 +593,6 @@ export default async function PlannedPage({
                                   </Button>
                                   <Button
                                     type="submit"
-                                    name="nextIsActive"
-                                    value={String(!plannedBill.isActive)}
                                     formAction={togglePlannedBillAction}
                                     formNoValidate
                                     variant="outline"
@@ -745,8 +734,6 @@ export default async function PlannedPage({
                                 </Button>
                                 <Button
                                   type="submit"
-                                  name="nextIsActive"
-                                  value={String(!plannedIncome.isActive)}
                                   formAction={togglePlannedIncomeAction}
                                   formNoValidate
                                   variant="outline"

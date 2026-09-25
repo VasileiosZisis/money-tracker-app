@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { getGeneratedTransactionMetadata } from "@/lib/planned-items";
+import {
+  getGeneratedTransactionMetadata,
+  getPlannedItemLifecycleChange,
+} from "@/lib/planned-items";
 import {
   plannedBillInputSchema,
   updatePlannedBillSchema,
@@ -36,6 +39,42 @@ const plannedIncomeInput = {
   subcategoryId: "",
   isActive: true,
 };
+
+test("inactive planned items activate with matching success messages", () => {
+  const billFormData = new FormData();
+  billFormData.set("id", PLANNED_BILL_ID);
+  billFormData.set("isActive", "false");
+  const incomeFormData = new FormData();
+  incomeFormData.set("id", PLANNED_INCOME_ID);
+  incomeFormData.set("isActive", "false");
+
+  assert.deepEqual(getPlannedItemLifecycleChange("bill", billFormData), {
+    input: { id: PLANNED_BILL_ID, isActive: true },
+    successMessage: "Planned bill activated.",
+  });
+  assert.deepEqual(getPlannedItemLifecycleChange("income", incomeFormData), {
+    input: { id: PLANNED_INCOME_ID, isActive: true },
+    successMessage: "Planned income activated.",
+  });
+});
+
+test("active planned items deactivate with matching success messages", () => {
+  const billFormData = new FormData();
+  billFormData.set("id", PLANNED_BILL_ID);
+  billFormData.set("isActive", "true");
+  const incomeFormData = new FormData();
+  incomeFormData.set("id", PLANNED_INCOME_ID);
+  incomeFormData.set("isActive", "true");
+
+  assert.deepEqual(getPlannedItemLifecycleChange("bill", billFormData), {
+    input: { id: PLANNED_BILL_ID, isActive: false },
+    successMessage: "Planned bill deactivated.",
+  });
+  assert.deepEqual(getPlannedItemLifecycleChange("income", incomeFormData), {
+    input: { id: PLANNED_INCOME_ID, isActive: false },
+    successMessage: "Planned income deactivated.",
+  });
+});
 
 test("planned item metadata is trimmed for bill and income inputs", () => {
   const bill = plannedBillInputSchema.parse(plannedBillInput);
