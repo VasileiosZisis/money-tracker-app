@@ -64,7 +64,7 @@ export default async function AppLayout ({
   return (
     <div className='min-h-screen'>
       <SidebarProvider>
-        <div className='mx-auto flex min-h-screen gap-3 px-3 py-3 sm:px-5 lg:gap-5 lg:py-0 lg:pr-5 lg:pl-0'>
+        <div className='mx-auto flex min-h-screen gap-3 px-3 pb-3 transition-[padding,column-gap] duration-250 ease-in-out motion-reduce:transition-none sm:px-5 lg:gap-0 lg:py-0 lg:pr-5 lg:pl-5 lg:group-data-[sidebar-open=true]/sidebar-provider:gap-5 lg:group-data-[sidebar-open=true]/sidebar-provider:pl-0'>
           <AppSidebar
             displayName={displayName}
             initials={initials}

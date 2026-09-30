@@ -6,8 +6,8 @@ import { PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const SIDEBAR_WIDTH = "16.5rem";
-const SIDEBAR_WIDTH_MOBILE = "17rem";
+const SIDEBAR_WIDTH = "18rem";
+const SIDEBAR_WIDTH_MOBILE = "min(18rem, calc(100vw - 2rem))";
 const MOBILE_BREAKPOINT = 1024;
 
 type SidebarContextValue = {
@@ -110,6 +110,7 @@ export function SidebarProvider({
     <SidebarContext.Provider value={contextValue}>
       <div
         data-slot="sidebar-provider"
+        data-sidebar-open={open}
         style={
           {
             "--sidebar-width": SIDEBAR_WIDTH,
@@ -117,7 +118,7 @@ export function SidebarProvider({
             ...style,
           } as React.CSSProperties
         }
-        className={cn("w-full", className)}
+        className={cn("group/sidebar-provider w-full", className)}
         {...props}
       >
         {children}
@@ -147,15 +148,17 @@ export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
           <div
             aria-hidden={!openMobile}
             className={cn(
-              "fixed inset-0 z-40 bg-background/55 backdrop-blur-sm transition-opacity lg:hidden",
+              "fixed inset-0 z-40 bg-background/55 backdrop-blur-sm transition-opacity duration-250 ease-in-out motion-reduce:transition-none lg:hidden",
               openMobile ? "opacity-100" : "pointer-events-none opacity-0",
             )}
             onClick={() => setOpenMobile(false)}
           />
           <div
             data-slot="sidebar-mobile"
+            inert={!openMobile}
+            aria-hidden={!openMobile}
             className={cn(
-              "fixed inset-y-0 z-50 w-[--sidebar-width-mobile] transition-transform duration-200 ease-out lg:hidden",
+              "fixed inset-y-0 z-50 w-[var(--sidebar-width-mobile)] transition-transform duration-250 ease-in-out motion-reduce:transition-none lg:hidden",
               side === "left" ? "left-0" : "right-0",
               openMobile
                 ? "translate-x-0"
@@ -168,6 +171,7 @@ export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
               ref={ref}
               role="dialog"
               aria-modal="true"
+              aria-label="Navigation"
               className={containerClassName}
               {...props}
             >
@@ -181,17 +185,23 @@ export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
     return (
       <aside
         data-slot="sidebar"
+        inert={!open}
+        aria-hidden={!open}
         className={cn(
-          "hidden shrink-0 lg:block",
-          open ? "w-[--sidebar-width]" : "w-0 overflow-hidden",
+          "hidden shrink-0 overflow-x-clip transition-[width] duration-250 ease-in-out motion-reduce:transition-none lg:block",
+          open ? "w-[var(--sidebar-width)]" : "w-0",
         )}
       >
         <div
           ref={ref}
           className={cn(
-            "sticky top-0 h-screen",
+            "sticky top-0 h-screen w-[var(--sidebar-width)] transition-[translate,opacity] duration-250 ease-in-out motion-reduce:transition-none",
             side === "right" ? "ml-auto" : "",
-            !open && "pointer-events-none opacity-0",
+            open
+              ? "translate-x-0 opacity-100"
+              : side === "left"
+                ? "pointer-events-none -translate-x-full opacity-0"
+                : "pointer-events-none translate-x-full opacity-0",
           )}
           {...props}
         >
@@ -221,7 +231,7 @@ export const SidebarTrigger = React.forwardRef<
   HTMLButtonElement,
   React.ComponentProps<typeof Button>
 >(({ className, ...props }, ref) => {
-  const { toggleSidebar } = useSidebar();
+  const { isMobile, open, openMobile, toggleSidebar } = useSidebar();
 
   return (
     <Button
@@ -231,6 +241,7 @@ export const SidebarTrigger = React.forwardRef<
       className={cn("rounded-lg border-border/70 bg-card/80", className)}
       onClick={toggleSidebar}
       aria-label="Toggle navigation"
+      aria-expanded={isMobile ? openMobile : open}
       {...props}
     >
       <PanelLeft />

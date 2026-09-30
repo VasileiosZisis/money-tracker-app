@@ -186,14 +186,16 @@ Rules:
 
 - Desktop uses the shadcn sidebar pattern with `SidebarProvider`, a full-height flush-left sidebar rail, and the page `main` element as the primary content container.
 - Primary navigation lives in the sidebar.
-- Desktop sidebar branding should stay concise: app name plus mark, without supporting tagline copy.
+- The sidebar header is one 72px-high row with 12px horizontal padding and 8px gaps, ordered Toggle navigation, CashContour symbol, and CashContour wordmark. The 36px toggle sits outside the dashboard branding link, whose accessible label is `CashContour home`. The symbol is 43.2px wide and the wordmark is up to 165.6px wide; their layout slots match the artwork widths without reserving extra logo space. The wordmark shrinks proportionally on narrow phones. Transparent light/dark SVGs live in `public/branding/` and switch with the existing theme class.
+- The desktop sidebar is 288px wide. Its header toggle hides the whole sidebar, releases its width and adjacent gap to page content, and moves focus to the top-bar reopen button. Reopening navigation moves focus to the sidebar-header toggle. Hidden navigation cannot receive keyboard focus. The main content retains its left gutter when the sidebar is hidden, keeping the top bar within the viewport.
+- Sidebar opening and closing use a 250ms ease-in-out transition. Desktop animates the sidebar width, panel slide and opacity, and the shell's gutter and adjacent gap together; the inner panel retains its full width so the branding and navigation do not squeeze during the transition. Mobile animates the drawer slide and backdrop opacity with the same timing. Reduced-motion preferences disable these transitions. Closed navigation becomes inert immediately, and focus handoffs do not scroll the page.
 - Desktop sidebar nav items should use icon plus single-line labels, not secondary description text.
 - Sidebar user identity shows the avatar and display name as one full-row account-menu trigger, with initials as the avatar fallback.
 - The account menu opens above the profile row and contains Sign out. Settings remains visible as a footer navigation item directly below the profile row.
 - Desktop sidebar user identity and Settings visually reuse the same row treatment as the primary nav links: matching spacing, icon box sizing, corner radius, and hover language.
 - Import, Export, and Theme do not appear as sidebar items; they live in Settings.
 - The desktop sidebar should sit flush against the left edge, span the full viewport height, and use square outer corners instead of an inset card treatment.
-- Authenticated pages use a `h-18` contextual bar at the top of `main`, matching the 72px sidebar header height.
+- Authenticated pages use a `h-18` contextual bar at the top of `main`, matching the 72px sidebar header height. The bar sits flush with the viewport top at every width; the app shell adds no top padding, including below the 1024px desktop breakpoint.
 - The contextual bar uses three aligned regions: current page at the left edge, the account-time-zone current date centered, and days remaining before month end at the right edge. It refreshes server-rendered data when that account-local date crosses midnight.
 - The contextual bar uses the sidebar background token and extends its bottom border through the main-content gutters, from the sidebar edge to the right viewport edge.
 - Current-page labels reuse the app navigation labels; all three contextual-bar items use `text-xl`, foreground color, and semibold weight.
@@ -224,9 +226,9 @@ Rules:
 
 ### Mobile behavior
 
-- Mobile uses the same shadcn sidebar as an off-canvas drawer.
+- Below 1024px, mobile uses the same shadcn sidebar as an off-canvas drawer, with a preferred width of 288px capped at the viewport width minus 32px. Its header toggle closes the drawer; closed drawer contents cannot receive keyboard focus.
 - The mobile drawer should also open edge-to-edge without outer padding or rounded outer corners.
-- The contextual bar includes the sidebar trigger on small screens so the off-canvas navigation remains reachable.
+- The contextual bar includes the sidebar trigger below 1024px and whenever the desktop sidebar is hidden so navigation can always be reopened. Toggle buttons expose their current state with `aria-expanded`.
 - Keep actions reachable without requiring dense toolbars.
 - Tables should degrade into stacked cards where needed.
 
