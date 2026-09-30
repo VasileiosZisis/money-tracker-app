@@ -1,7 +1,7 @@
 name = "test_auditor"
 description = "Read-only regression-test auditor that finds important behaviors changed by a patch that are not adequately tested."
 
-model = "gpt-5.6-terra"
+model = "gpt-6-luna"
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 

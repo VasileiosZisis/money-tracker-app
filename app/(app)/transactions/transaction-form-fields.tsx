@@ -7,6 +7,7 @@ import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { getTransactionFormSelection } from "@/lib/transactions/form-selection";
 import { cn } from "@/lib/utils";
 
 type TransactionType = "INCOME" | "EXPENSE";
@@ -51,6 +52,7 @@ export function TransactionFormFields({
   singleColumn?: boolean;
   showTypeField: boolean;
 }) {
+  const [selectedType, setSelectedType] = useState(defaultValues.type);
   const [selectedCategoryId, setSelectedCategoryId] = useState(defaultValues.categoryId);
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState(defaultValues.subcategoryId);
   const localDateInputRef = useRef<HTMLInputElement | null>(null);
@@ -69,15 +71,12 @@ export function TransactionFormFields({
     previousDefaultLocalDateRef.current = defaultValues.localDate;
   }, [defaultValues.localDate]);
 
-  const selectedCategory = useMemo(
-    () => categories.find((category) => category.id === selectedCategoryId) ?? null,
-    [categories, selectedCategoryId],
+  const selection = useMemo(
+    () => getTransactionFormSelection(categories, selectedType, selectedCategoryId, selectedSubcategoryId),
+    [categories, selectedType, selectedCategoryId, selectedSubcategoryId],
   );
-  const availableSubcategories = useMemo(() => selectedCategory?.subcategories ?? [], [selectedCategory]);
+  const { availableCategories, availableSubcategories } = selection;
   const hasSubcategories = availableSubcategories.length > 0;
-  const resolvedSelectedSubcategoryId = availableSubcategories.some((subcategory) => subcategory.id === selectedSubcategoryId)
-    ? selectedSubcategoryId
-    : "";
   const dateField = (
     <FormField htmlFor={`${idPrefix}-date`} label="Date">
       <Input
@@ -92,13 +91,22 @@ export function TransactionFormFields({
   );
   const typeField = showTypeField ? (
     <FormField htmlFor={`${idPrefix}-type`} label="Type">
-      <Select id={`${idPrefix}-type`} name="type" defaultValue={defaultValues.type}>
+      <Select
+        id={`${idPrefix}-type`}
+        name="type"
+        value={selectedType}
+        onChange={(event) => {
+          setSelectedType(event.target.value as TransactionType);
+          setSelectedCategoryId("");
+          setSelectedSubcategoryId("");
+        }}
+      >
         <option value="INCOME">Income</option>
         <option value="EXPENSE">Expense</option>
       </Select>
     </FormField>
   ) : (
-    <input type="hidden" name="type" value={defaultValues.type} />
+    <input type="hidden" name="type" value={selectedType} />
   );
   const amountField = (
     <FormField htmlFor={`${idPrefix}-amount`} label="Amount">
@@ -117,10 +125,10 @@ export function TransactionFormFields({
       <Select
         id={`${idPrefix}-category`}
         name="categoryId"
-        value={selectedCategoryId}
+        value={selection.categoryId}
         onChange={(event) => {
           const nextCategoryId = event.target.value;
-          const nextCategory = categories.find((category) => category.id === nextCategoryId) ?? null;
+          const nextCategory = availableCategories.find((category) => category.id === nextCategoryId) ?? null;
           const nextAvailableSubcategories = nextCategory?.subcategories ?? [];
 
           setSelectedCategoryId(nextCategoryId);
@@ -130,8 +138,14 @@ export function TransactionFormFields({
         }}
         required
       >
-        <option value="">Select category</option>
-        {categories.map((category) => (
+        <option value="">
+          {availableCategories.length > 0
+            ? "Select category"
+            : selectedType === "EXPENSE"
+              ? "No expense categories available"
+              : "No income categories available"}
+        </option>
+        {availableCategories.map((category) => (
           <option key={category.id} value={category.id}>
             {formatCategoryLabel(category)}
           </option>
@@ -166,14 +180,14 @@ export function TransactionFormFields({
         <Select
           id={`${idPrefix}-subcategory`}
           name="subcategoryId"
-          value={resolvedSelectedSubcategoryId}
+          value={selection.subcategoryId}
           onChange={(event) => {
             setSelectedSubcategoryId(event.target.value);
           }}
-          disabled={!selectedCategoryId || !hasSubcategories}
+          disabled={!selection.categoryId || !hasSubcategories}
         >
           <option value="">
-            {!selectedCategoryId
+            {!selection.categoryId
               ? "Select category first"
               : hasSubcategories
                 ? "No subcategory"

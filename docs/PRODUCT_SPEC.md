@@ -120,6 +120,14 @@ Users can:
 
 Transaction-page interaction rules:
 
+- Add Transaction defaults to Expense and lists only active categories matching
+  the selected transaction type. Changing type immediately clears category and
+  subcategory selections while preserving date, amount, source, and note.
+- Category selection remains required. When the selected type has no available
+  categories, the selector shows `No expense categories available` or
+  `No income categories available`, and submission requires a valid category.
+- Existing transaction editors retain their matching category and subcategory,
+  including the currently assigned category when it is archived.
 - Month selection is applied independently from the optional type, category,
   and subcategory filters.
 - Resetting advanced filters preserves the selected month.
