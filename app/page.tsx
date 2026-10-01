@@ -1,144 +1,112 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, CalendarDays, ChartNoAxesCombined, ScrollText } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
-import { ThemeToggle } from "@/components/theme/theme-toggle";
-import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { HomepageMotion } from "@/components/homepage/homepage-motion";
+import { HomepageBrand, HomepageActions, HomepageScene, HomepageGraph } from "@/components/homepage/homepage-parts";
 
 export const metadata: Metadata = {
   title: "CashContour — Personal money tracking",
   description:
-    "Record income and expenses, plan monthly bills, and understand your spending history in one calm workspace.",
+    "Record income and expenses, plan monthly bills, and understand your spending history in one calm workspace",
 };
-
-const features = [
-  {
-    icon: ScrollText,
-    title: "Keep your records in order",
-    description:
-      "Record income and expenses, organize them with categories and subcategories, or bring in your transactions from a CSV.",
-  },
-  {
-    icon: CalendarDays,
-    title: "See what’s still ahead",
-    description:
-      "Plan monthly bills and expected income. Review an explainable safe-to-spend estimate, then mark items paid or received yourself.",
-  },
-  {
-    icon: ChartNoAxesCombined,
-    title: "Understand your patterns",
-    description:
-      "Explore monthly cash flow, spending by category, and changes over time with Insights grounded in your recorded transactions.",
-  },
-];
 
 export default function HomePage() {
   return (
-    <div className="mx-auto flex min-h-screen max-w-6xl flex-col gap-6 px-4 py-5 sm:px-5">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <Link
-          href="/"
-          aria-label="CashContour home"
-          className="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/60"
-        >
-          <span className="w-10 shrink-0">
-            <Image src="/branding/cashcontour-symbol-light.svg" alt="" width={1502} height={920} unoptimized className="block h-auto w-full dark:hidden" />
-            <Image src="/branding/cashcontour-symbol-dark.svg" alt="" width={1502} height={920} unoptimized className="hidden h-auto w-full dark:block" />
-          </span>
-          <span className="w-36 sm:w-40">
-            <Image src="/branding/cashcontour-wordmark-light.svg" alt="" width={1973} height={249} unoptimized className="block h-auto w-full dark:hidden" />
-            <Image src="/branding/cashcontour-wordmark-dark.svg" alt="" width={1973} height={249} unoptimized className="hidden h-auto w-full dark:block" />
-          </span>
-        </Link>
-        <nav aria-label="Account" className="flex items-center gap-2">
-          <ThemeToggle />
-          <Link href="/login" prefetch={false} className={buttonVariants({ variant: "outline" })}>
-            Sign in
-          </Link>
+    <div className="homepage" id="homepage">
+      <HomepageMotion />
+      <a href="#main-content" className="home-skip">Skip to content</a>
+      <header className="home-header home-container">
+        <HomepageBrand />
+        <nav aria-label="Homepage" className="home-nav">
+          <a href="#tracking">How it works</a>
+          <a href="#insights">Insights</a>
+          <Link href="/login" prefetch={false}>Sign in</Link>
         </nav>
       </header>
 
-      <main className="flex flex-1 flex-col justify-center gap-6">
-        <Card>
-          <CardContent className="grid gap-6 p-4 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:items-center md:p-6">
-            <div className="space-y-5">
-              <p className="text-xs font-semibold uppercase tracking-widest text-primary">
-                Personal money tracking
-              </p>
-              <h1 className="max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl">
-                A clearer picture of your money, month by month.
+      <main id="main-content">
+        <section className="home-hero" aria-labelledby="hero-heading">
+          <div className="home-container home-grid">
+            <div className="home-copy">
+              <h1 id="hero-heading" className="home-hero-title" data-reveal>
+                Your money<br />
+                <span>A clearer<br />picture</span>
               </h1>
-              <p className="max-w-xl text-base leading-7 text-muted-foreground">
-                Bring your income, spending, and upcoming bills together in one
-                calm workspace. Keep track of what happened and make sense of
-                what’s ahead.
+              <p className="home-body" data-reveal data-delay="80">
+                Track what happened. Plan what’s ahead<br className="home-desktop-break" />
+                {" "}Understand your money, month by month
               </p>
-              <div className="flex flex-wrap gap-3">
-                <Link href="/login" prefetch={false} className={buttonVariants({ size: "lg" })}>
-                  Get started <ArrowRight aria-hidden="true" />
-                </Link>
-                <Link href="/demo" className={buttonVariants({ size: "lg", variant: "outline" })}>
-                  Try demo
-                </Link>
-              </div>
-              <p className="text-sm leading-6 text-muted-foreground">
-                Sign in with Google, then choose your currency and confirm your time zone.
-              </p>
+              <div data-reveal data-delay="160"><HomepageActions /></div>
             </div>
-
-            <div className="rounded-xl border border-border/80 bg-background/60 p-4">
-              <h2 className="text-lg font-semibold tracking-tight">Your month, in focus</h2>
-              <ul className="mt-4 space-y-4">
-                <li>
-                  <p className="text-sm font-semibold">What came in and went out</p>
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    Monthly totals based on the transactions you record.
-                  </p>
-                </li>
-                <li>
-                  <p className="text-sm font-semibold">What’s coming up</p>
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    Planned bills and income, with handling you control.
-                  </p>
-                </li>
-                <li>
-                  <p className="text-sm font-semibold">What you could spend</p>
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    A safe-to-spend estimate that accounts for remaining spending
-                    and keeps pending income separate.
-                  </p>
-                </li>
-              </ul>
-            </div>
-          </CardContent>
-        </Card>
-
-        <section aria-labelledby="features-heading" className="space-y-4">
-          <h2 id="features-heading" className="text-xl font-semibold tracking-tight">
-            From everyday entries to the bigger picture
-          </h2>
-          <div className="grid gap-4 md:grid-cols-3">
-            {features.map(({ icon: Icon, title, description }) => (
-              <Card key={title}>
-                <CardContent className="space-y-3 p-4">
-                  <div className="flex size-10 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-                    <Icon aria-hidden="true" className="size-5" />
-                  </div>
-                  <h3 className="text-base font-semibold">{title}</h3>
-                  <p className="text-sm leading-6 text-muted-foreground">{description}</p>
-                </CardContent>
-              </Card>
-            ))}
+            <HomepageScene kind="hero" />
           </div>
+        </section>
+
+        <section id="tracking" className="home-section home-tracking" aria-labelledby="tracking-heading">
+          <div className="home-container home-grid">
+            <div className="home-copy">
+              <h2 id="tracking-heading" className="home-feature-title" data-reveal>
+                Make every<br />entry count
+              </h2>
+              <p className="home-body" data-reveal data-delay="80">
+                Record income and expenses, organize your categories, and keep your month in order
+              </p>
+              <div className="home-details" data-reveal data-delay="140">
+                <div><h3>Categories that fit your life</h3><p>Add subcategories when you want a closer look</p></div>
+                <div><h3>CSV in, CSV out</h3><p>Bring your records in. Take them with you</p></div>
+              </div>
+              <Link href="/demo?view=transactions" className="home-explore" data-reveal data-delay="200">
+                Explore transactions <ArrowRight aria-hidden="true" />
+              </Link>
+            </div>
+            <HomepageScene kind="tracking" />
+          </div>
+        </section>
+
+        <section id="planning" className="home-section home-planning" aria-labelledby="planning-heading">
+          <div className="home-container home-grid">
+            <div className="home-copy">
+              <h2 id="planning-heading" className="home-feature-title" data-reveal>See what’s<br />still ahead</h2>
+              <p className="home-body" data-reveal data-delay="80">
+                <strong>Plan monthly bills and expected income.</strong> Mark items paid, received, or skipped when you choose
+              </p>
+              <p className="home-planning-note" data-reveal data-delay="140">
+                Safe to spend is an estimate<br />Pending income stays separate
+              </p>
+              <Link href="/demo?view=planned" className="home-explore" data-reveal data-delay="200">
+                Explore planned items <ArrowRight aria-hidden="true" />
+              </Link>
+            </div>
+            <HomepageScene kind="planning" />
+          </div>
+        </section>
+
+        <section id="insights" className="home-section home-insights" aria-labelledby="insights-heading">
+          <div className="home-container home-grid">
+            <div className="home-copy">
+              <h2 id="insights-heading" className="home-insights-title" data-reveal>
+                Find the patterns<br /><span>Keep the perspective</span>
+              </h2>
+              <p className="home-body" data-reveal data-delay="80">
+                Explore monthly cash flow, spending by category, and changes over time
+              </p>
+              <Link href="/demo?view=insights" className="home-explore" data-reveal data-delay="160">
+                Explore Insights <ArrowRight aria-hidden="true" />
+              </Link>
+            </div>
+            <HomepageScene kind="insights" />
+          </div>
+        </section>
+
+        <section className="home-closing home-container" aria-labelledby="closing-heading">
+          <HomepageGraph />
+          <h2 id="closing-heading" data-reveal>Your next month starts here</h2>
+          <div data-reveal data-delay="80"><HomepageActions /></div>
+          <p data-reveal data-delay="140">Manual tracking. Your records, your decisions</p>
         </section>
       </main>
 
-      <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4 text-sm text-muted-foreground">
-        <p>Manual tracking. Your records, your decisions.</p>
-        <p>Import and export CSV from Settings.</p>
-      </footer>
     </div>
   );
 }

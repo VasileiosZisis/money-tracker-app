@@ -203,7 +203,7 @@ than creating parallel feature implementations.
 
 | Area | Location |
 | --- | --- |
-| Public homepage | `app/page.tsx` |
+| Public homepage and artwork | `app/page.tsx`, `components/homepage/`, `public/homepage/` |
 | Public synthetic demo | `app/demo/`, `components/demo/`, `lib/demo/`, `actions/demo.ts`, `lib/validators/demo.ts` |
 | Login and OAuth | `app/(auth)/login/page.tsx`, `app/api/auth/[...nextauth]/route.ts` |
 | Setup and onboarding redirects | `app/(onboarding)/setup/page.tsx`, `app/(onboarding)/layout.tsx` |

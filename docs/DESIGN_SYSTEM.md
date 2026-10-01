@@ -184,12 +184,53 @@ Rules:
 
 ### Public homepage
 
-- `/` uses a centered, responsive public layout outside the authenticated shell.
-- Its header reuses the CashContour light/dark branding assets and theme toggle,
-  with a Sign in link. The hero contains one level-one heading, a Get started
-  link, and descriptive monthly context rather than simulated financial data.
-- Three shared cards introduce tracking, planning, and Insights, stacking on
-  small screens. Use existing theme tokens, typography, borders, and elevation.
+- `/` uses five open editorial sections outside the authenticated shell: a dark
+  hero, cool off-white transaction tracking, mint monthly planning, dark Insights,
+  and a dark closing invitation without a footer. Alternate text/art placement on
+  desktop; below 768px always place copy before imagery. Keep header links
+  visible without a menu and contain the artwork and previews within the viewport.
+- The fixed palette uses homepage-scoped `--home-*` CSS variables in
+  `app/globals.css`; saved light/dark app preferences do not affect it. The
+  header reuses the existing dark-background CashContour SVG branding.
+  There is no homepage theme toggle. Use solid fills without gradients or
+  elevated section cards; realistic shading belongs to the photographed objects.
+- Homepage fills: navy `#060c14`, cool off-white `#edf2f7`, planning mint
+  `#7ddcd4`, and bright mint `#9aebe1` for dark-section accents and primary
+  buttons. Preview panels use `#f7f9fc`. These are scoped to the homepage and
+  preserve the account workspace theme tokens.
+- Bind homepage text explicitly to `--font-inter` with a sans-serif fallback.
+  Oversized, tightly tracked headings lead each section; monetary preview values
+  use `--font-jetbrains-mono`. Headings scale down on phones.
+- Transparent still-life artwork lives under `public/homepage/`: notebook,
+  receipt, coffee and pen; grocery bag, milk, apple and receipt; calendar,
+  pencil and a navy paper envelope with a clean triangular flap; open notebook,
+  calculator, sticky notes, pen and coffee. These assets were extracted with the
+  built-in Image Gen tool from the approved concepts, with text, UI panels and
+  backgrounds removed. Extraction prompts are recorded in
+  `docs/HOMEPAGE_ARTWORK.md`. All copy, controls and previews are native HTML.
+- A responsive static image of the demo's monthly income/expenses graph sits
+  above the closing invitation. `public/homepage/monthly-result-graph.svg` is
+  exported from the existing rendered chart, with fixed homepage typography
+  and colors. Its title and legend remain native HTML;
+  graph presentation and its fixed color variables are scoped in
+  `components/homepage/homepage-graph.module.css`.
+- Floating preview panels contain static fictional EUR examples without visible
+  Sample data labels. Preview rows are descriptive; the three Insights rows link to
+  the existing demo Insights view. Get started and Sign in open `/login`, Try
+  demo opens `/demo`, and feature exploration opens the corresponding demo view.
+  How it works targets tracking; header Insights targets
+  the Insights section.
+- A dedicated client motion component progressively enhances server-rendered
+  content. Content already visible at hydration stays in place; prepare offscreen
+  headings, copy blocks, artwork and previews before they enter view, then reveal
+  them once with a 24px upward fade over 650ms and short staggering. Keyboard
+  focus immediately reveals pending content. Separate inner artwork/preview
+  layers initialize their offsets before entering view and use continuous
+  native-scroll parallax capped at 24px, only at widths of 768px or more.
+  Breakpoint changes do not restart reveals. Reduced motion disables reveals,
+  parallax and animated anchor scrolling.
+  Content stays visible without JavaScript or animation APIs; observers,
+  listeners, animations and animation frames are cleaned up on navigation.
 
 ### Public demo
 

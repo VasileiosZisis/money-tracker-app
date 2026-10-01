@@ -47,11 +47,26 @@ simpler than a full accounting or budgeting suite.
 
 - `/` renders a public CashContour introduction for both signed-out and
   signed-in visitors, without automatically redirecting.
-- It introduces transaction tracking, monthly planning, and historical Insights
-  using descriptive content only; it does not load personal account data.
+- Its five editorial sections introduce transaction tracking, monthly planning,
+  and historical Insights, followed by a closing invitation without a footer. Floating
+  previews show static fictional EUR examples without visible Sample data labels; the homepage
+  does not load personal account data or run financial calculations.
+- A static demo graph image appears above the closing heading; its September
+  example is explicitly marked incomplete.
 - Sign in and Get started link to `/login`, which retains the existing Google
   sign-in and authenticated-user redirects to setup or the dashboard.
-- The homepage supports the existing light/dark theme toggle.
+- Try demo opens `/demo`; Explore transactions, Explore planned items and Explore
+  Insights open `/demo?view=transactions|planned|insights` respectively. The
+  Insights preview links also open demo Insights. How it works scrolls to
+  tracking; header Insights scrolls to the Insights section.
+- The homepage uses a fixed dark/off-white/mint palette independently of saved
+  app theme preferences and has no theme toggle. App and demo theme controls
+  retain their existing behavior.
+- Subtle once-per-view reveals and restrained desktop scroll movement enhance
+  the page. Initially visible content stays visible; offscreen content is prepared
+  before revealing, and keyboard focus immediately reveals pending content.
+  Mobile has no parallax, reduced-motion preferences disable animation,
+  and all content and navigation remain available without JavaScript.
 
 ### Public Interactive Demo
 

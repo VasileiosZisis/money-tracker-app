@@ -1,0 +1,37 @@
+.graph {
+  --home-graph-background: #0f1b2b;
+  --home-graph-income: #7ddbb5;
+  --home-graph-expenses: #ff8c8c;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto 52px;
+  padding: 24px;
+  background: var(--home-graph-background);
+  border: 1px solid var(--home-border);
+  border-radius: calc(var(--radius) * 1.4);
+  text-align: left;
+}
+
+.heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin-bottom: 18px;
+}
+
+.heading strong { font-size: 20px; font-weight: 650; letter-spacing: -.025em; }
+.heading > span { font-size: 13px; color: var(--home-muted); }
+.image { display: block; width: 100%; height: auto; }
+.legend { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-top: 18px; font-size: 13px; }
+.income::before, .expenses::before { content: ""; display: inline-block; width: 18px; height: 3px; margin-right: 8px; vertical-align: middle; background: var(--home-graph-income); }
+.expenses::before { background: var(--home-graph-expenses); }
+.note { margin-left: auto; color: var(--home-muted); }
+
+@media (max-width: 767px) {
+  .graph { padding: 18px 12px; margin-bottom: 36px; }
+  .heading strong { font-size: 17px; }
+  .heading > span, .legend { font-size: 12px; }
+  .note { width: 100%; margin-left: 0; }
+}
