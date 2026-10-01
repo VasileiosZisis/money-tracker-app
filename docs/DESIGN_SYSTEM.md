@@ -182,6 +182,32 @@ Rules:
 
 ## Layout principles
 
+### Public homepage
+
+- `/` uses a centered, responsive public layout outside the authenticated shell.
+- Its header reuses the CashContour light/dark branding assets and theme toggle,
+  with a Sign in link. The hero contains one level-one heading, a Get started
+  link, and descriptive monthly context rather than simulated financial data.
+- Three shared cards introduce tracking, planning, and Insights, stacking on
+  small screens. Use existing theme tokens, typography, borders, and elevation.
+
+### Public demo
+
+- `/demo` uses public CashContour branding and the shared UI primitives, form
+  fields, and charts. Its compact feature navigation exposes Dashboard,
+  Transactions, Planned items, and Insights with real addressable links.
+- Keep the `Demo · Sample data` banner, fixed example date, EUR/UTC context,
+  Reset demo, Create your account, and theme toggle visible above the workspace.
+  The banner explains that edits last for the tab session and do not transfer.
+- Reuse transaction row and inline-editor conventions, cascading filters,
+  planned-item handling forms, semantic money colors, and responsive cards.
+  The demo does not show category/template/adjustment creation or CSV controls.
+- Disable editing and conflicting navigation while restoring or updating data.
+  Reset remains available to recover a failed restore. Show request/validation
+  errors and storage limitations inline; transient successes use the toaster.
+- Homepage Get started has an adjacent outline Try demo action; login offers
+  Try demo without signing in beneath its Google sign-in button.
+
 ### App shell
 
 - Desktop uses the shadcn sidebar pattern with `SidebarProvider`, a full-height flush-left sidebar rail, and the page `main` element as the primary content container.

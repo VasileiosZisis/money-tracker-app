@@ -132,6 +132,35 @@ Do not move setup enforcement fully to the client.
 
 ## Database + money types
 
+### Synthetic public demo boundary
+
+`/demo` is outside the authenticated layout and protected-route matcher. Its
+dedicated public server actions validate and transform fictional snapshots only;
+they must never import database access, session resolution, or authenticated
+application actions. Authenticated routes and their ownership checks are unchanged.
+
+Demo snapshots have a version, serialized transactions, and monthly occurrences.
+Per-tab `sessionStorage` holds the latest accepted snapshot. Canonical categories,
+templates, currency (EUR), time zone (UTC), September 15, 2026 reference instant,
+and opening adjustment are server-controlled fixtures. Browser state and URL
+parameters are untrusted: validate snapshots and commands with Zod, normalize
+view parameters, bound transactions to 500 and occurrences to 125, and verify
+IDs, category/type/subcategory relationships, and occurrence/transaction links.
+Actual transaction/receipt/payment dates stop at the fixed example date so all
+demo actual-total and current-month analysis windows remain consistent.
+
+Reuse the existing server-side Decimal forecast, balance, attention, and Insights
+helpers. Monetary values cross the client boundary as strings; chart-only numbers
+are derived on the server. There are no demo database writes, guest users, shared
+visitor state, migrations, or cleanup jobs. Do not introduce anonymous identity
+fallbacks into real-account authentication or data access.
+
+Demo restore, navigation, and mutations retain the last accepted state on request
+failure. Requests use a generation guard so Reset and newer navigation invalidate
+older responses. A temporarily failed restore preserves stored edits for retry;
+invalid snapshots restore the sample. Missing/failed browser storage uses memory
+and displays its reload limit.
+
 Locked decisions:
 
 - money stored in Postgres as `numeric(14,2)`

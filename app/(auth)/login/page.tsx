@@ -1,10 +1,12 @@
 import { GoogleSignInButton } from "../_components/google-sign-in-button";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { ArrowRight, FileSpreadsheet, FolderKanban, ScrollText } from "lucide-react";
 
 import { getSession } from "@/lib/auth/session";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -135,6 +137,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               </p>
             </div>
             <GoogleSignInButton />
+            <Link href="/demo" className={buttonVariants({ variant: "outline" })}>
+              Try demo without signing in
+            </Link>
           </CardContent>
         </Card>
       </div>

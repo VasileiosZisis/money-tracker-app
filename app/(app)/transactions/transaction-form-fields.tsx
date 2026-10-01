@@ -44,6 +44,8 @@ export function TransactionFormFields({
   defaultValues,
   singleColumn = false,
   showTypeField,
+  dateMin,
+  dateMax,
 }: {
   idPrefix: string;
   categories: TransactionFormCategory[];
@@ -51,6 +53,8 @@ export function TransactionFormFields({
   defaultValues: TransactionFormDefaultValues;
   singleColumn?: boolean;
   showTypeField: boolean;
+  dateMin?: string;
+  dateMax?: string;
 }) {
   const [selectedType, setSelectedType] = useState(defaultValues.type);
   const [selectedCategoryId, setSelectedCategoryId] = useState(defaultValues.categoryId);
@@ -85,6 +89,8 @@ export function TransactionFormFields({
         name="localDate"
         type="date"
         defaultValue={defaultValues.localDate}
+        min={dateMin}
+        max={dateMax}
         required
       />
     </FormField>

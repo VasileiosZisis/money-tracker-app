@@ -203,6 +203,8 @@ than creating parallel feature implementations.
 
 | Area | Location |
 | --- | --- |
+| Public homepage | `app/page.tsx` |
+| Public synthetic demo | `app/demo/`, `components/demo/`, `lib/demo/`, `actions/demo.ts`, `lib/validators/demo.ts` |
 | Login and OAuth | `app/(auth)/login/page.tsx`, `app/api/auth/[...nextauth]/route.ts` |
 | Setup and onboarding redirects | `app/(onboarding)/setup/page.tsx`, `app/(onboarding)/layout.tsx` |
 | App shell and setup gate | `app/(app)/layout.tsx`, `components/app-shell/`, `proxy.ts` |
@@ -219,6 +221,13 @@ than creating parallel feature implementations.
 | Independent reviewers | `.codex/agents/` |
 
 Import/export have no standalone user-facing pages; Settings hosts both workflows.
+
+The public demo operates on fictional per-tab snapshots only. Its dedicated
+server actions are intentionally public and must never read/write the database,
+resolve an account identity, or call authenticated application actions. Keep
+demo validation and financial calculations server-side; do not add demo identity
+fallbacks to real-account authorization. See the synthetic demo boundary in
+`docs/TECH_DECISIONS.md` for its implementation rules.
 
 ## Execution and validation
 

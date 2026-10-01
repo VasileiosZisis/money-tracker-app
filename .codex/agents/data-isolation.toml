@@ -2,7 +2,7 @@ name = "data_isolation"
 description = "Security and data-ownership auditor for authentication, authorization, Prisma access, imports, and user-owned records."
 
 model = "gpt-6.1-sol"
-model_reasoning_effort = "high"
+model_reasoning_effort = "xhigh"
 sandbox_mode = "read-only"
 
 developer_instructions = """

@@ -43,6 +43,40 @@ simpler than a full accounting or budgeting suite.
 
 ## Current Implemented Scope
 
+### Public Homepage
+
+- `/` renders a public CashContour introduction for both signed-out and
+  signed-in visitors, without automatically redirecting.
+- It introduces transaction tracking, monthly planning, and historical Insights
+  using descriptive content only; it does not load personal account data.
+- Sign in and Get started link to `/login`, which retains the existing Google
+  sign-in and authenticated-user redirects to setup or the dashboard.
+- The homepage supports the existing light/dark theme toggle.
+
+### Public Interactive Demo
+
+- Try demo links on the homepage and login page open `/demo` without signing in.
+- Four URL-backed views (`view=dashboard|transactions|planned|insights`) use
+  fictional EUR records and a fixed UTC example date of September 15, 2026.
+  The sample includes 24 completed months and an incomplete September.
+- Visitors can create, edit, delete, and filter transactions; pay/receive,
+  skip, link, and undo seeded planned items; and explore recalculated Dashboard,
+  Total Balance, spending breakdowns, Needs Attention, and Insights.
+- Demo changes use per-tab `sessionStorage`, survive navigation and reload,
+  and disappear when that tab's session ends. Reset demo restores the original
+  sample and default controls. Invalid stored data restores the sample with a
+  notice; unavailable storage falls back to memory until reload.
+- Demo financial calculations and validation run on the server. No guest
+  accounts or database records are created or accessed, and demo edits never
+  transfer into a registered account. Signed-in visitors also see only sample data.
+- The demo banner identifies sample data, the example date, EUR, and UTC.
+  Create your account follows the existing Google login/setup flow.
+- Categories, planned templates, and the sample opening adjustment are fixed.
+  Their management, account settings, and CSV workflows require an account.
+  The demo calendar is September 2024 through September 2026; actual record dates
+  stop at the September 15 example date. The demo allows at most
+  500 transactions and one occurrence per template/month.
+
 ### Authentication And Setup
 
 - Google OAuth through NextAuth is the only authentication method.
@@ -52,7 +86,7 @@ simpler than a full accounting or budgeting suite.
   - confirming an account time zone suggested from the current browser
   - optionally creating default categories
   - marking setup complete
-- Unauthenticated users are redirected to `/login`.
+- Unauthenticated users visiting protected routes are redirected to `/login`.
 - Authenticated users without completed setup or a confirmed time zone are
   redirected to `/setup`.
 - Authenticated users with completed setup are redirected away from `/setup`
@@ -592,7 +626,9 @@ The panel does not perform automatic corrections or matching.
 
 ### Public
 
+- `/`
 - `/login`
+- `/demo`
 
 ### Setup
 
