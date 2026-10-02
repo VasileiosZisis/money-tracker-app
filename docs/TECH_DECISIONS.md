@@ -787,8 +787,28 @@ Do not move business logic into large client components.
 Current assumptions:
 
 - target hosting: Vercel
-- Postgres provider: Neon or Supabase
-- use pooled connection string if needed for serverless compatibility
+- Postgres provider: Neon, project `money-tracker-app`
+- Git pushes to `main` deploy Production; other branches deploy Preview without
+  a commit-message marker. `codex/preview` is the long-lived testing branch.
+- Production uses Neon `production` / `neondb`. All previews and local development
+  share Neon `preview` / `previewdb`, with preview-only `preview_owner` credentials
+  and fictional data. Never copy production records into preview or preview
+  records into production; keep the existing test database separate.
+- Application runtime uses pooled `DATABASE_URL`. Prisma CLI prefers optional
+  direct `DATABASE_URL_UNPOOLED`, falling back to `DATABASE_URL`. Exported values
+  win over dotenv files, then `.env.local` wins over `.env`. `APP_ENV=test` uses
+  the test file's or explicitly exported test `DATABASE_URL`, ignores non-test
+  direct URLs, and fails without an explicit test target.
+- Migrations are manual, not part of Vercel builds. Test committed migrations on
+  preview and apply backward-compatible changes to production before releasing
+  dependent code. Author migrations on disposable development databases, not the
+  shared preview database. Code rollback does not roll back database migrations.
+- Scope database URLs and NextAuth secrets separately for Production and
+  Preview/Development. Preserve production credentials. Google OAuth stays the
+  only provider; register each stable testing-branch callback on the existing
+  client. Leave `NEXTAUTH_URL` unset on Vercel and preserve preview protection.
+- Release by merging to `main` for a new Production build, not by promoting a
+  preview artifact with preview environment configuration.
 
 This is an operational assumption, not a permanent product rule.
 

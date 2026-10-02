@@ -193,6 +193,7 @@ Create `.env.local`:
 
 ```env
 DATABASE_URL=postgresql://...
+DATABASE_URL_UNPOOLED=postgresql://...
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=...
 GOOGLE_CLIENT_ID=...
@@ -203,7 +204,7 @@ GOOGLE_CLIENT_SECRET=...
 
 ```bash
 npm run prisma:generate
-npx prisma migrate dev
+npx prisma migrate deploy
 ```
 
 ### 4. Start the app
@@ -229,12 +230,71 @@ npm run check
 
 ## Deployment
 
-Vercel Git deployments are opt-in. The ignored-build script skips a deployment
-unless the commit message contains `[deploy]`:
+Vercel deploys automatically on Git pushes. `main` is the Production branch;
+all other branches use Preview. Local commits do not deploy, and commit messages
+do not require a deployment marker. Keep the Ignored Build Step set to Automatic.
 
-```bash
-git commit -m "Describe the change [deploy]"
+### Environment separation
+
+| Setting | Production | Preview / Development |
+| --- | --- | --- |
+| Neon branch and database | `production` / `neondb` | `preview` / `previewdb` |
+| `DATABASE_URL` | Production pooled URL, Production only | Preview pooled URL, all preview branches and Development |
+| `NEXTAUTH_SECRET` | Existing production secret | Separate non-production secret |
+| Google OAuth credentials | Existing Google client | Same client with preview callback registered |
+
+All preview deployments and local development share the persistent preview
+database. It starts without production records and uses the preview-only
+`preview_owner` role. Never put production database credentials in Preview,
+Development, or local `.env.local`. Keep `.env.test.local` separate.
+
+Create Neon's `preview` branch using Schema only, with auto-deletion disabled.
+Create the `preview_owner` role and a fresh `previewdb` database on that branch.
+Leave the copied `neondb` unused: its tables exist but its migration-history rows
+were not copied, so it cannot be initialized by replaying migrations normally.
+Do not install automatic per-deployment Neon branching for this shared setup.
+
+### Manual migrations
+
+`DATABASE_URL` is the pooled application connection. Prisma CLI prefers the
+optional direct `DATABASE_URL_UNPOOLED`, falling back to `DATABASE_URL`.
+Exported variables take precedence over dotenv files; `.env.local` takes
+precedence over `.env`. In `APP_ENV=test`, Prisma uses `.env.test.local`'s
+`DATABASE_URL` or an explicitly exported test `DATABASE_URL`, never a non-test
+direct URL or an implicit local/default database.
+
+Before each migration, verify the endpoint, database, and role. Use the direct
+preview connection to initialize `previewdb` and test committed migrations:
+
+```powershell
+$env:DATABASE_URL_UNPOOLED = '<direct preview/previewdb connection string>'
+npx prisma migrate deploy
+Remove-Item Env:\DATABASE_URL_UNPOOLED
 ```
+
+When changing migration targets, explicitly set `DATABASE_URL_UNPOOLED`; setting
+only `DATABASE_URL` does not override a configured direct URL. Apply tested,
+backward-compatible migrations to production before merging dependent code.
+The build command does not apply migrations. Do not use `migrate dev`, `db push`,
+or reset commands against production or the shared preview database; author new
+migrations against a disposable development database instead. Never copy preview
+records into production. Vercel rollbacks do not roll back database migrations.
+
+### Preview authentication and release
+
+Keep `NEXTAUTH_URL` unset on Vercel with system environment variables enabled.
+Locally, keep `NEXTAUTH_URL=http://localhost:3000`. Use the stable branch domain
+shown in the deployment's Domains, not a commit-specific domain. Register its
+exact `https://<branch-host>/api/auth/callback/google` URL in the existing Google
+OAuth client without removing production or localhost callbacks. Other branches
+need their own callback registration to test Google login. Keep Vercel's preview
+login protection enabled.
+
+Use the long-lived `codex/preview` branch for a reusable authenticated preview.
+Verify login, setup, and fictional transactions there, then merge to `main` for
+a new Production build with Production variables. Do not promote an existing
+preview artifact as the release path. Environment changes affect new deployments
+only. Coordinate schema changes because all preview branches share one database.
 
 ## Project documentation
 
