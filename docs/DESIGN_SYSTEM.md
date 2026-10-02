@@ -16,6 +16,11 @@ Core traits:
 - desktop-first shell with a left sidebar rail and compact contextual top bar
 - responsive layouts that collapse cleanly on smaller screens
 
+## Browser and touch icons
+
+- The supplied CashContour ICO lives at `app/favicon.ico`, providing the automatic `/favicon.ico` browser fallback. Keep only this copy of the ICO.
+- Root-layout metadata references the 16px and 32px PNG browser icons and the 180px Apple touch icon under `public/branding/favicons/`. The same folder's `site.webmanifest` references the supplied 192px and 512px Android icons and keeps ordinary browser display behavior. These icons use the supplied artwork rather than switching with the app's light/dark theme.
+
 ## Theme tokens
 
 Theme tokens live in `app/globals.css` as CSS variables.

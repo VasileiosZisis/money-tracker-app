@@ -20,6 +20,16 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Money Tracker",
   description: "Track monthly income and expenses.",
+  icons: {
+    icon: [
+      { url: "/branding/favicons/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/branding/favicons/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: [
+      { url: "/branding/favicons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
+  manifest: "/branding/favicons/site.webmanifest",
 };
 
 const themeScript = `
