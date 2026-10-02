@@ -28,6 +28,34 @@ Extract and faithfully reproduce the object group alone, centered in a tightly f
 Remove EVERY heading, body text, logo, button, navigation element and interface panel. Remove ALL webpage background, ground plane, page colors and backdrop. Actual alpha transparency, not a checkerboard printed into the image. Receipt markings may be simple abstract lines; no legible words, branding or numbers on objects. Preserve photorealistic texture, studio lighting, realistic shading on objects and delicate transparent contact shadows. No added props, no redesign, no gradients/backdrop, no UI. Match the reference object's colors and framing.
 ```
 
+The tracking asset's handle was subsequently repaired with the built-in Image Gen
+tool using the shipped PNG as the edit target. The replacement preserves its
+square composition and transparent alpha background, with a 1254×1254 output.
+Both legs of the front woven
+handle now connect continuously to the existing stitched attachment tabs.
+The tracking image uses a static import so its generated URL changes with the
+file contents, refreshing cached optimized copies after artwork repairs.
+
+Repair prompt:
+
+```text
+Edit target: the attached transparent production PNG public/homepage/tracking-still-life.png.
+Make a targeted photorealistic repair to the DARK TEAL GROCERY BAG'S HANDLE ONLY. The existing handle is malformed: its left leg ends behind the milk carton and does not connect to the left stitched attachment tab on the front rim. Rebuild the front carry handle as one coherent, physically plausible inverted-U loop of flat woven teal webbing. BOTH strap legs must be visibly continuous from the top arch down to their respective existing stitched rectangular tabs at the left and right of the bag's front rim. The left leg must reach the left front attachment tab; the right leg must reach the right front attachment tab. Keep the same strap width on both sides, natural perspective, clean sewn edges, and believable bends. No broken or floating ends, no twists, no fused fabric bridge, no intersection through the groceries. The handle can pass in front of the groceries as a real upright tote handle would; maintain clearly understandable depth and attachments.
+Preserve the bag body, its dark teal woven fabric and folds, camera angle, overall scale, white milk carton with mint top and teal cap, green apple, receipt, their arrangement, studio lighting, and composition as closely as possible. No new objects, branding, text, logos or interface panels. Keep the whole bag and handle within the frame with transparent breathing room. Preserve the original square 1280x1280 framing and a TRUE transparent alpha background, including empty space inside the handle. Do not add a ground plane, solid background, checkerboard pattern, or surrounding glow. Realistic shading only on the objects.
+```
+
+A second edit added a matching rear inverted-U handle behind the groceries,
+with distinct front and rear arches and natural occlusion at the back rim.
+The original repaired front handle remains attached to both front tabs.
+
+Rear-handle prompt:
+
+```text
+Edit target: attached CashContour tracking still-life PNG, a dark teal woven grocery tote with a white milk carton, green apple and receipt on a transparent background.
+Add ONE matching carry handle attached to the OTHER side of the bag: the BACK rim. The bag should have two separate, physically plausible tote handles: preserve the existing front inverted-U handle exactly, and add a rear inverted-U handle made from the same dark teal flat woven webbing. The rear handle must sit in a plane behind the milk carton, apple and receipt, with its two ends sewn into opposite positions on the rear rim. Its lower legs should be naturally occluded by the groceries where appropriate. Its upper arch should remain visibly distinct from the front arch, slightly higher and offset toward the right in this camera perspective, enough separation to clearly read as two handles, without fusing or crossing unnaturally. Use consistent width, woven texture, clean sewn edges, correct perspective and realistic lighting. No floating ends, loops attached to the side walls, extra third handle, duplicate groceries, twisted straps or impossible fabric connections.
+Preserve the existing front handle, bag body, folds, stitched front tabs, groceries, receipt markings, camera angle, scale, overall composition and colors as closely as possible. Keep everything fully inside the square frame with small transparent breathing room. Genuine alpha transparency, including empty areas inside and between handles. No background, ground plane, text, logo, interface, checkerboard or surrounding glow. Only add the rear handle; do not redesign the other objects.
+```
+
 ## planning
 
 Asset: `public/homepage/planning-still-life.png`

@@ -224,7 +224,11 @@ Rules:
   the existing demo Insights view. Get started and Sign in open `/login`, Try
   demo opens `/demo`, and feature exploration opens the corresponding demo view.
   How it works targets tracking; header Insights targets
-  the Insights section.
+  the Insights section. These two navigation links use an 800ms eased scroll,
+  with immediate scrolling when reduced motion is preferred. Manual scroll,
+  touch, pointer, keyboard and history navigation cancel an active scroll.
+  Preserve hash history and move keyboard focus to the destination on completion;
+  without JavaScript the links remain native anchors.
 - A dedicated client motion component progressively enhances server-rendered
   content. Content already visible at hydration stays in place; prepare offscreen
   headings, copy blocks, artwork and previews before they enter view, then reveal

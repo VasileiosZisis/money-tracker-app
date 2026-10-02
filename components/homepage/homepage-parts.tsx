@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, ChevronRight } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
+import trackingStillLife from "@/public/homepage/tracking-still-life.png";
 
 import graphStyles from "./homepage-graph.module.css";
 
@@ -66,7 +67,7 @@ export function HomepageScene({ kind }: { kind: keyof typeof scenes }) {
       <div className="home-art" data-reveal data-delay="100">
         <div data-parallax="1">
           <Image
-            src={`/homepage/${kind}-still-life.png`}
+            src={kind === "tracking" ? trackingStillLife : `/homepage/${kind}-still-life.png`}
             alt=""
             width={1280}
             height={1280}

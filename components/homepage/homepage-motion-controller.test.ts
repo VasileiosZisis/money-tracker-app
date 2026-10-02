@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { mountHomepageMotion } from "./homepage-motion-controller";
+import { mountHomepageNavigation } from "./homepage-navigation";
 
 class FakeStyle {
   values = new Map<string, string>();
@@ -219,4 +220,128 @@ test("cleanup removes hidden styles, animations, observers, listeners and schedu
   assert.equal(f.desktopMedia.listeners.size, 0);
   assert.equal(f.reducedMotion.listeners.size, 0);
   assert.ok(f.observers.every((observer) => observer.disconnected));
+});
+
+function navigationFixture(reduced = false, initialTabindex?: string) {
+  const media = new FakeMedia(reduced);
+  const listeners = new Map<string, () => void>();
+  const frames = new Map<number, FrameRequestCallback>();
+  const clicks = new Map<string, (event: MouseEvent) => void>();
+  const attributes = new Map<string, string>();
+  if (initialTabindex !== undefined) attributes.set("tabindex", initialTabindex);
+  let focused = false;
+  let nextFrame = 0;
+  let y = 0;
+  const target = {
+    getBoundingClientRect: () => ({ top: 1000 - y }),
+    getAttribute: (name: string) => attributes.get(name) ?? null,
+    setAttribute: (name: string, value: string) => attributes.set(name, value),
+    removeAttribute: (name: string) => attributes.delete(name),
+    focus: (options: FocusOptions) => { assert.equal(options.preventScroll, true); focused = true; },
+  };
+  const link = {
+    getAttribute: () => "#tracking",
+    addEventListener: (type: string, callback: (event: MouseEvent) => void) => clicks.set(type, callback),
+    removeEventListener: (type: string) => clicks.delete(type),
+  };
+  const location = { hash: "" };
+  const state = { preserved: true };
+  const view = {
+    get scrollY() { return y; }, scrollX: 0,
+    scrollTo: (options: ScrollToOptions) => { assert.equal(options.behavior, "instant"); y = options.top ?? 0; },
+    matchMedia: () => media,
+    getComputedStyle: () => ({ scrollMarginTop: "24px" }),
+    requestAnimationFrame: (callback: FrameRequestCallback) => { frames.set(++nextFrame, callback); return nextFrame; },
+    cancelAnimationFrame: (id: number) => frames.delete(id),
+    addEventListener: (type: string, callback: () => void) => listeners.set(type, callback),
+    removeEventListener: (type: string) => listeners.delete(type),
+    location,
+    history: { state, pushState: (saved: unknown, _title: string, hash: string) => { assert.equal(saved, state); location.hash = hash; } },
+  };
+  const root = { querySelectorAll: () => [link], querySelector: () => target };
+  const cleanup = mountHomepageNavigation(root as unknown as HTMLElement, view as unknown as Window);
+  const click = (overrides = {}) => {
+    let prevented = false;
+    clicks.get("click")?.({ button: 0, currentTarget: link, preventDefault: () => { prevented = true; }, ...overrides } as unknown as MouseEvent);
+    return prevented;
+  };
+  const tick = (timestamp: number) => {
+    const current = Array.from(frames.values());
+    frames.clear();
+    current.forEach(callback => callback(timestamp));
+  };
+  return { click, tick, cleanup, media, listeners, frames, clicks, attributes, location, get y() { return y; }, get focused() { return focused; } };
+}
+
+test("navigation scrolls through intermediate positions and preserves hash, margin and keyboard destination", () => {
+  const f = navigationFixture();
+  assert.equal(f.click(), true);
+  assert.equal(f.location.hash, "#tracking");
+  f.tick(0);
+  assert.equal(f.y, 0);
+  f.tick(400);
+  assert.ok(f.y > 0 && f.y < 976);
+  assert.equal(f.focused, false);
+  f.tick(800);
+  assert.equal(f.y, 976);
+  assert.equal(f.focused, true);
+  assert.equal(f.attributes.get("tabindex"), "-1");
+  assert.equal(f.frames.size, 0);
+  f.cleanup();
+  assert.equal(f.attributes.has("tabindex"), false);
+});
+
+test("reduced motion navigates immediately, including preference changes during scrolling", () => {
+  for (const reduced of [true, false]) {
+    const f = navigationFixture(reduced);
+    f.click();
+    if (!reduced) { f.tick(0); f.tick(200); f.media.change(true); }
+    assert.equal(f.y, 976);
+    assert.equal(f.focused, true);
+    assert.equal(f.frames.size, 0);
+    f.cleanup();
+  }
+});
+
+test("modified and already-handled navigation clicks retain native behavior", () => {
+  const f = navigationFixture();
+  for (const overrides of [{ button: 1 }, { ctrlKey: true }, { metaKey: true }, { shiftKey: true }, { altKey: true }, { defaultPrevented: true }]) {
+    assert.equal(f.click(overrides), false);
+    assert.equal(f.frames.size, 0);
+    assert.equal(f.location.hash, "");
+  }
+  f.cleanup();
+});
+
+test("manual input and history cancel navigation without stealing focus", () => {
+  for (const input of ["wheel", "touchstart", "pointerdown", "keydown", "popstate"]) {
+    const f = navigationFixture();
+    f.click(); f.tick(0); f.tick(100);
+    const stoppedAt = f.y;
+    f.listeners.get(input)?.();
+    f.tick(800);
+    assert.equal(f.y, stoppedAt);
+    assert.equal(f.focused, false);
+    assert.equal(f.frames.size, 0);
+    f.cleanup();
+  }
+});
+
+test("navigation cleanup cancels frames and removes listeners", () => {
+  const f = navigationFixture();
+  f.click();
+  f.cleanup();
+  assert.equal(f.frames.size, 0);
+  assert.equal(f.listeners.size, 0);
+  assert.equal(f.clicks.size, 0);
+  assert.equal(f.media.listeners.size, 0);
+});
+
+test("navigation cleanup restores an existing target tabindex", () => {
+  const f = navigationFixture(false, "0");
+  f.click(); f.tick(0); f.tick(800);
+  assert.equal(f.focused, true);
+  assert.equal(f.attributes.get("tabindex"), "-1");
+  f.cleanup();
+  assert.equal(f.attributes.get("tabindex"), "0");
 });

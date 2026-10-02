@@ -206,6 +206,10 @@
 }
 
 /* The public homepage has a fixed palette, independent of account theme. */
+html:has(.homepage) {
+  scroll-behavior: smooth;
+}
+
 .homepage {
   --home-dark: #060c14;
   --home-light: #edf2f7;

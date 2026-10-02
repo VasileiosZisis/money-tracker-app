@@ -58,7 +58,8 @@ simpler than a full accounting or budgeting suite.
 - Try demo opens `/demo`; Explore transactions, Explore planned items and Explore
   Insights open `/demo?view=transactions|planned|insights` respectively. The
   Insights preview links also open demo Insights. How it works scrolls to
-  tracking; header Insights scrolls to the Insights section.
+  tracking; header Insights scrolls to the Insights section. These anchors use
+  smooth scrolling unless reduced motion is preferred.
 - The homepage uses a fixed dark/off-white/mint palette independently of saved
   app theme preferences and has no theme toggle. App and demo theme controls
   retain their existing behavior.
