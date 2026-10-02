@@ -424,3 +424,74 @@ html:has(.homepage) {
   html:has(.homepage) { scroll-behavior: auto; }
   .homepage *, .homepage *::before, .homepage *::after { transition: none !important; }
 }
+
+/* The public sign-in page has a fixed palette, independent of the app theme. */
+.login-page {
+  --login-background: #060c14;
+  --login-mint: #9aebe1;
+  --login-text: #eef4fa;
+  --login-muted: #aebacc;
+  --login-button-ink: #060c14;
+  --login-button-hover: #afe9e1;
+  --login-error: #ff8c8c;
+  min-height: 100svh;
+  background: var(--login-background);
+  color: var(--login-text);
+  font-family: var(--font-inter), Inter, sans-serif;
+}
+.login-container { width: calc(100% - 8vw); max-width: 1472px; margin-inline: auto; }
+.login-main { display: grid; grid-template-columns: minmax(0, 56fr) minmax(0, 44fr); gap: clamp(48px, 6vw, 96px); align-items: center; min-height: calc(100svh - 108px); padding-block: 28px; }
+.login-editorial { min-width: 0; }
+.login-headline { font-size: clamp(56px, 6.8vw, 112px); font-weight: 750; line-height: .94; letter-spacing: -.055em; white-space: nowrap; }
+.login-headline span { color: var(--login-mint); }
+.login-artwork { display: block; width: min(calc(100% - 64px), 640px); height: auto; margin-top: -8px; margin-left: 64px; }
+.login-signin { width: 100%; max-width: 530px; justify-self: end; }
+.login-signin h1 { font-size: clamp(36px, 4vw, 64px); font-weight: 750; line-height: 1.16; letter-spacing: -.04em; }
+.login-description { margin-top: 24px; color: var(--login-muted); font-size: clamp(18px, 1.75vw, 28px); line-height: 1.3; letter-spacing: -.02em; }
+.login-controls { display: flex; flex-direction: column; gap: 24px; margin-top: 42px; }
+.login-page .login-google-button, .login-page .login-demo-button { width: 100%; height: 64px; padding-inline: 30px; gap: 14px; border: 2px solid var(--login-mint); border-radius: var(--radius); font-size: 20px; font-weight: 600; box-shadow: none; transition: background-color 160ms, color 160ms, border-color 160ms; }
+.login-page .login-google-button { background: var(--login-mint); color: var(--login-button-ink); }
+.login-page .login-google-button:hover { background: var(--login-button-hover); border-color: var(--login-button-hover); }
+.login-page .login-google-button svg { width: 23px; height: 23px; }
+.login-page .login-demo-button { background: var(--login-background); color: var(--login-text); }
+.login-page .login-demo-button:hover { background: var(--login-mint); color: var(--login-button-ink); }
+.login-error { padding: 16px 20px; border: 1px solid var(--login-error); border-radius: var(--radius); color: var(--login-error); font-size: 18px; line-height: 1.5; }
+.login-error p:first-child { font-weight: 650; }
+.login-error p + p { margin-top: 4px; }
+.login-page a:focus-visible, .login-page button:focus-visible { outline: 3px solid var(--login-mint); outline-offset: 6px; box-shadow: none; }
+.login-page:focus-within .login-enter { animation-duration: 0s; animation-delay: 0s; }
+
+@keyframes login-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .login-enter { animation: login-enter 450ms cubic-bezier(.2, .65, .3, 1) both; }
+  .login-artwork { animation-delay: 80ms; }
+  .login-signin { animation-delay: 120ms; }
+}
+@media (max-width: 1023px) {
+  .login-container { width: calc(100% - 64px); }
+  .login-main { grid-template-columns: minmax(0, 1fr); min-height: calc(100svh - 100px); padding-block: 64px; }
+  .login-editorial { display: none; }
+  .login-signin { max-width: 480px; justify-self: center; }
+  .login-signin h1 { font-size: 48px; }
+  .login-description { font-size: 22px; }
+  .login-page .login-google-button, .login-page .login-demo-button { height: 52px; font-size: 16px; padding-inline: 18px; }
+}
+@media (max-width: 767px) {
+  .login-page .login-google-button, .login-page .login-demo-button { padding-inline: 22px; gap: 8px; }
+  .login-page .login-google-button svg { width: 19px; height: 19px; }
+}
+@media (max-width: 599px) {
+  .login-container { width: calc(100% - 40px); }
+  .login-main { min-height: calc(100svh - 124px); padding-block: 48px; }
+  .login-signin h1 { font-size: clamp(36px, 9.5vw, 48px); }
+  .login-description { font-size: 18px; margin-top: 20px; }
+  .login-controls { margin-top: 32px; gap: 16px; }
+  .login-error { font-size: 16px; padding: 14px 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .login-enter { animation: none; }
+  .login-page *, .login-page *::before, .login-page *::after { transition: none !important; }
+}

@@ -1,0 +1,28 @@
+:global(.login-page) .header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding-block: 32px;
+}
+
+:global(.login-page) .header :global(.home-brand) { gap: 8px; }
+:global(.login-page) .header :global(.home-brand-symbol) { width: 44px; height: auto; }
+:global(.login-page) .header :global(.home-brand-wordmark) { width: 194px; height: auto; }
+.header .back { display: inline-flex; align-items: center; gap: 10px; padding-block: 10px; border-radius: var(--radius); font-size: 17px; line-height: 1.5; }
+.header .back svg { width: 20px; height: 20px; flex-shrink: 0; }
+.header .back:hover { color: var(--login-mint); }
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  :global(.login-page) .header :global(.home-brand-wordmark) { width: 160px; }
+  .header .back { font-size: 15px; }
+  .header .back svg { width: 18px; height: 18px; }
+}
+
+@media (max-width: 767px) {
+  :global(.login-page) .header { padding-block: 24px; gap: 16px; flex-wrap: wrap; }
+  :global(.login-page) .header :global(.home-brand-symbol) { width: 36px; }
+  :global(.login-page) .header :global(.home-brand-wordmark) { width: 166px; }
+  .header .back { font-size: 14px; }
+  .header .back svg { width: 16px; height: 16px; }
+}

@@ -13,9 +13,9 @@ export function GoogleSignInButton() {
   return (
     <Button
       onClick={handleSignIn}
-      className="mt-4 h-10 w-full justify-center rounded-lg"
+      className="login-google-button"
     >
-      <LogIn />
+      <LogIn aria-hidden="true" />
       Continue with Google
     </Button>
   );

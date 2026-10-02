@@ -241,6 +241,55 @@ Rules:
   Content stays visible without JavaScript or animation APIs; observers,
   listeners, animations and animation frames are cleaned up on navigation.
 
+### Public login
+
+- `/login` uses an open editorial layout outside the authenticated shell, with
+  the actual CashContour SVG brand linked home and a Back to home link at the
+  opposite end of the header. Do not add cards, a theme toggle or a footer.
+  Reuse the homepage's responsive logo dimensions and header-link text sizes:
+  17px on desktop, 15px on tablet and 14px on mobile. Header presentation is
+  scoped in `app/(auth)/login/login-header.module.css`.
+- Login-scoped `--login-*` variables in `app/globals.css` provide solid navy
+  `#060c14`, mint `#9aebe1`, off-white `#eef4fa` and muted `#aebacc` regardless
+  of saved app theme preferences. Bind text explicitly to `--font-inter`.
+- Desktop uses an approximately 56/44 split. Oversized Your money / A clearer
+  picture copy and the homepage notebook, receipt, coffee and pen artwork occupy
+  the left; Welcome to CashContour and the focused sign-in area occupy the right.
+  Reuse `public/homepage/hero-still-life.png` without a preview panel.
+- Below 1024px hide the promotional copy and artwork, center the sign-in area
+  beneath the header, and keep both buttons full width with comfortable gutters.
+  The header may wrap on narrow phones. Short screens scroll naturally.
+- Continue with Google uses the existing shared Button and sign-in icon with
+  scoped mint styling; Try demo is a navy button with a mint outline. Retain
+  visible keyboard focus and restrained solid-color hover treatments.
+  Match homepage button sizing: 64px height with 20px text on desktop, and
+  52px height with 16px text below 1024px. Login buttons remain full width.
+- OAuth errors appear as an inline alert above the buttons: Google sign-in could
+  not complete, followed by Please try again. All visible copy omits trailing
+  periods.
+- CSS-only entrance motion fades content up 12px over 450ms with short staggered
+  delays. Reduced motion disables it, and focus entering the page immediately
+  reveals all content. Text and navigation remain readable without JavaScript.
+
+### Public not-found page
+
+- Unknown public URLs use the server-rendered root not-found page, outside the
+  authenticated shell. Reuse the CashContour SVG brand and homepage responsive
+  logo dimensions in a simple header linked to `/`.
+- `app/not-found.module.css` scopes the fixed navy `#060c14`, mint `#9aebe1`,
+  off-white `#eef4fa` and muted `#aebacc` variables independently of app theme
+  preferences. Bind Inter explicitly, use solid fills and centered typography,
+  and omit artwork, cards, extra navigation and a footer.
+- Present a mint 404 numeral scaling from 160px to 280px, followed by Page not
+  found, a short explanation and one Back to home link styled with the shared
+  button primitive. The heading is 48px on desktop and 32px on mobile; the
+  button matches homepage sizing at 64px/20px on desktop and 52px/16px below
+  1024px. All copy omits trailing periods.
+- Keep content immediately visible, allow natural scrolling on short screens,
+  and preserve clear focus outlines. There is no entrance animation; reduced
+  motion disables the button hover transition. Recovery links work without
+  JavaScript.
+
 ### Public demo
 
 - `/demo` uses public CashContour branding and the shared UI primitives, form

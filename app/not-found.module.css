@@ -1,0 +1,43 @@
+.page {
+  --not-found-background: #060c14;
+  --not-found-mint: #9aebe1;
+  --not-found-text: #eef4fa;
+  --not-found-muted: #aebacc;
+  --not-found-button-ink: #04110f;
+  --not-found-button-hover: #afe9e1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+  background: var(--not-found-background);
+  color: var(--not-found-text);
+  font-family: var(--font-inter), Inter, sans-serif;
+}
+
+.header { padding-block: 32px; }
+.main { display: flex; flex: 1; align-items: center; justify-content: center; padding-block: 48px 96px; text-align: center; }
+.content { width: 100%; max-width: 760px; }
+.code { color: var(--not-found-mint); font-size: clamp(160px, 20vw, 280px); font-weight: 750; line-height: .9; letter-spacing: -.08em; }
+.heading { margin-top: 32px; font-size: 48px; font-weight: 650; line-height: 1.15; letter-spacing: -.04em; }
+.description { max-width: 560px; margin: 20px auto 0; color: var(--not-found-muted); font-size: 20px; line-height: 1.5; }
+.page .button { height: 64px; min-width: 232px; margin-top: 36px; padding-inline: 30px; gap: 14px; border: 2px solid var(--not-found-mint); border-radius: var(--radius); background: var(--not-found-mint); color: var(--not-found-button-ink); font-size: 20px; box-shadow: none; transition: background-color 160ms, border-color 160ms; }
+.page .button svg { width: 23px; height: 23px; }
+.page .button:hover { background: var(--not-found-button-hover); border-color: var(--not-found-button-hover); }
+.page a:focus-visible { outline: 3px solid var(--not-found-mint); outline-offset: 6px; box-shadow: none; }
+.page ::selection { background: var(--not-found-mint); color: var(--not-found-button-ink); }
+
+@media (max-width: 1023px) {
+  .page .button { height: 52px; padding-inline: 18px; font-size: 16px; }
+}
+
+@media (max-width: 767px) {
+  .header { padding-block: 24px; }
+  .main { padding-block: 40px 64px; }
+  .heading { margin-top: 24px; font-size: 32px; }
+  .description { margin-top: 16px; font-size: 18px; }
+  .page .button { width: 100%; max-width: 320px; min-width: 0; margin-top: 28px; padding-inline: 22px; gap: 8px; }
+  .page .button svg { width: 19px; height: 19px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page *, .page *::before, .page *::after { transition: none !important; }
+}

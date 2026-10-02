@@ -69,6 +69,18 @@ simpler than a full accounting or budgeting suite.
   Mobile has no parallax, reduced-motion preferences disable animation,
   and all content and navigation remain available without JavaScript.
 
+### Public Not-Found Page
+
+- Unmatched public URLs render a branded CashContour 404 page through Next.js's
+  native root not-found convention, retaining its status and noindex handling.
+- The page shows 404, Page not found, The page you’re looking for doesn’t exist
+  or has moved, and a Back to home button. The button and header branding open
+  `/`; there are no account queries or personalized recovery destinations.
+- Its fixed navy/mint palette is independent of saved app themes. The page is
+  server-rendered, readable without JavaScript and responsive on short screens.
+- Its title is Page not found — CashContour. Existing protected-route login and
+  setup gates remain in effect before the not-found presentation.
+
 ### Public Interactive Demo
 
 - Try demo links on the homepage and login page open `/demo` without signing in.
@@ -96,6 +108,21 @@ simpler than a full accounting or budgeting suite.
 ### Authentication And Setup
 
 - Google OAuth through NextAuth is the only authentication method.
+- `/login` presents a public CashContour sign-in area on a fixed navy/mint
+  palette independent of saved app theme preferences. Desktop adds editorial
+  copy and homepage notebook artwork; below 1024px only the header and focused
+  sign-in area remain. It has no theme toggle or marketing cards.
+- Continue with Google retains the Google OAuth flow with `/dashboard` as its
+  callback destination. Try demo opens `/demo`; the branding and Back to home
+  link open `/`. The page title is Sign in — CashContour.
+- An OAuth error parameter shows the accessible inline message Google sign-in
+  could not complete, followed by Please try again. The sign-in and demo
+  controls remain available for retry or exploration.
+- Visiting `/login` with an authenticated user record redirects to `/dashboard`
+  when setup is complete and a time zone is confirmed, or `/setup` otherwise.
+- Brief CSS entrance motion respects reduced motion and immediately reveals
+  content on keyboard focus. The page remains readable without JavaScript and
+  allows natural scrolling on short screens.
 - First login requires setup before the authenticated app can be used.
 - Setup includes:
   - choosing a base currency
