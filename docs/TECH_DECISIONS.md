@@ -155,6 +155,20 @@ are derived on the server. There are no demo database writes, guest users, share
 visitor state, migrations, or cleanup jobs. Do not introduce anonymous identity
 fallbacks into real-account authentication or data access.
 
+App and demo share presentation through explicit display models and slots, not
+through an authentication bypass or guest account. `components/app-shell/`
+contains the shared shell/sidebar/contextual presentation; authenticated wrappers
+supply account navigation and identity, while the demo supplies four synthetic
+view destinations and a fixed-calendar context. Real account midnight refresh
+remains active; fixed demo calendars do not read the current date or create timers.
+
+`lib/presentation/` prepares money labels, signs, metric badges, and comparison
+bars on the server. Insights views receive serialized labels and explicit
+transaction destinations; their server wrappers retain Decimal preparation.
+Shared views never import database/session access or authenticated actions.
+Only display chart geometry uses numeric conversion; serialized snapshots and
+server transition commands remain unchanged at version 1.
+
 Demo restore, navigation, and mutations retain the last accepted state on request
 failure. Requests use a generation guard so Reset and newer navigation invalidate
 older responses. A temporarily failed restore preserves stored edits for retry;

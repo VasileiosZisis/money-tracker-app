@@ -1,3 +1,5 @@
+import { SummaryValues } from '@/components/dashboard/summary-card'
+import { SectionHeading } from '@/components/app-shell/section-heading'
 import { History } from 'lucide-react'
 
 import type {
@@ -11,7 +13,6 @@ import { Card, CardContent } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { PageNotice } from '@/components/ui/page-notice'
 import { formatMonthLabel } from '@/lib/dates/month'
-import { cn } from '@/lib/utils'
 
 type TotalBalanceSectionProps = {
   currency: string
@@ -72,14 +73,6 @@ export function TotalBalanceSection ({
         )
       }
     }) ?? []
-  const endingBalanceClassName = summary?.endingBalance.lt(0)
-    ? 'text-destructive'
-    : 'text-foreground'
-  const netChangeClassName = summary?.netChange.lt(0)
-    ? 'text-destructive'
-    : summary?.netChange.gt(0)
-    ? 'text-success'
-    : 'text-foreground'
   const closeAdjustmentHref = buildDashboardHref({
     month,
     balanceQuery: data.queryParams
@@ -102,12 +95,7 @@ export function TotalBalanceSection ({
     >
       <div className='flex flex-col gap-4'>
         <div className='flex flex-col gap-1.5'>
-          <h2
-            id='total-balance-heading'
-            className='text-3xl font-semibold tracking-tight text-foreground md:text-4xl'
-          >
-            Total Balance
-          </h2>
+          <SectionHeading id="total-balance-heading" title="Total Balance" />
         </div>
       </div>
 
@@ -127,49 +115,10 @@ export function TotalBalanceSection ({
         <CardContent className='flex flex-col gap-5 p-4'>
           {summary ? (
             <div className='flex flex-col gap-5'>
-              <div className='flex flex-col gap-5'>
-                <div className='flex flex-col gap-3'>
-                  <p className='text-sm font-medium text-muted-foreground'>
-                    Ending balance
-                  </p>
-                  <p
-                    className={cn(
-                      'font-mono text-4xl font-semibold tracking-tight',
-                      endingBalanceClassName
-                    )}
-                  >
-                    {formatter.format(Number(summary.endingBalance.toString()))}
-                  </p>
-                </div>
-
-                <div className='flex flex-row items-start gap-6'>
-                  <div className='flex flex-col'>
-                    <p className='text-sm font-medium text-muted-foreground'>
-                      Starting balance
-                    </p>
-                    <p className='font-mono text-xl font-semibold tracking-tight text-foreground'>
-                      {formatter.format(
-                        Number(summary.startingBalance.toString())
-                      )}
-                    </p>
-                  </div>
-
-                  <div className='flex flex-col'>
-                    <p className='text-sm font-medium text-muted-foreground'>
-                      Net change
-                    </p>
-                    <p
-                      className={cn(
-                          'font-mono text-xl font-semibold tracking-tight',
-                        netChangeClassName
-                      )}
-                    >
-                      {summary.netChange.gt(0) ? '+' : ''}
-                      {formatter.format(Number(summary.netChange.toString()))}
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <SummaryValues primary={{ label: 'Ending balance', value: formatter.format(Number(summary.endingBalance.toString())), tone: summary.endingBalance.lt(0) ? 'danger' : 'default' }} secondary={[
+                { label: 'Starting balance', value: formatter.format(Number(summary.startingBalance.toString())) },
+                { label: 'Net change', value: `${summary.netChange.gt(0) ? '+' : ''}${formatter.format(Number(summary.netChange.toString()))}`, tone: summary.netChange.lt(0) ? 'danger' : summary.netChange.gt(0) ? 'success' : 'default' }
+              ]} />
 
               <TotalBalanceChart currency={currency} data={chartData} />
             </div>

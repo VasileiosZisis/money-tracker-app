@@ -1,32 +1,31 @@
+import { SpendingCompositionCard } from "@/components/insights/spending-composition-card";
+import { SpendingChangeCard } from "@/components/insights/spending-change-card";
+import { SectionHeading } from "@/components/app-shell/section-heading";
+import { MonthlyResultCard } from "@/components/insights/monthly-result-card";
+import { CategoryTrendDetails } from "@/components/insights/category-trend-details";
+import { buildMoneyPresentation, buildChangeBars } from "@/lib/presentation/money";
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/site/metadata";
 import Link from "next/link";
 import { Prisma } from "@/generated/prisma/client";
 import {
-  ArrowRight,
   BarChart3,
   FolderOpen,
 } from "lucide-react";
 
 import {
-  SpendingTrendsChart,
   type SpendingTrendChartPoint,
 } from "@/components/insights/spending-trends-chart";
 import {
-  MonthlyResultChart,
   type MonthlyResultChartPoint,
 } from "@/components/insights/monthly-result-chart";
 import { IncomeSpendingConsistency } from "@/components/insights/income-spending-consistency";
-import { SpendingChangeDrivers } from "@/components/insights/spending-change-drivers";
-import { SpendingComposition } from "@/components/insights/spending-composition";
 import { UnusualMonths } from "@/components/insights/unusual-months";
 import { YearOverYearPatterns } from "@/components/insights/year-over-year-patterns";
-import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -59,7 +58,6 @@ import {
   resolveSearchParams,
   type PageSearchParams,
 } from "@/lib/routes/search-params";
-import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = pageMetadata.insights;
 
@@ -99,40 +97,6 @@ function formatMonthPair(targetMonth: string) {
   )}`;
 }
 
-function formatSignedMoney(formatter: Intl.NumberFormat, amount: string) {
-  const decimalAmount = new Prisma.Decimal(amount);
-
-  if (decimalAmount.eq(0)) {
-    return formatter.format(0);
-  }
-
-  const maximumFractionDigits =
-    formatter.resolvedOptions().maximumFractionDigits;
-  const roundedAbsoluteAmount = decimalAmount
-    .abs()
-    .toDecimalPlaces(maximumFractionDigits);
-
-  if (roundedAbsoluteAmount.eq(0)) {
-    const minimumDisplayUnit = new Prisma.Decimal(
-      `1e-${maximumFractionDigits}`,
-    );
-    const sign = decimalAmount.gt(0) ? "+" : "−";
-
-    return `${sign}<${formatter.format(Number(minimumDisplayUnit.toString()))}`;
-  }
-
-  const prefix = decimalAmount.gt(0) ? "+" : "";
-  return `${prefix}${formatter.format(Number(decimalAmount.toString()))}`;
-}
-
-function isNegativeMoney(amount: string) {
-  return new Prisma.Decimal(amount).lt(0);
-}
-
-function isPositiveMoney(amount: string) {
-  return new Prisma.Decimal(amount).gt(0);
-}
-
 function comparisonCopy(
   formatter: Intl.NumberFormat,
   difference: string | null,
@@ -167,23 +131,6 @@ type ExpenseCategoryOption = {
   name: string;
   isArchived: boolean;
 };
-
-function InsightsSectionHeading({
-  id,
-  title,
-}: {
-  id: string;
-  title: string;
-}) {
-  return (
-    <h2
-      id={id}
-      className="text-3xl font-semibold tracking-tight text-foreground md:text-4xl"
-    >
-      {title}
-    </h2>
-  );
-}
 
 function PreservedInsightsFields({
   changing,
@@ -502,7 +449,7 @@ export default async function InsightsPage({
         aria-labelledby="monthly-result-heading"
         className="flex flex-col gap-4"
       >
-        <InsightsSectionHeading
+        <SectionHeading
           id="monthly-result-heading"
           title="Monthly result"
         />
@@ -513,195 +460,25 @@ export default async function InsightsPage({
           selectedChangeMonth={spendingChange.selectedTargetMonth ?? undefined}
         />
 
-        <Card>
-        <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span className="text-muted-foreground">History Period:</span>
-            <span>{completedPeriodLabel}</span>
-          </CardTitle>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <span className="size-2.5 rounded-full bg-success" />
-              Income
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="size-2.5 rounded-full bg-destructive" />
-              Expenses
-            </span>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-2">
-          {monthlyResultChartData.length > 0 ? (
-            <MonthlyResultChart
-              currency={user.currency}
-              data={monthlyResultChartData}
-            />
-          ) : (
-            <EmptyState
-              icon={BarChart3}
-              title="No monthly activity yet"
-              description="Add income or expense transactions to establish a monthly result history"
-              action={(
-                <Link
-                  href={buildPathWithSearchParams("/transactions", {
-                    month: currentMonth,
-                  })}
-                  className={buttonVariants({ variant: "outline" })}
-                >
-                  View transactions
-                </Link>
-              )}
-            />
-          )}
-        </CardContent>
-        <CardFooter className="grid items-stretch gap-0 border-t border-border/70 px-4 pb-0 sm:grid-cols-3">
-          <div className="flex flex-col justify-between gap-3 py-3 sm:pr-4">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-medium text-muted-foreground">
-                Typical monthly result
-              </p>
-              {monthlyResultInsight.hasLimitedHistory ? (
-                <Badge variant="warning" className="text-sm">
-                  Limited history
-                </Badge>
-              ) : null}
-            </div>
-            <div>
-              <p
-                className={cn(
-                  "font-mono text-3xl font-semibold tracking-tight",
-                  monthlyResultInsight.typicalMonthlyResult !== null &&
-                    isNegativeMoney(monthlyResultInsight.typicalMonthlyResult)
-                    ? "text-destructive"
-                    : monthlyResultInsight.typicalMonthlyResult !== null &&
-                        isPositiveMoney(
-                          monthlyResultInsight.typicalMonthlyResult,
-                        )
-                      ? "text-success"
-                      : "text-foreground",
-                )}
-              >
-                {monthlyResultInsight.typicalMonthlyResult === null
-                  ? "—"
-                  : formatSignedMoney(
-                      formatter,
-                      monthlyResultInsight.typicalMonthlyResult,
-                    )}
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {monthlyResultInsight.completedMonthCount === 0
-                  ? "Complete a month to establish a baseline"
-                  : `Median of ${monthlyResultInsight.completedMonthCount} completed ${
-                      monthlyResultInsight.completedMonthCount === 1
-                        ? "month"
-                        : "months"
-                    }`}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-col justify-between gap-3 border-t border-border/70 py-3 sm:border-l sm:border-t-0 sm:px-4">
-            <p className="text-sm font-medium text-muted-foreground">
-              Break-even gap
-            </p>
-            <div>
-              <p className="font-mono text-3xl font-semibold tracking-tight text-foreground">
-                {monthlyResultInsight.breakEvenGap === null
-                  ? "—"
-                  : formatter.format(Number(monthlyResultInsight.breakEvenGap))}
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {monthlyResultInsight.breakEvenGap === null
-                  ? "Complete a month to establish a baseline"
-                  : isPositiveMoney(monthlyResultInsight.breakEvenGap)
-                    ? "Amount needed to bring the typical monthly result to zero"
-                    : "No typical shortfall in the selected period"}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-col justify-between gap-3 border-t border-border/70 py-3 sm:border-l sm:border-t-0 sm:pl-4">
-            <p className="text-sm font-medium text-muted-foreground">
-              Month outcomes
-            </p>
-            <div>
-              <p className="font-mono text-2xl font-semibold tracking-tight">
-                <span className="text-success">
-                  {monthlyResultInsight.positiveMonthCount} positive
-                </span>
-                <span className="text-muted-foreground"> / </span>
-                <span className="text-destructive">
-                  {monthlyResultInsight.negativeMonthCount} negative
-                </span>
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {monthlyResultInsight.completedMonthCount === 0
-                  ? "No completed months in this baseline"
-                  : monthlyResultInsight.breakEvenMonthCount > 0
-                    ? `${monthlyResultInsight.breakEvenMonthCount} ${
-                        monthlyResultInsight.breakEvenMonthCount === 1
-                          ? "month"
-                          : "months"
-                      } at break-even`
-                    : `${monthlyResultInsight.completedMonthCount} completed ${
-                        monthlyResultInsight.completedMonthCount === 1
-                          ? "month"
-                          : "months"
-                      }`}
-              </p>
-            </div>
-          </div>
-        </CardFooter>
-        </Card>
+        <MonthlyResultCard monthlyResultInsight={monthlyResultInsight} monthlyResultChartData={monthlyResultChartData} completedPeriodLabel={completedPeriodLabel} currency={user.currency} display={buildMoneyPresentation(monthlyResultInsight, user.currency, true)} transactionsHref={buildPathWithSearchParams('/transactions', { month: currentMonth })} />
       </section>
 
       <section
         aria-labelledby="spending-composition-heading"
         className="flex flex-col gap-4"
       >
-        <InsightsSectionHeading
+        <SectionHeading
           id="spending-composition-heading"
           title="Spending composition"
         />
-        <Card>
-          <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <span className="text-muted-foreground">History Period:</span>
-              <span>{completedPeriodLabel}</span>
-            </CardTitle>
-            {spendingComposition.categories.length > 0 ? (
-              <div className="flex items-baseline gap-2">
-                <span className="text-sm text-muted-foreground">
-                  Total expenses
-                </span>
-                <span className="font-mono text-sm font-semibold text-foreground">
-                  {formatter.format(Number(spendingComposition.totalExpenses))}
-                </span>
-              </div>
-            ) : null}
-          </CardHeader>
-          <CardContent className="pt-4">
-            {spendingComposition.categories.length > 0 ? (
-              <SpendingComposition
-                categories={spendingComposition.categories}
-                currency={user.currency}
-              />
-            ) : (
-              <EmptyState
-                icon={BarChart3}
-                title="No completed spending to break down"
-                description="Expense transactions from completed months will appear here"
-              />
-            )}
-          </CardContent>
-        </Card>
+        <SpendingCompositionCard spendingComposition={spendingComposition} completedPeriodLabel={completedPeriodLabel} currency={user.currency} display={buildMoneyPresentation(spendingComposition, user.currency)} />
       </section>
 
       <section
         aria-labelledby="income-spending-consistency-heading"
         className="flex flex-col gap-4"
       >
-        <InsightsSectionHeading
+        <SectionHeading
           id="income-spending-consistency-heading"
           title="Income and spending consistency"
         />
@@ -716,7 +493,7 @@ export default async function InsightsPage({
         aria-labelledby="unusual-months-heading"
         className="flex flex-col gap-4"
       >
-        <InsightsSectionHeading
+        <SectionHeading
           id="unusual-months-heading"
           title="Unusual months"
         />
@@ -731,7 +508,7 @@ export default async function InsightsPage({
         aria-labelledby="category-spending-heading"
         className="flex flex-col gap-4"
       >
-        <InsightsSectionHeading
+        <SectionHeading
           id="category-spending-heading"
           title="Category Spending Trends"
         />
@@ -787,239 +564,7 @@ export default async function InsightsPage({
         </Card>
       ) : insight && comparison ? (
         <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span className="text-muted-foreground">History Period:</span>
-            <span>{completedPeriodLabel}</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4">
-          {insight.hasCategorySpending ? (
-            <SpendingTrendsChart
-              categoryName={selectedCategory.name}
-              currency={user.currency}
-              data={chartData}
-            />
-          ) : (
-            <EmptyState
-              icon={BarChart3}
-              title={`No ${selectedCategory.name} spending in this period`}
-              description="The monthly context below remains available, and new transactions will appear here automatically"
-              action={(
-                <Link
-                  href={buildPathWithSearchParams("/transactions", {
-                    month: currentMonth,
-                    type: "EXPENSE",
-                    categoryId: selectedCategory.id,
-                  })}
-                  className={buttonVariants({ variant: "outline" })}
-                >
-                  View transactions
-                </Link>
-              )}
-            />
-          )}
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-3 md:grid-cols-3">
-        <Card>
-          <CardContent className="flex min-h-36 flex-col justify-between gap-4 pt-4">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-medium text-muted-foreground">
-                Typical month
-              </p>
-              {insight.hasLimitedHistory ? (
-                <Badge variant="warning" className="text-sm">
-                  Limited history
-                </Badge>
-              ) : null}
-            </div>
-            <div>
-              <p className="font-mono text-3xl font-semibold tracking-tight text-foreground">
-                {insight.typicalSpending === null
-                  ? "—"
-                  : formatter.format(Number(insight.typicalSpending))}
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Median of {insight.completedMonthCount} completed {" "}
-                {insight.completedMonthCount === 1 ? "month" : "months"}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="flex min-h-36 flex-col justify-between gap-4 pt-4">
-            <p className="text-sm font-medium text-muted-foreground">
-              This month
-            </p>
-            <div>
-              <p className="font-mono text-3xl font-semibold tracking-tight text-foreground">
-                {formatter.format(Number(insight.currentMonthSpending))}
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Actual spending recorded so far
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="flex min-h-36 flex-col justify-between gap-4 pt-4">
-            <p className="text-sm font-medium text-muted-foreground">
-              Compared with typical
-            </p>
-            <div>
-              <p className="font-mono text-3xl font-semibold tracking-tight text-foreground">
-                {comparison.value}
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {comparison.description}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Monthly history</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4">
-          <div className="hidden overflow-x-auto md:block">
-            <table className="w-full border-collapse text-left text-sm">
-              <thead>
-                <tr className="border-b border-border/80 text-sm font-medium uppercase tracking-[0.08em] text-muted-foreground">
-                  <th className="px-3 py-3">Month</th>
-                  <th className="px-3 py-3">{selectedCategory.name}</th>
-                  <th className="px-3 py-3">Total expenses</th>
-                  <th className="px-3 py-3">Actual net</th>
-                  <th className="px-3 py-3 text-right">Transactions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {historyRows.map((month) => {
-                  const transactionsHref = buildPathWithSearchParams(
-                    "/transactions",
-                    {
-                      month: month.month,
-                      type: "EXPENSE",
-                      categoryId: selectedCategory.id,
-                    },
-                  );
-
-                  return (
-                    <tr
-                      key={month.month}
-                      className="border-b border-border/60 last:border-0 hover:bg-muted/35"
-                    >
-                      <td className="px-3 py-3.5 font-medium text-foreground">
-                        {formatMonthLabel(month.month)}
-                        {month.isCurrentMonth ? (
-                          <span className="ml-2 text-sm font-normal text-muted-foreground">
-                            In progress
-                          </span>
-                        ) : null}
-                      </td>
-                      <td className="px-3 py-3.5 font-mono font-semibold text-foreground">
-                        {formatter.format(Number(month.categorySpending))}
-                      </td>
-                      <td className="px-3 py-3.5 font-mono text-foreground">
-                        {formatter.format(Number(month.totalExpenses))}
-                      </td>
-                      <td
-                        className={cn(
-                          "px-3 py-3.5 font-mono font-semibold",
-                          isNegativeMoney(month.actualNet)
-                            ? "text-destructive"
-                            : "text-foreground",
-                        )}
-                      >
-                        {formatSignedMoney(formatter, month.actualNet)}
-                      </td>
-                      <td className="px-3 py-3.5 text-right">
-                        <Link
-                          href={transactionsHref}
-                          className={buttonVariants({
-                            variant: "outline",
-                            size: "sm",
-                          })}
-                        >
-                          View
-                          <ArrowRight />
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="grid gap-3 md:hidden">
-            {historyRows.map((month) => (
-              <div
-                key={month.month}
-                className="grid gap-3 rounded-xl border border-border/70 bg-background/55 p-3"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">
-                      {formatMonthLabel(month.month)}
-                    </p>
-                    {month.isCurrentMonth ? (
-                      <p className="text-sm text-muted-foreground">In progress</p>
-                    ) : null}
-                  </div>
-                  <p className="font-mono text-base font-semibold text-foreground">
-                    {formatter.format(Number(month.categorySpending))}
-                  </p>
-                </div>
-                <div className="grid grid-cols-2 gap-3 border-t border-border/60 pt-3 text-sm">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total expenses</p>
-                    <p className="font-mono font-semibold text-foreground">
-                      {formatter.format(Number(month.totalExpenses))}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      {month.isCurrentMonth ? "Current net" : "Month-end net"}
-                    </p>
-                    <p
-                      className={cn(
-                        "font-mono font-semibold",
-                        isNegativeMoney(month.actualNet)
-                          ? "text-destructive"
-                          : "text-foreground",
-                      )}
-                    >
-                      {formatSignedMoney(formatter, month.actualNet)}
-                    </p>
-                  </div>
-                </div>
-                <Link
-                  href={buildPathWithSearchParams("/transactions", {
-                    month: month.month,
-                    type: "EXPENSE",
-                    categoryId: selectedCategory.id,
-                  })}
-                  className={cn(
-                    buttonVariants({ variant: "outline", size: "sm" }),
-                    "justify-self-start",
-                  )}
-                >
-                  View transactions
-                  <ArrowRight />
-                </Link>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
+        <CategoryTrendDetails insight={insight} comparison={comparison} selectedCategory={selectedCategory} completedPeriodLabel={completedPeriodLabel} chartData={chartData} historyRows={historyRows} currency={user.currency} display={buildMoneyPresentation(insight, user.currency, true)} currentTransactionsHref={buildPathWithSearchParams('/transactions', { month: currentMonth, type: 'EXPENSE', categoryId: selectedCategory.id })} transactionHrefs={Object.fromEntries(historyRows.map(row => [row.month, buildPathWithSearchParams('/transactions', { month: row.month, type: 'EXPENSE', categoryId: selectedCategory.id })]))} />
         </>
         ) : null}
       </section>
@@ -1028,13 +573,12 @@ export default async function InsightsPage({
         aria-labelledby="drivers-of-change-heading"
         className="flex flex-col gap-4"
       >
-        <InsightsSectionHeading
+        <SectionHeading
           id="drivers-of-change-heading"
           title="Drivers of change"
         />
 
-        <Card>
-          <CardHeader className="gap-3 lg:flex-row lg:items-end">
+        <SpendingChangeCard spendingChange={spendingChange} display={buildMoneyPresentation(spendingChange, user.currency, true)} bars={buildChangeBars(spendingChange.categories)} controls={(
             {spendingChange.window ? (
               <form
                 action="/insights"
@@ -1082,112 +626,14 @@ export default async function InsightsPage({
                 </Button>
               </form>
             ) : null}
-          </CardHeader>
-          <CardContent className="pt-4">
-            {!spendingChange.window ||
-            !spendingChange.previousStartMonth ||
-            !spendingChange.previousEndMonth ||
-            !spendingChange.recentStartMonth ||
-            !spendingChange.recentEndMonth ||
-            spendingChange.previousMonthlyAverage === null ||
-            spendingChange.recentMonthlyAverage === null ||
-            spendingChange.averageMonthlyChange === null ? (
-              <EmptyState
-                icon={BarChart3}
-                title="Not enough completed history"
-                description="Complete two consecutive tracked months to compare spending changes"
-              />
-            ) : !spendingChange.hasExpenseActivity ? (
-              <EmptyState
-                icon={BarChart3}
-                title="No spending in either period"
-                description="Expense transactions in completed months will appear here"
-              />
-            ) : (
-              <div className="grid gap-5">
-                <div className="grid overflow-hidden rounded-xl border border-border/70 sm:grid-cols-3">
-                  <div className="grid gap-1 p-3">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      {formatCompletedMonthRange(
-                        spendingChange.previousStartMonth,
-                        spendingChange.previousEndMonth,
-                      )}
-                    </p>
-                    <p className="font-mono text-xl font-semibold text-foreground">
-                      {formatter.format(
-                        Number(spendingChange.previousMonthlyAverage),
-                      )}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Previous period monthly average
-                    </p>
-                  </div>
-                  <div className="grid gap-1 border-t border-border/70 p-3 sm:border-l sm:border-t-0">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      {formatCompletedMonthRange(
-                        spendingChange.recentStartMonth,
-                        spendingChange.recentEndMonth,
-                      )}
-                    </p>
-                    <p className="font-mono text-xl font-semibold text-foreground">
-                      {formatter.format(
-                        Number(spendingChange.recentMonthlyAverage),
-                      )}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Recent period monthly average
-                    </p>
-                  </div>
-                  <div className="grid gap-1 border-t border-border/70 p-3 sm:border-l sm:border-t-0">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Average monthly change
-                    </p>
-                    <p className="font-mono text-xl font-semibold text-foreground">
-                      {formatSignedMoney(
-                        formatter,
-                        spendingChange.averageMonthlyChange,
-                      )}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {isPositiveMoney(spendingChange.averageMonthlyChange)
-                        ? "Increase in monthly expenses"
-                        : isNegativeMoney(spendingChange.averageMonthlyChange)
-                          ? "Decrease in monthly expenses"
-                          : "No change in monthly expenses"}
-                    </p>
-                  </div>
-                </div>
-
-                {spendingChange.categories.length > 0 ? (
-                  <div className="grid gap-3">
-                    <SpendingChangeDrivers
-                      categories={spendingChange.categories}
-                      currency={user.currency}
-                    />
-                    {!isPositiveMoney(spendingChange.averageMonthlyChange) &&
-                    !isNegativeMoney(spendingChange.averageMonthlyChange) ? (
-                      <p className="text-sm text-muted-foreground">
-                        Contribution percentages are unavailable when average
-                        monthly expenses are unchanged
-                      </p>
-                    ) : null}
-                  </div>
-                ) : (
-                  <div className="rounded-xl border border-border/70 bg-background/55 p-4 text-sm text-muted-foreground">
-                    Category spending was unchanged
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        )} />
       </section>
 
       <section
         aria-labelledby="year-over-year-patterns-heading"
         className="flex flex-col gap-4"
       >
-        <InsightsSectionHeading
+        <SectionHeading
           id="year-over-year-patterns-heading"
           title="Year-over-year patterns"
         />

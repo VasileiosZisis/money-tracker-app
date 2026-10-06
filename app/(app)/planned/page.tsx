@@ -1,3 +1,4 @@
+import { FinancialRow } from "@/components/ui/financial-row";
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/site/metadata";
 import {
@@ -5,8 +6,6 @@ import {
   PencilLine,
   Power,
   Trash2,
-  TrendingDown,
-  TrendingUp,
 } from "lucide-react";
 import { redirect } from "next/navigation";
 
@@ -488,32 +487,7 @@ export default async function PlannedPage({
                           className="rounded-xl border border-border/80 bg-background/60 p-4"
                         >
                           <div className="space-y-4">
-                            <div className="flex min-w-0 items-center justify-between gap-4">
-                              <div className="flex min-w-0 items-center gap-3">
-                                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
-                                  <TrendingDown className="size-4.5" />
-                                </div>
-                                <div className="flex min-w-0 flex-col">
-                                  <h3 className="text-sm font-semibold tracking-tight text-foreground">
-                                    {plannedBill.category.name}
-                                  </h3>
-                                  {plannedBill.subcategory ? (
-                                    <p className="text-sm leading-6 text-muted-foreground">
-                                      {plannedBill.subcategory.name}
-                                    </p>
-                                  ) : null}
-                                </div>
-                              </div>
-
-                              <div className="flex shrink-0 flex-col items-end">
-                                <p className="text-sm font-medium text-muted-foreground">
-                                  Due day {plannedBill.dueDayOfMonth}
-                                </p>
-                                <p className="font-mono text-base font-semibold tracking-tight text-destructive">
-                                  {formatMoney(formatter, plannedBill.amount)}
-                                </p>
-                              </div>
-                            </div>
+                            <FinancialRow planned type="EXPENSE" category={plannedBill.category.name} secondary={plannedBill.subcategory?.name} dateLabel={`Due day ${plannedBill.dueDayOfMonth}`} amount={formatMoney(formatter, plannedBill.amount)} />
 
                             <div className="flex flex-wrap gap-2">
                                 <InlineEditorLink
@@ -629,34 +603,9 @@ export default async function PlannedPage({
                         className="rounded-xl border border-border/80 bg-background/60 p-4"
                       >
                         <div className="space-y-4">
-                          <div className="flex min-w-0 items-center justify-between gap-4">
-                            <div className="flex min-w-0 items-center gap-3">
-                              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-success/10 text-success">
-                                <TrendingUp className="size-4.5" />
-                              </div>
-                              <div className="flex min-w-0 flex-col">
-                                <h3 className="text-sm font-semibold tracking-tight text-foreground">
-                                  {plannedIncome.category.name}
-                                </h3>
-                                {plannedIncome.subcategory ? (
-                                  <p className="text-sm leading-6 text-muted-foreground">
-                                    {plannedIncome.subcategory.name}
-                                  </p>
-                                ) : null}
-                              </div>
-                            </div>
+                          <FinancialRow planned type="INCOME" category={plannedIncome.category.name} secondary={plannedIncome.subcategory?.name} dateLabel={`Expected day ${plannedIncome.expectedDayOfMonth}`} amount={formatMoney(formatter, plannedIncome.amount)} />
 
-                            <div className="flex shrink-0 flex-col items-end">
-                              <p className="text-sm font-medium text-muted-foreground">
-                                Expected day {plannedIncome.expectedDayOfMonth}
-                              </p>
-                              <p className="font-mono text-base font-semibold tracking-tight text-success">
-                                {formatMoney(formatter, plannedIncome.amount)}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap gap-2">
                               <InlineEditorLink
                                 href={buildPlannedViewUrl(
                                   selectedType,

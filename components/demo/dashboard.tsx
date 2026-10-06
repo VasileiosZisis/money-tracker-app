@@ -1,61 +1,70 @@
+import type { MouseEvent } from "react";
+import { ArrowRight, CalendarClock, CalendarRange, CircleDollarSign, ChartNoAxesCombined, FolderClock, Gauge, ShieldAlert, ShieldCheck, TimerReset, TrendingDown, TrendingUp } from "lucide-react";
+import { SectionHeading } from "@/components/app-shell/section-heading";
+import { MetricCard, NeedsAttentionSection } from "@/components/dashboard/dashboard-cards";
+import { SummaryCard } from "@/components/dashboard/summary-card";
+import { PlannedSummaryRow } from "@/components/dashboard/planned-summary-row";
 import { TotalBalanceChart } from "@/components/dashboard/total-balance-chart";
 import { MonthCashflowChart } from "@/components/dashboard/month-cashflow-chart";
 import { SpendingByCategoryChart } from "@/components/dashboard/spending-by-category-chart";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import type { DemoData } from "@/lib/demo/calculate";
-import { DEMO_CURRENCY, DEMO_MONTH } from "@/lib/demo/fixtures";
+import { DEMO_CURRENCY, demoCategories } from "@/lib/demo/fixtures";
 import { demoHref } from "@/lib/demo/selection";
-import { formatMonthLabel } from "@/lib/dates/month";
-import { DemoCard, DemoMetric, money, TransactionSummary } from "./shared";
+import { TransactionSummary } from "./shared";
+import { DemoPlannedHandling } from "./planned";
 import { DemoMonthControl, type DemoNavigate } from "./controls";
+import type { DemoRun } from "./transactions";
 
-export function DemoDashboard({ data, busy, navigate }: { data: DemoData; busy: boolean; navigate: DemoNavigate }) {
+export function DemoDashboard({ data, busy, navigate, run }: { data: DemoData; busy: boolean; navigate: DemoNavigate; run: DemoRun }) {
   const metrics = data.dashboard;
-  const isCurrent = data.selection.month === DEMO_MONTH;
-  function navLink(view: "transactions" | "planned", label: string) {
-    return <a href={demoHref(data.selection, { view, categoryId: "", subcategoryId: "", type: "ALL" })} className={buttonVariants({ variant: "outline" })} aria-disabled={busy} onClick={(event) => {
+  const money = (amount: string) => data.display.money[amount];
+  const tone = (amount: string) => data.display.signs[amount] < 0 ? 'danger' as const : data.display.signs[amount] > 0 ? 'success' as const : 'default' as const;
+  const icons = [TrendingDown, data.metrics[1].tone === 'danger' ? ShieldAlert : ShieldCheck, TimerReset, CalendarRange, Gauge, CircleDollarSign];
+  function navLink(view: 'transactions' | 'planned') {
+    const patch = { view, categoryId: '', subcategoryId: '', type: 'ALL' as const };
+    return <a href={demoHref(data.selection, patch)} className={`${buttonVariants({ variant: 'ghost', size: 'sm' })} rounded-xl px-0 text-primary hover:bg-transparent`} aria-disabled={busy} onClick={(event: MouseEvent<HTMLAnchorElement>) => {
+      if (busy) { event.preventDefault(); return; }
       if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
-      event.preventDefault(); if (!busy) void navigate({ view, categoryId: "", subcategoryId: "", type: "ALL" });
-    }}>{label}</a>;
+      event.preventDefault(); void navigate(patch);
+    }}>View all<ArrowRight /></a>;
   }
-  return <div className="space-y-5">
-    <div className="grid gap-5 md:grid-cols-2">
-      <DemoCard title="Total Balance">
-        <label className="grid gap-1.5 text-sm font-medium">Completed history<Select value={data.selection.balanceMonths} disabled={busy} onChange={(event) => void navigate({ balanceMonths: event.target.value as DemoData["selection"]["balanceMonths"] })}>
-          <option value="all">All time</option><option value="3">Last 3 completed months</option><option value="6">Last 6 completed months</option><option value="12">Last 12 completed months</option>
-        </Select></label>
-        <p className="text-sm text-muted-foreground">{formatMonthLabel(data.balance.startMonth)} – {formatMonthLabel(data.balance.endMonth)}</p>
-        <DemoMetric label="Ending balance" value={money(data.balance.endingBalance)} />
-        <div className="grid gap-6 sm:grid-cols-2"><DemoMetric label="Starting balance" value={money(data.balance.startingBalance)} /><DemoMetric label="Net change" value={money(data.balance.netChange)} /></div>
-        <TotalBalanceChart currency={DEMO_CURRENCY} data={data.balance.chart} />
-        <p className="text-sm text-muted-foreground">Historical ledger with a €1,200 opening adjustment in September 2024. Excludes the example current month.</p>
-      </DemoCard>
-      <DemoCard title="Monthly Snapshot">
-        <DemoMonthControl selection={data.selection} busy={busy} navigate={navigate} />
-        <DemoMetric label="Net left now" value={money(metrics.netLeft)} />
-        <div className="grid gap-6 sm:grid-cols-3"><DemoMetric label="Income total" value={money(metrics.income)} /><DemoMetric label="Expense total" value={money(metrics.expense)} /><DemoMetric label="Projected net left" value={money(metrics.projectedNet)} /></div>
-        <MonthCashflowChart currency={DEMO_CURRENCY} data={metrics.chartSeries} yAxisMax={metrics.chartYAxisMax} />
-      </DemoCard>
+  return <div className="flex flex-col gap-5">
+    <div className="grid items-start gap-4 md:grid-cols-2">
+      <section aria-labelledby="total-balance-heading" className="flex min-w-0 flex-col gap-4">
+        <SectionHeading id="total-balance-heading" title="Total Balance" />
+        <form onSubmit={event => { event.preventDefault(); void navigate({ balanceMonths: String(new FormData(event.currentTarget).get('balanceMonths')) as typeof data.selection.balanceMonths }); }}><fieldset disabled={busy} className="flex flex-wrap items-end gap-3"><Select aria-label="Total Balance period" name="balanceMonths" key={data.selection.balanceMonths} defaultValue={data.selection.balanceMonths} className="w-fit" wrapperClassName="w-fit"><option value="all">All time</option><option value="3">Last 3 months</option><option value="6">Last 6 months</option><option value="12">Last 12 months</option></Select><Button type="submit">Apply</Button></fieldset></form>
+        <SummaryCard primary={{ label: 'Ending balance', value: money(data.balance.endingBalance), tone: tone(data.balance.endingBalance) === 'danger' ? 'danger' : 'default' }} secondary={[{ label: 'Starting balance', value: money(data.balance.startingBalance) }, { label: 'Net change', value: data.display.signedMoney[data.balance.netChange], tone: tone(data.balance.netChange) }]}><TotalBalanceChart currency={DEMO_CURRENCY} data={data.balance.chart} /></SummaryCard>
+      </section>
+      <section aria-labelledby="monthly-snapshot-heading" className="flex min-w-0 flex-col gap-4">
+        <SectionHeading id="monthly-snapshot-heading" title="Monthly Snapshot" /><DemoMonthControl id="demo-monthly-snapshot" selection={data.selection} busy={busy} navigate={navigate} />
+        <SummaryCard primary={{ label: 'Net left now', value: money(metrics.netLeft), tone: tone(metrics.netLeft) }} secondary={[{ label: 'Income total', value: money(metrics.income), tone: 'success' }, { label: 'Expense total', value: money(metrics.expense), tone: 'danger' }, { label: 'Projected net left', value: money(metrics.projectedNet), tone: tone(metrics.projectedNet) }]}><MonthCashflowChart currency={DEMO_CURRENCY} data={metrics.chartSeries} yAxisMax={metrics.chartYAxisMax} /></SummaryCard>
+      </section>
     </div>
-    <DemoCard title="Spending by category"><SpendingByCategoryChart currency={DEMO_CURRENCY} data={metrics.spending} />{!metrics.spending.length ? <p className="text-sm text-muted-foreground">No expense transactions in this month.</p> : null}</DemoCard>
-    <section aria-label="Planning estimates" className="grid gap-4 xl:grid-cols-2">
-      <DemoCard title="Forecast remaining spend"><DemoMetric label="Estimate" value={money(metrics.forecastRemainingSpend)} />{isCurrent ? <Badge variant="outline">{metrics.confidence} confidence</Badge> : null}</DemoCard>
-      <DemoCard title="Safe to spend"><DemoMetric label={isCurrent ? "Estimate" : "Completed month"} value={money(metrics.safeToSpend)} /></DemoCard>
-      <DemoCard title="Daily safe spend"><DemoMetric label={isCurrent ? "Estimate per day" : "Completed month"} value={money(metrics.dailySafeSpend)} /></DemoCard>
-      <DemoCard title="Weekly safe spend"><DemoMetric label={isCurrent ? "Estimate for next 7 days" : "Completed month"} value={money(metrics.weeklySafeSpend)} /></DemoCard>
-      <DemoCard title="Spending pace"><DemoMetric label={metrics.paceDirection === "unavailable" ? "No historical baseline" : metrics.paceDirection === "on-pace" ? "On pace" : `${metrics.paceDirection === "above" ? "Above" : "Below"} usual`} value={metrics.pace === null ? "Unavailable" : `${metrics.pace}%`} /></DemoCard>
-      <DemoCard title="Income realization"><DemoMetric label="Actual received vs planned" value={metrics.realization === null ? "Unavailable" : `${metrics.realization}%`} /><p className="text-sm text-muted-foreground">{money(metrics.realizedAmount)} / {money(metrics.plannedIncomeAmount)}</p></DemoCard>
+    <section aria-labelledby="spending-by-category-heading" className="flex flex-col gap-4"><SectionHeading id="spending-by-category-heading" title="Monthly Spendings" /><DemoMonthControl id="demo-monthly-spendings" selection={data.selection} busy={busy} navigate={navigate} /><Card><CardContent className="p-4">{metrics.spending.length ? <SpendingByCategoryChart currency={DEMO_CURRENCY} data={metrics.spending} /> : <EmptyState icon={ChartNoAxesCombined} title="No spending to break down" description="Add an expense transaction for this month to see category and subcategory spending here." />}</CardContent></Card></section>
+    <section aria-labelledby="planning-forecast-heading" className="flex flex-col gap-4"><SectionHeading id="planning-forecast-heading" title="Planning & Forecast" /><div className="grid gap-4 min-[1280px]:grid-cols-2">{data.metrics.map((metric, index) => { const Icon = icons[index]; return <MetricCard key={metric.title} {...metric} icon={<Icon className="size-5" />} />; })}</div><NeedsAttentionSection items={metrics.attention} /></section>
+    <section aria-labelledby="transactions-plans-heading" className="flex flex-col gap-4"><SectionHeading id="transactions-plans-heading" title="Transactions & Plans" />
+      <div className="grid items-start gap-4 min-[1280px]:grid-cols-3">
+        <Card className="overflow-hidden"><CardHeader className="flex flex-row items-end justify-between gap-4 pb-0"><CardTitle>Recent transactions</CardTitle>{navLink('transactions')}</CardHeader><CardContent className="px-3 pt-6">{data.recentTransactions.length ? <div className="flex flex-col gap-3">{data.recentTransactions.map(row => <div key={row.id} className="rounded-xl border border-border/80 bg-background/60 p-3"><TransactionSummary row={row} display={data.display} includeNote={false} /></div>)}</div> : <EmptyState icon={FolderClock} title="No transactions for this month" description="Once you record income or expenses, they'll appear here in reverse chronological order." action={navLink('transactions')} />}</CardContent></Card>
+        <Card className="overflow-hidden min-[1280px]:col-span-2"><CardHeader className="flex flex-row items-end justify-between gap-4 border-b border-border/70 pb-4"><CardTitle>Planned items</CardTitle>{navLink('planned')}</CardHeader><CardContent className="grid p-0 min-[868px]:grid-cols-2">
+          {(['EXPENSE', 'INCOME'] as const).map(type => {
+            const items = data.planned.filter(item => item.type === type && !item.occurrence);
+            return <section key={type} aria-label={type === 'EXPENSE' ? 'Planned bills' : 'Planned income'} className={`flex min-w-0 flex-col ${type === 'INCOME' ? 'border-t border-border/70 min-[868px]:border-l min-[868px]:border-t-0' : ''}`}>
+              <div className="p-4"><CardTitle>{type === 'EXPENSE' ? 'Planned bills' : 'Planned income'}</CardTitle>{items.length ? <div className="flex flex-wrap gap-2 pt-1"><Badge variant="outline" className="text-base">{items.length}</Badge><Badge variant="outline" className="border-0 text-base">{type === 'EXPENSE' ? 'Reserved' : 'Pending'} {money(type === 'EXPENSE' ? data.reservedBills : metrics.pendingIncome)}</Badge></div> : null}</div>
+              <div className="grid gap-4 p-3">{items.length ? items.map(item => {
+                const category = demoCategories.find(category => category.id === item.categoryId)!;
+                const status = item.status === 'overdue' ? { label: 'Overdue', variant: 'destructive' as const } : item.status === 'due-today' ? { label: 'Due today', variant: 'warning' as const } : item.status === 'passed' ? { label: 'Passed', variant: 'outline' as const } : { label: 'Upcoming', variant: 'accent' as const };
+                const dateLabel = type === 'INCOME' ? `Expected day ${item.day}` : new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${data.selection.month}-${String(item.day).padStart(2, '0')}T12:00:00Z`));
+                return <div key={`${item.id}:${data.selection.month}`} className="flex flex-col gap-3 rounded-xl border border-border/80 bg-background/60 p-3"><PlannedSummaryRow type={type} category={category.name} subcategory={category.subcategories.find(row => row.id === item.subcategoryId)?.name} name={item.name} amount={money(item.amount)} dateLabel={dateLabel} statusLabel={type === 'EXPENSE' && item.status === 'upcoming' ? undefined : status.label} statusVariant={status.variant} /><DemoPlannedHandling item={item} month={data.selection.month} busy={busy} run={run} display={data.display} /></div>;
+              }) : <EmptyState icon={type === 'EXPENSE' ? CalendarClock : TrendingUp} title={type === 'EXPENSE' ? 'All planned bills handled' : 'All planned income handled'} />}</div>
+            </section>;
+          })}
+        </CardContent></Card>
+      </div>
     </section>
-    <p className="text-sm text-muted-foreground">Safe-to-spend is an estimate based on recorded income and remaining spending. Pending income is included only in projected net left.</p>
-    <DemoCard title="Needs Attention">{metrics.attention.length ? metrics.attention.map((item) => <div key={item.type + item.title} className={`rounded-xl border p-3 ${item.tone === "danger" ? "border-destructive/40" : item.tone === "warning" ? "border-warning/40" : "border-border"}`}><p className="font-medium">{item.title}</p><p className="mt-1 text-sm text-muted-foreground">{item.description}</p></div>) : <p className="text-sm text-muted-foreground">Nothing needs attention in this month.</p>}</DemoCard>
-    <div className="grid gap-5 xl:grid-cols-3">
-      <DemoCard title="Recent Transactions">{data.recentTransactions.map((row) => <div key={row.id} className="border-b border-border pb-3"><TransactionSummary row={row} /></div>)}{!data.recentTransactions.length ? <p className="text-sm text-muted-foreground">No transactions in this month.</p> : null}{navLink("transactions", "View transactions")}</DemoCard>
-      <div className="xl:col-span-2"><DemoCard title="Planned Items"><div className="grid gap-5 sm:grid-cols-2">{(["EXPENSE", "INCOME"] as const).map((type) => {
-        const items = data.planned.filter((item) => item.type === type && !item.occurrence);
-        return <div key={type} className="space-y-3"><h3 className="font-semibold">{type === "EXPENSE" ? "Planned Bills" : "Planned Income"}</h3>{items.map((item) => <div key={item.id} className="flex justify-between gap-3 rounded-lg border border-border p-3"><div><p className="text-sm font-medium">{item.name}</p><p className="text-xs text-muted-foreground">Day {item.day} · {item.status}</p></div><p className={`font-mono text-sm ${type === "INCOME" ? "text-success" : "text-destructive"}`}>{money(item.amount)}</p></div>)}{!items.length ? <p className="text-sm text-muted-foreground">All planned {type === "EXPENSE" ? "bills" : "income"} handled</p> : null}</div>;
-      })}</div>{navLink("planned", "View all planned items")}</DemoCard></div>
-    </div>
   </div>;
 }

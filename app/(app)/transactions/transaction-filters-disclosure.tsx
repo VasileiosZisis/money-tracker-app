@@ -40,6 +40,11 @@ type TransactionFiltersDisclosureProps = {
   selectedMonth: string;
   selectedSubcategoryId?: string;
   selectedType: TypeFilter;
+  disabled?: boolean;
+  monthMin?: string;
+  monthMax?: string;
+  onApply?: (values: FormData) => void;
+  onReset?: () => void;
 };
 
 function formatCategoryLabel(category: FilterCategory) {
@@ -53,6 +58,7 @@ export function TransactionFiltersDisclosure({
   selectedMonth,
   selectedSubcategoryId,
   selectedType,
+  disabled = false, monthMin, monthMax, onApply, onReset,
 }: TransactionFiltersDisclosureProps) {
   const hasActiveFilters =
     selectedType !== "ALL" ||
@@ -85,9 +91,9 @@ export function TransactionFiltersDisclosure({
       );
 
   return (
-    <div className="flex flex-col gap-3">
+    <fieldset disabled={disabled} className="flex min-w-0 flex-col gap-3">
       <div className="flex flex-wrap items-end gap-3">
-        <form className="flex flex-wrap items-end gap-3" method="get">
+        <form className="flex flex-wrap items-end gap-3" method="get" onSubmit={onApply ? (event) => { event.preventDefault(); onApply(new FormData(event.currentTarget)); } : undefined}>
           {selectedType !== "ALL" ? (
             <input type="hidden" name="type" value={selectedType} />
           ) : null}
@@ -108,6 +114,8 @@ export function TransactionFiltersDisclosure({
             </FieldLabel>
             <Input
               id="transactions-month"
+              min={monthMin}
+              max={monthMax}
               type="month"
               name="month"
               defaultValue={selectedMonth}
@@ -131,7 +139,7 @@ export function TransactionFiltersDisclosure({
 
       {isOpen ? (
         <Card id="transaction-filter-panel">
-          <form method="get">
+          <form method="get" onSubmit={onApply ? (event) => { event.preventDefault(); onApply(new FormData(event.currentTarget)); } : undefined}>
             <input type="hidden" name="month" value={selectedMonth} />
 
             <CardHeader className="items-end">
@@ -220,6 +228,8 @@ export function TransactionFiltersDisclosure({
             <CardFooter className="justify-end">
               <Link
                 href={resetHref}
+                aria-disabled={disabled}
+                onClick={(event) => { if (disabled) { event.preventDefault(); return; } if (onReset && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) { event.preventDefault(); onReset(); } }}
                 className={buttonVariants({ variant: "outline" })}
               >
                 Reset
@@ -229,6 +239,6 @@ export function TransactionFiltersDisclosure({
           </form>
         </Card>
       ) : null}
-    </div>
+    </fieldset>
   );
 }

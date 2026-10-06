@@ -111,6 +111,11 @@ simpler than a full accounting or budgeting suite.
 - Demo financial calculations and validation run on the server. No guest
   accounts or database records are created or accessed, and demo edits never
   transfer into a registered account. Signed-in visitors also see only sample data.
+- Demo workspaces reuse the real app's sidebar shell, contextual bar, Dashboard
+  composition, transaction/planned rows, and Insights sections. Sidebar links
+  remain inside the demo; Categories, Settings, identity, and Sign out are hidden.
+  Monthly planned handling is available from both Dashboard and Planned items.
+  The contextual date stays fixed, and a compact banner hosts demo controls.
 - The demo banner identifies sample data, the example date, EUR, and UTC.
   Create your account follows the existing Google login/setup flow.
 - Categories, planned templates, and the sample opening adjustment are fixed.

@@ -215,7 +215,7 @@ than creating parallel feature implementations.
 | Import endpoints and CSV download | `app/api/import/preview/route.ts`, `app/api/import/confirm/route.ts`, `app/(app)/settings/export/download/route.ts` |
 | Mutations | `actions/`, including `actions/balance-adjustments.ts` |
 | Database, auth, and validation | `lib/db.ts`, `lib/auth/`, `lib/validators/`, `types/next-auth.d.ts` |
-| Financial/date helpers | `lib/dates/`, `lib/forecast/`, `lib/dashboard/`, `lib/balance/`, `lib/insights/` |
+| Financial/date helpers and server display preparation | `lib/presentation/`, `lib/dates/`, `lib/forecast/`, `lib/dashboard/`, `lib/balance/`, `lib/insights/` |
 | Import/export and view-state helpers | `lib/import/`, `lib/export/`, `lib/routes/` |
 | Shared UI and feature components | `components/ui/`, `components/dashboard/`, `components/insights/`, `components/settings/`, `components/theme/` |
 | Theme configuration | `app/globals.css`, `tailwind.config.ts` |

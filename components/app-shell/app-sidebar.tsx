@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Settings2 } from "lucide-react";
 
@@ -20,110 +18,24 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarHeader,
+  useSidebar,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger,
-  useSidebar,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
-type AppSidebarProps = {
-  displayName: string;
-  initials: string;
-  userImage: string | null;
-};
+import { WorkspaceSidebar } from "@/components/app-shell/workspace-sidebar";
 
-function isActivePath(pathname: string, href: string) {
-  if (href === "/dashboard") {
-    return pathname === href;
-  }
-
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
-
+type AppSidebarProps = { displayName: string; initials: string; userImage: string | null };
 export function AppSidebar({ displayName, initials, userImage }: AppSidebarProps) {
   const pathname = usePathname();
-  const { isMobile, open, openMobile, setOpenMobile } = useSidebar();
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const expanded = isMobile ? openMobile : open;
-  const previousSidebarState = useRef({ isMobile, expanded });
-  const settingsActive = isActivePath(pathname, "/settings");
-
-  useEffect(() => {
-    const previous = previousSidebarState.current;
-    if (previous.isMobile === isMobile && !previous.expanded && expanded) {
-      triggerRef.current?.focus({ preventScroll: true });
-    }
-    previousSidebarState.current = { isMobile, expanded };
-  }, [expanded, isMobile]);
-
-  function handleNavigate() {
-    if (isMobile) {
-      setOpenMobile(false);
-    }
-  }
-
-  return (
-    <Sidebar variant="sidebar">
-      <SidebarHeader className="flex h-18 shrink-0 items-center gap-2 py-0">
-        <SidebarTrigger ref={triggerRef} className="shrink-0" />
-        <Link
-          href="/dashboard"
-          aria-label="CashContour home"
-          className="flex min-w-0 flex-1 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/60"
-          onClick={handleNavigate}
-        >
-          <span className="w-[43.2px] shrink-0">
-            <Image src="/branding/cashcontour-symbol-light.svg" alt="" width={1502} height={920} unoptimized className="block h-auto w-full dark:hidden" />
-            <Image src="/branding/cashcontour-symbol-dark.svg" alt="" width={1502} height={920} unoptimized className="hidden h-auto w-full dark:block" />
-          </span>
-          <span className="min-w-0 max-w-[165.6px] flex-1">
-            <Image src="/branding/cashcontour-wordmark-light.svg" alt="" width={1973} height={249} unoptimized className="block h-auto w-full dark:hidden" />
-            <Image src="/branding/cashcontour-wordmark-dark.svg" alt="" width={1973} height={249} unoptimized className="hidden h-auto w-full dark:block" />
-          </span>
-        </Link>
-      </SidebarHeader>
-
-      <SidebarContent>
-        <SidebarGroup className="mt-0">
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {appNavItems.map((item) => {
-                const active = isActivePath(pathname, item.href);
-                const Icon = item.icon;
-
-                return (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton asChild isActive={active}>
-                      <Link href={item.href} onClick={handleNavigate}>
-                        <span
-                          className={
-                            active
-                              ? "flex size-8 items-center justify-center rounded-lg border border-white/15 bg-white/10"
-                              : "flex size-8 items-center justify-center rounded-lg border border-border/50 bg-background/60 text-muted-foreground"
-                          }
-                        >
-                          <Icon className="size-4.5" />
-                        </span>
-                        <span>{item.label}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-
-      <SidebarFooter>
+  const settingsActive = pathname === "/settings" || pathname.startsWith("/settings/");
+  // Navigation inside the authenticated footer closes the mobile drawer as before.
+  const { isMobile, setOpenMobile } = useSidebar();
+  function handleNavigate() { if (isMobile) setOpenMobile(false); }
+  return <WorkspaceSidebar items={appNavItems} homeHref="/dashboard" footer={(
+<>
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
@@ -175,7 +87,6 @@ export function AppSidebar({ displayName, initials, userImage }: AppSidebarProps
           </SidebarMenuItem>
           <SidebarMenuItem aria-hidden="true" className="h-11" />
         </SidebarMenu>
-      </SidebarFooter>
-    </Sidebar>
-  );
+</>
+  )} />;
 }

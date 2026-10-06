@@ -306,15 +306,23 @@ Rules:
 
 ### Public demo
 
-- `/demo` uses public CashContour branding and the shared UI primitives, form
-  fields, and charts. Its compact feature navigation exposes Dashboard,
-  Transactions, Planned items, and Insights with real addressable links.
-- Keep the `Demo · Sample data` banner, fixed example date, EUR/UTC context,
-  Reset demo, Create your account, and theme toggle visible above the workspace.
-  The banner explains that edits last for the tab session and do not transfer.
-- Reuse transaction row and inline-editor conventions, cascading filters,
-  planned-item handling forms, semantic money colors, and responsive cards.
-  The demo does not show category/template/adjustment creation or CSV controls.
+- `/demo` reuses the app's sidebar shell, contextual bar, shared financial rows,
+  summary and metric cards, form fields, filter disclosure, handling forms, and
+  Insights presentation. The four sidebar destinations are Dashboard,
+  Transactions, Planned items, and Insights, all under `/demo?view=...`.
+- The contextual bar uses the fixed September 15, 2026 example date and selected
+  demo workspace; it never starts the real account midnight-refresh watcher.
+- Keep one compact banner directly below the contextual bar with `Demo · Sample
+  data`, the example date, EUR/UTC, Reset demo, Create your account, and the theme
+  toggle. Explain that edits last for the tab session and do not transfer.
+- Dashboard and Insights use the same section headings, card composition, number
+  hierarchy, icons, badges, empty states, charts, and responsive history tables
+  as the account workspaces. Spending pace shows an amount per day with its
+  comparison badge. Transactions uses the same 300px creation column at `xl`.
+- Account identity, Sign out, Categories, Settings, template creation/editing,
+  balance-adjustment management, and CSV controls stay hidden. Planned items
+  uses a full-width shared list with demo monthly handling editors; its seeded
+  templates remain fixed. Demo Total Balance keeps its existing four ranges.
 - Disable editing and conflicting navigation while restoring or updating data.
   Reset remains available to recover a failed restore. Show request/validation
   errors and storage limitations inline; transient successes use the toaster.

@@ -1,3 +1,5 @@
+import { buildDashboardMetrics } from "@/lib/presentation/dashboard";
+import { buildChangeBars, buildMoneyPresentation, formatDisplayMoney } from "@/lib/presentation/money";
 import { Prisma } from "@/generated/prisma/client";
 
 import { computeTotalBalanceSummary } from "@/lib/balance/compute-total-balance";
@@ -82,7 +84,7 @@ export function calculateDemo(snapshotInput: unknown, selectionInput: Partial<De
   const result = buildMonthlyResultInsight(shared);
   const categoryInsight = selection.categoryId ? buildSpendingInsight({ ...shared, categoryId: selection.categoryId, categoryCreatedMonth: DEMO_START_MONTH }) : null;
   const change = buildSpendingChangeInsight({ ...shared, categories: expenseCategories, requestedWindow: selection.changeWindow, requestedTargetMonth: selection.changeMonth });
-  return {
+  const data = {
     selection, snapshot,
     transactions: monthlyRows.filter((row) => (selection.type === "ALL" || row.type === selection.type) && (!selection.categoryId || row.categoryId === selection.categoryId) && (!selection.subcategoryId || row.subcategoryId === selection.subcategoryId)),
     recentTransactions: monthlyRows.slice(0, 5),
@@ -118,6 +120,18 @@ export function calculateDemo(snapshotInput: unknown, selectionInput: Partial<De
       change, longTerm: buildLongTermPatternsInsight({ ...shared, categories: historicalCategories }),
       periodLabel: `${formatMonthLabel(shiftMonthKey(DEMO_MONTH, -selection.period))} – August 2026`,
     },
+  };
+  const reservedBills = forecast.unpaidPlannedBills.toFixed(2);
+  const display = buildMoneyPresentation({ ...data, reservedBills }, DEMO_CURRENCY, true);
+  const formatter = new Intl.NumberFormat(undefined, { style: 'currency', currency: DEMO_CURRENCY });
+  const difference = categoryInsight?.differenceFromTypical;
+  const comparison = difference === null || difference === undefined
+    ? { value: '—', description: 'Complete a month to establish a comparison' }
+    : { value: formatDisplayMoney(formatter, new Prisma.Decimal(difference).abs().toString()), description: new Prisma.Decimal(difference).eq(0) ? 'On your typical monthly spending' : new Prisma.Decimal(difference).gt(0) ? 'Above your typical monthly spending' : 'Below your typical monthly spending' };
+  return { ...data, display, comparison, annualDisplay: buildMoneyPresentation(data.insights.longTerm, DEMO_CURRENCY), unusualDisplay: buildMoneyPresentation(data.insights.unusual, DEMO_CURRENCY),
+    metrics: buildDashboardMetrics(forecast, realization, DEMO_CURRENCY),
+    reservedBills,
+    changeBars: buildChangeBars(change.categories), annualBars: buildChangeBars(data.insights.longTerm.categories),
   };
 }
 

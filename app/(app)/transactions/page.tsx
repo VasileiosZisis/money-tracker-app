@@ -1,3 +1,4 @@
+import { FinancialRow } from "@/components/ui/financial-row";
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/site/metadata";
 import { redirect } from "next/navigation";
@@ -5,8 +6,6 @@ import {
   FolderOpen,
   PencilLine,
   Plus,
-  TrendingDown,
-  TrendingUp,
 } from "lucide-react";
 
 import {
@@ -19,7 +18,6 @@ import {
 import { TransactionEditForm } from "@/app/(app)/transactions/transaction-edit-form";
 import { TransactionFiltersDisclosure } from "@/app/(app)/transactions/transaction-filters-disclosure";
 import { TransactionFormFields } from "@/app/(app)/transactions/transaction-form-fields";
-import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -345,10 +343,6 @@ export default async function TransactionsPage({
                     (!category.isArchived ||
                       category.id === transaction.categoryId),
                 );
-                const amountTone =
-                  transaction.type === "INCOME"
-                    ? "text-success"
-                    : "text-destructive";
                 const note = transaction.note?.trim() ?? "";
 
                 return (
@@ -357,55 +351,7 @@ export default async function TransactionsPage({
                     className="rounded-xl border border-border/80 bg-background/60 p-4"
                   >
                     <div className="space-y-4">
-                      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-                        <div className="flex min-w-0 items-start gap-3">
-                          <div
-                            className={cn(
-                              "mt-1 flex size-9 shrink-0 items-center justify-center rounded-lg",
-                              transaction.type === "INCOME"
-                                ? "bg-success/10 text-success"
-                                : "bg-destructive/10 text-destructive",
-                            )}
-                          >
-                            {transaction.type === "INCOME" ? (
-                              <TrendingUp className="size-4.5" />
-                            ) : (
-                              <TrendingDown className="size-4.5" />
-                            )}
-                          </div>
-                          <div className="flex min-w-0 flex-col">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <h3 className="text-sm font-semibold tracking-tight text-foreground">
-                                {transaction.category.name}
-                              </h3>
-                              {transaction.category.isArchived ? (
-                                <Badge variant="outline">Archived category</Badge>
-                              ) : null}
-                            </div>
-                            {transaction.subcategory || note ? (
-                              <p className="text-sm leading-6 text-muted-foreground">
-                                {transaction.subcategory?.name}
-                                {transaction.subcategory && note ? " / " : null}
-                                {note}
-                              </p>
-                            ) : null}
-                          </div>
-                        </div>
-
-                        <div className="flex shrink-0 flex-col items-end">
-                          <p className="text-sm font-medium text-muted-foreground">
-                            {formatLocalDate(transaction.localDate)}
-                          </p>
-                          <p
-                            className={cn(
-                              "font-mono text-base font-semibold tracking-tight",
-                              amountTone,
-                            )}
-                          >
-                            {formatter.format(Number(transaction.amount))}
-                          </p>
-                        </div>
-                      </div>
+                      <FinancialRow heading="h3" archived={transaction.category.isArchived} type={transaction.type} category={transaction.category.name} secondary={[transaction.subcategory?.name, note].filter(Boolean).join(' / ')} dateLabel={formatLocalDate(transaction.localDate)} amount={formatter.format(Number(transaction.amount))} />
 
                       <div className="flex flex-wrap gap-2">
                           <InlineEditorLink

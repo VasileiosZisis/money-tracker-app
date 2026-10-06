@@ -4,14 +4,12 @@ import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { appNavItems } from "@/components/app-shell/nav-items";
-import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
-import { cn } from "@/lib/utils";
 import {
-  getAccountDateContext,
   type AccountDateContext,
 } from "@/lib/dates/time-zone";
 
-const DATE_CHECK_INTERVAL_MS = 60 * 1000;
+import { ContextBarView } from "./context-bar-view";
+import { watchWorkspaceDate } from "@/lib/dates/watch-workspace-date";
 
 function getPageLabel(pathname: string) {
   const navItem = appNavItems.find(
@@ -37,75 +35,22 @@ function getPageLabel(pathname: string) {
 export function PageContextBar({
   initialDateContext,
   timeZone,
+  pageLabel: explicitPageLabel,
+  fixedCalendar = false,
 }: {
   initialDateContext: AccountDateContext;
   timeZone: string;
+  pageLabel?: string;
+  fixedCalendar?: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const pageLabel = getPageLabel(pathname);
-  const { isMobile, open, openMobile } = useSidebar();
-  const triggerRef = React.useRef<HTMLButtonElement>(null);
-  const expanded = isMobile ? openMobile : open;
-  const previousSidebarState = React.useRef({ isMobile, expanded });
+  const pageLabel = explicitPageLabel ?? getPageLabel(pathname);
   const [dateContext, setDateContext] =
     React.useState<AccountDateContext>(initialDateContext);
 
-  React.useEffect(() => {
-    const previous = previousSidebarState.current;
-    if (previous.isMobile === isMobile && previous.expanded && !expanded) {
-      triggerRef.current?.focus({ preventScroll: true });
-    }
-    previousSidebarState.current = { isMobile, expanded };
-  }, [expanded, isMobile]);
-
-  React.useEffect(() => {
-    let previousLocalDate = initialDateContext.localDate;
-
-    function updateDateContext() {
-      const nextDateContext = getAccountDateContext(timeZone);
-
-      if (nextDateContext.localDate !== previousLocalDate) {
-        previousLocalDate = nextDateContext.localDate;
-        setDateContext(nextDateContext);
-        React.startTransition(() => {
-          router.refresh();
-        });
-      }
-    }
-
-    updateDateContext();
-    const intervalId = window.setInterval(
-      updateDateContext,
-      DATE_CHECK_INTERVAL_MS,
-    );
-
-    return () => window.clearInterval(intervalId);
-  }, [initialDateContext.localDate, router, timeZone]);
-
-  return (
-    <div className="-mx-3 grid h-18 shrink-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 border-b border-sidebar-border bg-sidebar px-3 sm:-mx-5 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:px-5">
-      <div className="flex min-w-0 items-center gap-2.5">
-        <SidebarTrigger ref={triggerRef} className={cn("shrink-0", open && "lg:hidden")} />
-        <p
-          className="truncate text-base font-semibold tracking-tight text-foreground sm:text-xl"
-          aria-label={`Current page: ${pageLabel}`}
-        >
-          {pageLabel}
-        </p>
-      </div>
-
-      <time
-        className="justify-self-center whitespace-nowrap text-center text-sm font-semibold text-foreground sm:text-xl"
-        dateTime={dateContext.localDate}
-      >
-        <span className="sm:hidden">{dateContext.shortDateLabel}</span>
-        <span className="hidden sm:inline">{dateContext.dateLabel}</span>
-      </time>
-
-      <p className="justify-self-end whitespace-nowrap text-right text-sm font-semibold text-foreground sm:text-xl">
-        {dateContext.daysLeftLabel}
-      </p>
-    </div>
-  );
+  React.useEffect(() => watchWorkspaceDate({ fixedCalendar, initialDateContext, timeZone, scheduler: window,
+    onDateChange(next) { setDateContext(next); React.startTransition(() => router.refresh()); }
+  }), [fixedCalendar, initialDateContext, router, timeZone]);
+  return <ContextBarView pageLabel={pageLabel} dateContext={fixedCalendar ? initialDateContext : dateContext} />;
 }

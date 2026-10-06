@@ -1,10 +1,10 @@
 import type * as React from "react";
-import { CircleAlert, CircleCheckBig } from "lucide-react";
+import { CircleAlert, CircleCheckBig, Info } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 type PageNoticeProps = {
-  variant: "error" | "success";
+  variant: "error" | "success" | "info";
   title?: string;
   children: React.ReactNode;
   className?: string;
@@ -16,7 +16,7 @@ export function PageNotice({
   children,
   className,
 }: PageNoticeProps) {
-  const Icon = variant === "error" ? CircleAlert : CircleCheckBig;
+  const Icon = variant === "error" ? CircleAlert : variant === "info" ? Info : CircleCheckBig;
 
   return (
     <div
@@ -24,7 +24,7 @@ export function PageNotice({
         "rounded-xl border p-4",
         variant === "error"
           ? "border-destructive/20 bg-destructive/5"
-          : "border-success/20 bg-success/5",
+          : variant === "info" ? "border-border bg-muted" : "border-success/20 bg-success/5",
         className,
       )}
     >
@@ -34,7 +34,7 @@ export function PageNotice({
             "flex size-9 items-center justify-center rounded-lg",
             variant === "error"
               ? "bg-destructive/10 text-destructive"
-              : "bg-success/10 text-success",
+              : variant === "info" ? "bg-accent text-accent-foreground" : "bg-success/10 text-success",
           )}
         >
           <Icon className="size-4.5" />

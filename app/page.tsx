@@ -51,7 +51,7 @@ export default function HomePage() {
               </p>
               <div className="home-details" data-reveal data-delay="140">
                 <div><h3>Categories that fit your life</h3><p>Add subcategories when you want a closer look</p></div>
-                <div><h3>CSV in, CSV out</h3><p>Bring your records in. Take them with you</p></div>
+                <div><h3>Find what matters</h3><p>Filter by month, type, and category to find the entries you need</p></div>
               </div>
               <Link href="/demo?view=transactions" className="home-explore" data-reveal data-delay="200">
                 Explore transactions <ArrowRight aria-hidden="true" />
@@ -67,9 +67,6 @@ export default function HomePage() {
               <h2 id="planning-heading" className="home-feature-title" data-reveal>See what’s<br />still ahead</h2>
               <p className="home-body" data-reveal data-delay="80">
                 <strong>Plan monthly bills and expected income.</strong> Mark items paid, received, or skipped when you choose
-              </p>
-              <p className="home-planning-note" data-reveal data-delay="140">
-                Safe to spend is an estimate<br />Pending income stays separate
               </p>
               <Link href="/demo?view=planned" className="home-explore" data-reveal data-delay="200">
                 Explore planned items <ArrowRight aria-hidden="true" />

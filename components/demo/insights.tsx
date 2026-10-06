@@ -1,57 +1,49 @@
-import { MonthlyResultChart } from "@/components/insights/monthly-result-chart";
-import { SpendingTrendsChart } from "@/components/insights/spending-trends-chart";
+import type { MouseEvent } from "react";
+import { BarChart3 } from "lucide-react";
+import { SectionHeading } from "@/components/app-shell/section-heading";
+import { MonthlyResultCard } from "@/components/insights/monthly-result-card";
+import { CategoryTrendDetails } from "@/components/insights/category-trend-details";
+import { SpendingCompositionCard } from "@/components/insights/spending-composition-card";
+import { SpendingChangeCard } from "@/components/insights/spending-change-card";
 import { IncomeSpendingConsistency } from "@/components/insights/income-spending-consistency";
-import { SpendingComposition } from "@/components/insights/spending-composition";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { UnusualMonthsView } from "@/components/insights/unusual-months-view";
+import { YearOverYearPatternsView } from "@/components/insights/year-over-year-patterns-view";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import type { DemoData } from "@/lib/demo/calculate";
-import { DEMO_CURRENCY, demoCategories } from "@/lib/demo/fixtures";
+import { DEMO_CURRENCY, DEMO_MONTH, demoCategories } from "@/lib/demo/fixtures";
 import { demoHref } from "@/lib/demo/selection";
 import { formatMonthLabel } from "@/lib/dates/month";
-import { DemoCard, DemoMetric, money } from "./shared";
+import { normalizeDemoSelection } from "@/lib/demo/selection";
+import { shiftMonthKey } from "@/lib/balance/months";
 import type { DemoNavigate } from "./controls";
 
 export function DemoInsights({ data, busy, navigate }: { data: DemoData; busy: boolean; navigate: DemoNavigate }) {
   const insights = data.insights;
-  const result = insights.result;
+  const category = demoCategories.find(row => row.id === data.selection.categoryId);
   const change = insights.change;
-  const longTerm = insights.longTerm;
-  const historyLabel = `History Period: ${insights.periodLabel}`;
-  function transactionsLink(month: string, type: "ALL" | "INCOME" | "EXPENSE" = "ALL", categoryId = "") {
-    const patch = { view: "transactions" as const, month, type, categoryId, subcategoryId: "" };
-    return <a href={demoHref(data.selection, patch)} className={buttonVariants({ variant: "outline", size: "sm" })} aria-disabled={busy} onClick={(event) => {
-      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
-      event.preventDefault(); if (!busy) void navigate(patch);
-    }}>View transactions</a>;
+  const transactionHref = (month: string, type: 'ALL' | 'INCOME' | 'EXPENSE' = 'ALL', categoryId = '') => demoHref(data.selection, { view: 'transactions', month, type, categoryId, subcategoryId: '' });
+  function follow(event: MouseEvent<HTMLAnchorElement>, href: string) {
+    if (busy) { event.preventDefault(); return; }
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    event.preventDefault(); void navigate(normalizeDemoSelection(Object.fromEntries(new URLSearchParams(href.split('?')[1] ?? ''))));
   }
-  return <div className="space-y-5">
-    <p className="text-sm text-muted-foreground">Insights describes recorded history. September 2026 is incomplete and excluded from historical baselines.</p>
-    <DemoCard title="Monthly result">
-      <label className="grid max-w-xs gap-1.5 text-sm font-medium">History Period<Select value={data.selection.period} disabled={busy} onChange={(event) => void navigate({ period: Number(event.target.value) as 3 | 6 | 12 })}><option value="3">3 completed months</option><option value="6">6 completed months</option><option value="12">12 completed months</option></Select></label>
-      <p className="text-sm font-semibold">{historyLabel}</p>
-      <DemoMetric label="Typical monthly result" value={money(result.typicalMonthlyResult)} />
-      {result.breakEvenGap ? <DemoMetric label="Typical break-even gap" value={money(result.breakEvenGap)} /> : null}
-      <p className="text-sm text-muted-foreground">{result.completedMonthCount} completed months · {result.positiveMonthCount} positive · {result.negativeMonthCount} negative · {result.breakEvenMonthCount} break-even</p>
-      <MonthlyResultChart currency={DEMO_CURRENCY} data={insights.chart} />
-      <div className="space-y-3">{result.months.map((row) => <div key={row.month} className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3"><div><p className="text-sm font-medium">{formatMonthLabel(row.month)}{row.isCurrentMonth ? " · Incomplete" : ""}</p><p className="font-mono text-sm">Income {money(row.totalIncome)} · Expenses {money(row.totalExpenses)} · Result {money(row.result)}</p></div>{transactionsLink(row.month)}</div>)}</div>
-    </DemoCard>
-    <DemoCard title="Spending composition"><p className="text-sm font-semibold">{historyLabel}</p><DemoMetric label="Total expenses" value={money(insights.composition.totalExpenses)} /><SpendingComposition categories={insights.composition.categories} currency={DEMO_CURRENCY} />{!insights.composition.categories.length ? <p className="text-sm text-muted-foreground">No completed-period spending recorded.</p> : null}</DemoCard>
-    <section aria-label="Income and spending consistency"><h2 className="mb-3 text-lg font-semibold">Income and spending consistency</h2><IncomeSpendingConsistency insight={insights.consistency} currency={DEMO_CURRENCY} historyPeriodLabel={insights.periodLabel} /></section>
-    <DemoCard title="Unusual months"><p className="text-sm font-semibold">{historyLabel}</p>{!insights.unusual.hasSufficientHistory ? <p className="text-sm text-muted-foreground">At least six eligible completed months are needed.</p> : insights.unusual.months.length ? insights.unusual.months.map((group) => <div key={group.month} className="space-y-3"><h3 className="font-medium">{formatMonthLabel(group.month)}</h3>{group.observations.map((row) => <div key={row.id} className="flex flex-wrap justify-between gap-3 rounded-lg border border-border p-3"><div><p className="text-sm">{row.categoryName ?? (row.metric === "INCOME" ? "Income" : row.metric === "MONTHLY_RESULT" ? "Monthly result" : "Total spending")} · {row.direction === "HIGH" ? "Higher" : "Lower"} than usual</p><p className="text-sm text-muted-foreground">Actual {money(row.actual)} · Typical {money(row.typical)}</p></div>{transactionsLink(row.month, row.metric === "INCOME" ? "INCOME" : row.metric === "MONTHLY_RESULT" ? "ALL" : "EXPENSE", row.categoryId ?? "")}</div>)}</div>) : <p className="text-sm text-muted-foreground">No unusual completed months detected.</p>}</DemoCard>
-    <DemoCard title="Category Spending Trends"><p className="text-sm font-semibold">{historyLabel}</p>
-      <label className="grid max-w-xs gap-1.5 text-sm font-medium">Expense category<Select value={data.selection.categoryId} disabled={busy} onChange={(event) => void navigate({ categoryId: event.target.value, subcategoryId: "" })}><option value="">Choose a category</option>{demoCategories.filter((item) => item.type === "EXPENSE").map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</Select></label>
-      {insights.category ? <><div className="grid gap-4 sm:grid-cols-3"><DemoMetric label="Typical monthly spending" value={money(insights.category.typicalSpending)} /><DemoMetric label="Current incomplete month" value={money(insights.category.currentMonthSpending)} /><DemoMetric label="Difference from typical" value={money(insights.category.differenceFromTypical)} /></div><SpendingTrendsChart categoryName={demoCategories.find((item) => item.id === data.selection.categoryId)!.name} currency={DEMO_CURRENCY} data={insights.categoryChart} />{insights.category.months.map((row) => <div key={row.month} className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3"><p className="text-sm">{formatMonthLabel(row.month)}{row.isCurrentMonth ? " · Incomplete" : ""} · {money(row.categorySpending)}</p>{transactionsLink(row.month, "EXPENSE", data.selection.categoryId)}</div>)}</> : <p className="text-sm text-muted-foreground">Choose an expense category to explore its recorded spending.</p>}
-    </DemoCard>
-    <DemoCard title="Drivers of change">
-      <div className="grid gap-3 sm:grid-cols-2"><label className="grid gap-1.5 text-sm font-medium">Comparison<Select value={data.selection.changeWindow} disabled={busy} onChange={(event) => void navigate({ changeWindow: Number(event.target.value) as 1 | 3 | 6 })}><option value="1">Month to month</option><option value="3">Adjacent 3-month periods</option><option value="6">Adjacent 6-month periods</option></Select></label>
-        {data.selection.changeWindow === 1 ? <label className="grid gap-1.5 text-sm font-medium">Newer completed month<Select value={change.selectedTargetMonth ?? ""} disabled={busy} onChange={(event) => void navigate({ changeMonth: event.target.value })}>{change.availableTargetMonths.map((month) => <option key={month} value={month}>{formatMonthLabel(month)}</option>)}</Select></label> : null}
-      </div>
-      {change.window ? <><p className="text-sm text-muted-foreground">{formatMonthLabel(change.previousStartMonth!)} – {formatMonthLabel(change.previousEndMonth!)} compared with {formatMonthLabel(change.recentStartMonth!)} – {formatMonthLabel(change.recentEndMonth!)}</p><div className="grid gap-4 sm:grid-cols-3"><DemoMetric label="Previous monthly average" value={money(change.previousMonthlyAverage)} /><DemoMetric label="Recent monthly average" value={money(change.recentMonthlyAverage)} /><DemoMetric label="Average monthly change" value={money(change.averageMonthlyChange)} /></div>{change.categories.map((row) => <div key={row.categoryId} className="flex flex-wrap justify-between gap-3 border-t border-border pt-3"><p className="text-sm">{row.categoryName}</p><p className="font-mono text-sm">{money(row.previousMonthlyAverage)} → {money(row.recentMonthlyAverage)} · Change {money(row.change)}</p></div>)}</> : <p className="text-sm text-muted-foreground">Not enough eligible completed history to compare periods.</p>}
-    </DemoCard>
-    <DemoCard title="Year-over-year patterns">
-      <p className="text-sm text-muted-foreground">{formatMonthLabel(longTerm.previousStartMonth)} – {formatMonthLabel(longTerm.previousEndMonth)} compared with {formatMonthLabel(longTerm.recentStartMonth)} – {formatMonthLabel(longTerm.recentEndMonth)}</p>
-      {longTerm.hasSufficientHistory ? <><div className="grid gap-4 sm:grid-cols-3">{(["income", "expenses", "result"] as const).map((key) => <DemoMetric key={key} label={`Annual ${key} change`} value={money(longTerm[key]?.change ?? null)}><p className="mt-1 text-sm text-muted-foreground">{money(longTerm[key]?.previousTotal ?? null)} → {money(longTerm[key]?.recentTotal ?? null)}</p></DemoMetric>)}</div>{longTerm.categories.map((row) => <div key={row.categoryId} className="flex flex-wrap justify-between gap-3 border-t border-border pt-3"><p className="text-sm">{row.categoryName}{row.hasPartialHistory ? " · Partial history" : ""}</p><p className="font-mono text-sm">{money(row.previousTotal)} → {money(row.recentTotal)} · Change {money(row.change)}</p></div>)}</> : <p className="text-sm text-muted-foreground">24 eligible completed months are needed for this comparison.</p>}
-    </DemoCard>
-    <Button variant="outline" disabled={busy} onClick={() => void navigate({ view: "transactions", categoryId: "", subcategoryId: "", type: "ALL" })}>Try adding a transaction</Button>
+  const unusualHrefs = Object.fromEntries(insights.unusual.months.flatMap(month => month.observations.map(row => [row.id, transactionHref(row.month, row.metric === 'INCOME' ? 'INCOME' : row.metric === 'MONTHLY_RESULT' ? 'ALL' : 'EXPENSE', row.categoryId ?? '')])));
+  return <div className="flex flex-col gap-5">
+    <section aria-labelledby="monthly-result-heading" className="flex flex-col gap-4"><SectionHeading id="monthly-result-heading" title="Monthly result" />
+      <form onSubmit={event => { event.preventDefault(); void navigate({ period: Number(new FormData(event.currentTarget).get('period')) as 3 | 6 | 12 }); }}><fieldset disabled={busy} className="flex flex-wrap items-end gap-3"><label className="flex flex-col text-sm font-medium"><span className="sr-only">History Period</span><Select name="period" key={data.selection.period} defaultValue={data.selection.period}><option value="3">Last 3 months</option><option value="6">Last 6 months</option><option value="12">Last 12 months</option></Select></label><Button type="submit" variant="outline">Apply</Button></fieldset></form>
+      <MonthlyResultCard monthlyResultInsight={insights.result} monthlyResultChartData={insights.chart} completedPeriodLabel={insights.periodLabel} currency={DEMO_CURRENCY} display={data.display} transactionsHref={transactionHref(DEMO_MONTH)} disabled={busy} onTransactionClick={event => follow(event, transactionHref(DEMO_MONTH))} />
+    </section>
+    <section aria-labelledby="spending-composition-heading" className="flex flex-col gap-4"><SectionHeading id="spending-composition-heading" title="Spending composition" /><SpendingCompositionCard spendingComposition={insights.composition} completedPeriodLabel={insights.periodLabel} currency={DEMO_CURRENCY} display={data.display} /></section>
+    <section aria-labelledby="income-spending-consistency-heading" className="flex flex-col gap-4"><SectionHeading id="income-spending-consistency-heading" title="Income and spending consistency" /><IncomeSpendingConsistency insight={insights.consistency} currency={DEMO_CURRENCY} historyPeriodLabel={insights.periodLabel} /></section>
+    <section aria-labelledby="unusual-months-heading" className="flex flex-col gap-4"><SectionHeading id="unusual-months-heading" title="Unusual months" /><UnusualMonthsView insight={insights.unusual} display={data.unusualDisplay} historyPeriodLabel={insights.periodLabel} transactionHrefs={unusualHrefs} disabled={busy} onTransactionClick={follow} /></section>
+    <section aria-labelledby="category-spending-heading" className="flex flex-col gap-4"><SectionHeading id="category-spending-heading" title="Category Spending Trends" />
+      <form onSubmit={event => { event.preventDefault(); void navigate({ categoryId: String(new FormData(event.currentTarget).get('categoryId') ?? ''), subcategoryId: '' }); }}><fieldset disabled={busy} className="flex flex-col gap-3 sm:flex-row sm:items-end"><label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm font-medium sm:max-w-md">Expense category<Select name="categoryId" key={data.selection.categoryId} defaultValue={data.selection.categoryId}><option value="">Select a category</option>{demoCategories.filter(row => row.type === 'EXPENSE').map(row => <option key={row.id} value={row.id}>{row.name}</option>)}</Select></label><Button type="submit" variant="outline">Apply</Button></fieldset></form>
+      {category && insights.category ? <CategoryTrendDetails insight={insights.category} comparison={data.comparison} selectedCategory={category} completedPeriodLabel={insights.periodLabel} chartData={insights.categoryChart} historyRows={[...insights.category.months].reverse()} currency={DEMO_CURRENCY} display={data.display} currentTransactionsHref={transactionHref(DEMO_MONTH, 'EXPENSE', category.id)} transactionHrefs={Object.fromEntries(insights.category.months.map(row => [row.month, transactionHref(row.month, 'EXPENSE', category.id)]))} disabled={busy} onTransactionClick={follow} /> : <Card><CardHeader><CardTitle className="flex flex-wrap items-center gap-x-3 gap-y-1"><span className="text-muted-foreground">History Period:</span><span>{insights.periodLabel}</span></CardTitle></CardHeader><CardContent className="pt-4"><EmptyState icon={BarChart3} title="Select an expense category" description="Choose a category to view its monthly spending history" /></CardContent></Card>}
+    </section>
+    <section aria-labelledby="drivers-of-change-heading" className="flex flex-col gap-4"><SectionHeading id="drivers-of-change-heading" title="Drivers of change" /><SpendingChangeCard spendingChange={change} display={data.display} bars={data.changeBars} controls={change.window ? <form key={`${change.window}:${change.selectedTargetMonth}`} className="flex flex-col gap-2 sm:flex-row sm:items-end" onSubmit={event => { event.preventDefault(); const values = new FormData(event.currentTarget); void navigate({ changeWindow: Number(values.get('changeWindow')) as 1 | 3 | 6, changeMonth: String(values.get('changeMonth') ?? '') }); }}><fieldset disabled={busy} className="contents"><label className="flex flex-col text-sm font-medium"><span className="sr-only">Comparison length</span><Select name="changeWindow" defaultValue={change.window}>{change.availableWindows.map(window => <option key={window} value={window}>{window === 1 ? 'Month to month' : `${window}-month periods`}</option>)}</Select></label>{change.window === 1 && change.selectedTargetMonth ? <label className="flex flex-col text-sm font-medium"><span className="sr-only">Compare</span><Select name="changeMonth" defaultValue={change.selectedTargetMonth}>{change.availableTargetMonths.map(month => <option key={month} value={month}>{formatMonthLabel(month)} vs {formatMonthLabel(shiftMonthKey(month, -1))}</option>)}</Select></label> : null}<Button type="submit" variant="outline">Apply</Button></fieldset></form> : null} /></section>
+    <section aria-labelledby="year-over-year-patterns-heading" className="flex flex-col gap-4"><SectionHeading id="year-over-year-patterns-heading" title="Year-over-year patterns" /><YearOverYearPatternsView insight={insights.longTerm} display={data.annualDisplay} bars={data.annualBars} /></section>
   </div>;
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { EditorActions } from "@/components/ui/editor-actions";
 import { Trash2 } from "lucide-react";
 import * as React from "react";
 
@@ -70,7 +71,7 @@ export function TransactionEditForm({
         showTypeField={false}
       />
 
-      <div className="flex flex-wrap justify-end gap-3 border-t border-border/70 pt-5">
+      <EditorActions>
         <InlineEditorLink
           href={cancelHref}
           className={cn(buttonVariants({ variant: "outline" }), "rounded-xl")}
@@ -89,7 +90,7 @@ export function TransactionEditForm({
         <Button type="submit" className="rounded-xl" disabled={!hasChanges}>
           Save changes
         </Button>
-      </div>
+      </EditorActions>
     </form>
   );
 }

@@ -7,7 +7,7 @@ import {
   getAuthenticatedUserPreferences,
   getSession
 } from '@/lib/auth/session'
-import { SidebarProvider } from '@/components/ui/sidebar'
+import { WorkspaceShell } from '@/components/app-shell/workspace-shell'
 import { getAccountDateContext } from '@/lib/dates/time-zone'
 import { privateRobots } from '@/lib/site/metadata'
 
@@ -68,28 +68,11 @@ export default async function AppLayout ({
   const dateContext = getAccountDateContext(user.timeZone)
 
   return (
-    <div className='min-h-screen'>
-      <SidebarProvider>
-        <div className='mx-auto flex min-h-screen gap-3 px-3 pb-3 transition-[padding,column-gap] duration-250 ease-in-out motion-reduce:transition-none sm:px-5 lg:gap-0 lg:py-0 lg:pr-5 lg:pl-5 lg:group-data-[sidebar-open=true]/sidebar-provider:gap-5 lg:group-data-[sidebar-open=true]/sidebar-provider:pl-0'>
-          <AppSidebar
-            displayName={displayName}
-            initials={initials}
-            userImage={userImage}
-          />
-
-          <main className='flex min-w-0 flex-1 flex-col gap-3 pb-5 lg:gap-5'>
-            <PageContextBar
-              key={`${user.timeZone}:${dateContext.localDate}`}
-              initialDateContext={dateContext}
-              timeZone={user.timeZone}
-            />
-
-            <div className='mx-auto flex w-full flex-col gap-5'>
-              {children}
-            </div>
-          </main>
-        </div>
-      </SidebarProvider>
-    </div>
+    <WorkspaceShell
+      sidebar={<AppSidebar displayName={displayName} initials={initials} userImage={userImage} />}
+      contextBar={<PageContextBar key={`${user.timeZone}:${dateContext.localDate}`} initialDateContext={dateContext} timeZone={user.timeZone} />}
+    >
+      {children}
+    </WorkspaceShell>
   )
 }
