@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/site/metadata";
 import {
   FolderOpen,
   PencilLine,
@@ -42,6 +44,8 @@ import {
   type PageSearchParams,
 } from "@/lib/routes/search-params";
 import { cn } from "@/lib/utils";
+
+export const metadata: Metadata = pageMetadata.categories;
 
 type CategoryType = "INCOME" | "EXPENSE";
 

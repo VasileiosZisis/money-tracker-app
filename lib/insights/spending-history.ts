@@ -444,9 +444,10 @@ export function buildSpendingChangeInsight(params: {
   const windowDivisor = new Prisma.Decimal(selectedWindow);
   const previousMonthlyAverage = previousPeriodExpenses.dividedBy(windowDivisor);
   const recentMonthlyAverage = recentPeriodExpenses.dividedBy(windowDivisor);
-  const averageMonthlyChange = recentMonthlyAverage.minus(
-    previousMonthlyAverage,
-  );
+  // Subtract exact period totals before division to retain small changes.
+  const averageMonthlyChange = recentPeriodExpenses
+    .minus(previousPeriodExpenses)
+    .dividedBy(windowDivisor);
   const changedCategoryIds = new Set([
     ...previousTotals.keys(),
     ...recentTotals.keys(),
@@ -459,13 +460,16 @@ export function buildSpendingChangeInsight(params: {
         return null;
       }
 
-      const previousMonthlyAverage = (
-        previousTotals.get(categoryId) ?? new Prisma.Decimal(0)
-      ).dividedBy(windowDivisor);
-      const recentMonthlyAverage = (
-        recentTotals.get(categoryId) ?? new Prisma.Decimal(0)
-      ).dividedBy(windowDivisor);
-      const change = recentMonthlyAverage.minus(previousMonthlyAverage);
+      const previousCategoryExpenses =
+        previousTotals.get(categoryId) ?? new Prisma.Decimal(0);
+      const recentCategoryExpenses =
+        recentTotals.get(categoryId) ?? new Prisma.Decimal(0);
+      const previousMonthlyAverage =
+        previousCategoryExpenses.dividedBy(windowDivisor);
+      const recentMonthlyAverage = recentCategoryExpenses.dividedBy(windowDivisor);
+      const change = recentCategoryExpenses
+        .minus(previousCategoryExpenses)
+        .dividedBy(windowDivisor);
 
       if (change.eq(0)) {
         return null;

@@ -1,3 +1,5 @@
+import type { Metadata } from 'next'
+import { pageMetadata } from '@/lib/site/metadata'
 import { Prisma } from '@/generated/prisma/client'
 import {
   ArrowRight,
@@ -64,6 +66,8 @@ import { ToastFeedback } from '@/components/ui/toast-feedback'
 import { getAuthenticatedUserPreferences } from '@/lib/auth/session'
 import { getCurrentMonthInTimeZone } from '@/lib/dates/time-zone'
 import { cn } from '@/lib/utils'
+
+export const metadata: Metadata = pageMetadata.dashboard
 
 type DashboardPageProps = {
   searchParams?: Promise<{

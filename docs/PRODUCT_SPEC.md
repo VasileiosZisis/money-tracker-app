@@ -1,8 +1,8 @@
-# Money Tracker Product Spec
+# CashContour Product Spec
 
 ## Purpose
 
-This document defines the current Money Tracker product behavior and scope.
+This document defines the current CashContour product behavior and scope.
 
 It consolidates the relevant parts of the original Free MVP and next-phase
 specifications into one current source of truth. Historical phase documents may
@@ -14,7 +14,7 @@ For implementation constraints and locked architecture decisions, use
 
 ## Product Goal
 
-Money Tracker is a manual-first personal finance web app that replaces a
+CashContour is a manual-first personal finance web app that replaces a
 monthly spreadsheet while adding lightweight, explainable planning support.
 
 The app should help a user:
@@ -42,6 +42,20 @@ simpler than a full accounting or budgeting suite.
 - Keep common workflows fast and understandable.
 
 ## Current Implemented Scope
+
+### Public Identity And Discovery
+
+- The product name is CashContour and the official URL is
+  `https://www.cashcontour.com`; the bare domain redirects to `www` in Vercel.
+- The homepage and public demo are indexable on Vercel Production, have
+  separate canonical URLs without query parameters, and provide branded
+  Open Graph and Twitter/X cards with a shared image.
+- The sitemap contains only the homepage and demo. Login, Setup, and app
+  workspaces use `noindex, follow`. Previews and local environments are not
+  indexable and do not advertise sitemap entries.
+- Browser titles identify the current workspace and CashContour. The homepage
+  retains CashContour — Personal money tracking, and the 404 page retains
+  Page not found — CashContour with native noindex handling.
 
 ### Public Homepage
 

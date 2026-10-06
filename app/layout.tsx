@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 
 import { Toaster } from "@/components/ui/sonner";
+import { getSiteMetadata } from "@/lib/site/metadata";
 
 import "./globals.css";
 
@@ -18,8 +19,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Money Tracker",
-  description: "Track monthly income and expenses.",
+  ...getSiteMetadata(process.env.VERCEL_ENV),
   icons: {
     icon: [
       { url: "/branding/favicons/favicon-16x16.png", sizes: "16x16", type: "image/png" },

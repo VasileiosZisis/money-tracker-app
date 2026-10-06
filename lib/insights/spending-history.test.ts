@@ -1003,6 +1003,63 @@ test("preserves positive and negative sub-cent average monthly changes", () => {
   );
 });
 
+test("preserves offsetting sub-cent category changes against large period totals", () => {
+  const insight = buildSpendingChangeInsight({
+    currentMonth: "2026-07",
+    firstActivityMonth: "2026-01",
+    requestedWindow: 3,
+    categories: [
+      { id: "food", name: "Food", isArchived: false },
+      { id: "housing", name: "Housing", isArchived: false },
+    ],
+    transactions: [
+      transaction({
+        type: "EXPENSE",
+        amount: "999999999999.98",
+        localDate: "2026-01-01",
+        categoryId: "food",
+      }),
+      transaction({
+        type: "EXPENSE",
+        amount: "300.01",
+        localDate: "2026-01-02",
+        categoryId: "housing",
+      }),
+      transaction({
+        type: "EXPENSE",
+        amount: "999999999999.99",
+        localDate: "2026-04-01",
+        categoryId: "food",
+      }),
+      transaction({
+        type: "EXPENSE",
+        amount: "300.00",
+        localDate: "2026-04-02",
+        categoryId: "housing",
+      }),
+    ],
+  });
+
+  assert.equal(insight.averageMonthlyChange, "0.00");
+  assert.deepEqual(insight.categories.map((category) => category.categoryId), [
+    "food",
+    "housing",
+  ]);
+  const expectedChange = new Prisma.Decimal("0.01").dividedBy(3);
+  assert.equal(
+    new Prisma.Decimal(insight.categories[0].change).eq(expectedChange),
+    true,
+  );
+  assert.equal(
+    new Prisma.Decimal(insight.categories[1].change).eq(expectedChange.negated()),
+    true,
+  );
+  assert.deepEqual(
+    insight.categories.map((category) => category.contributionPercent),
+    [null, null],
+  );
+});
+
 test("keeps offsetting category changes when the total is unchanged", () => {
   const insight = buildSpendingChangeInsight({
     currentMonth: "2026-07",

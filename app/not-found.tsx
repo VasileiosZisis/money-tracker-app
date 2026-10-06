@@ -4,12 +4,11 @@ import { ArrowLeft } from "lucide-react";
 
 import { HomepageBrand } from "@/components/homepage/homepage-parts";
 import { buttonVariants } from "@/components/ui/button";
+import { pageMetadata } from "@/lib/site/metadata";
 
 import styles from "./not-found.module.css";
 
-export const metadata: Metadata = {
-  title: "Page not found — CashContour",
-};
+export const metadata: Metadata = pageMetadata.notFound;
 
 export default function NotFound() {
   return (

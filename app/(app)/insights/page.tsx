@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/site/metadata";
 import Link from "next/link";
 import { Prisma } from "@/generated/prisma/client";
 import {
@@ -58,6 +60,8 @@ import {
   type PageSearchParams,
 } from "@/lib/routes/search-params";
 import { cn } from "@/lib/utils";
+
+export const metadata: Metadata = pageMetadata.insights;
 
 const SUPPORTED_PERIODS = new Set([3, 6, 12]);
 

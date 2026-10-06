@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/site/metadata";
 import {
   ArrowRight,
   CalendarClock,
@@ -38,6 +40,8 @@ import {
   setupSubmitSchema,
   timeZoneSchema,
 } from "@/lib/validators/setup";
+
+export const metadata: Metadata = pageMetadata.setup;
 
 const currencyLabels: Record<(typeof allowedCurrencies)[number], string> = {
   EUR: "EUR - Euro",
@@ -147,7 +151,7 @@ export default async function SetupPage({
                 </div>
                 <div>
                   <p className="text-base font-semibold tracking-tight text-foreground">
-                    Money Tracker
+                    CashContour
                   </p>
                   <p className="text-sm text-muted-foreground">One-time update</p>
                 </div>
@@ -227,7 +231,7 @@ export default async function SetupPage({
               </div>
               <div>
                 <p className="text-base font-semibold tracking-tight text-foreground">
-                  Money Tracker
+                  CashContour
                 </p>
                 <p className="text-sm text-muted-foreground">One-time setup</p>
               </div>

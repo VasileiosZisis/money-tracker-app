@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 
 import { AppSidebar } from '@/components/app-shell/app-sidebar'
@@ -8,6 +9,9 @@ import {
 } from '@/lib/auth/session'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { getAccountDateContext } from '@/lib/dates/time-zone'
+import { privateRobots } from '@/lib/site/metadata'
+
+export const metadata: Metadata = { robots: privateRobots }
 
 function getDisplayName (
   name: string | null | undefined,
@@ -21,7 +25,7 @@ function getDisplayName (
     return email.trim()
   }
 
-  return 'Money Tracker'
+  return 'CashContour'
 }
 
 function getInitials (name: string) {
@@ -32,8 +36,10 @@ function getInitials (name: string) {
     .slice(0, 2)
 
   if (parts.length === 0) {
-    return 'MT'
+    return 'CC'
   }
+
+  if (name === 'CashContour') return 'CC'
 
   return parts.map(part => part[0]?.toUpperCase() ?? '').join('')
 }

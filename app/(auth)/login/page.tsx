@@ -9,13 +9,11 @@ import { getSession } from "@/lib/auth/session";
 import { HomepageBrand } from "@/components/homepage/homepage-parts";
 import { buttonVariants } from "@/components/ui/button";
 import { db } from "@/lib/db";
+import { pageMetadata } from "@/lib/site/metadata";
 
 import styles from "./login-header.module.css";
 
-export const metadata: Metadata = {
-  title: "Sign in — CashContour",
-  description: "Sign in to your personal money workspace",
-};
+export const metadata: Metadata = pageMetadata.login;
 
 type LoginPageProps = {
   searchParams: Promise<{

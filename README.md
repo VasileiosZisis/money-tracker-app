@@ -1,12 +1,28 @@
-# Money Tracker
+# CashContour
 
-Money Tracker is a manual-first personal finance web app for recording everyday
+CashContour is a manual-first personal finance web app for recording everyday
 income and expenses, understanding monthly cashflow, and planning the rest of
 the month.
 
 It is designed as a trustworthy replacement for a monthly spreadsheet: actual
 totals always come from transactions, while planned bills, planned income, and
 forecast estimates remain separate and explainable.
+
+Official website: [www.cashcontour.com](https://www.cashcontour.com).
+
+## Public metadata and indexing
+
+- The official metadata base is `https://www.cashcontour.com`; the homepage and
+  public demo have their own query-free canonical URLs and branded sharing cards.
+- Only Vercel Production (`VERCEL_ENV=production`) permits indexing. Preview,
+  Development, and local environments use `noindex`, block crawling through
+  `robots.txt`, and publish an empty sitemap. Preserve Vercel preview protection.
+- The production sitemap contains only `/` and `/demo`. Login, onboarding,
+  and authenticated workspaces use `noindex, follow`; authentication remains
+  the access-control boundary. Production robots rules exclude `/api/` and
+  allow crawling login so its `noindex` can be read.
+- Browser titles use CashContour with individual workspace titles. The existing
+  favicon and browser-mode manifest remain unchanged.
 
 ## What the app does
 
@@ -140,7 +156,7 @@ app can be used.
 
 ## Product boundaries
 
-Money Tracker is a personal, single-currency, web-first tool. It intentionally
+CashContour is a personal, single-currency, web-first tool. It intentionally
 does not include:
 
 - bank syncing, multiple accounts, or bank reconciliation
@@ -281,6 +297,13 @@ migrations against a disposable development database instead. Never copy preview
 records into production. Vercel rollbacks do not roll back database migrations.
 
 ### Preview authentication and release
+
+The production Google OAuth callback is
+`https://www.cashcontour.com/api/auth/callback/google`. Keep it registered on the
+existing Google OAuth client alongside the localhost and stable preview callbacks.
+Google consent-screen branding should use CashContour, homepage
+`https://www.cashcontour.com`, and authorized domain `cashcontour.com`; these
+provider settings are maintained outside this repository.
 
 Keep `NEXTAUTH_URL` unset on Vercel with system environment variables enabled.
 Locally, keep `NEXTAUTH_URL=http://localhost:3000`. Use the stable branch domain

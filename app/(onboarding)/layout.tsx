@@ -1,7 +1,11 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { getAuthenticatedUserPreferences } from "@/lib/auth/session";
+import { privateRobots } from "@/lib/site/metadata";
+
+export const metadata: Metadata = { robots: privateRobots };
 
 export default async function OnboardingLayout({
   children,

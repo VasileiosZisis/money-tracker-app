@@ -3,13 +3,10 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { HomepageMotion } from "@/components/homepage/homepage-motion";
+import { pageMetadata } from "@/lib/site/metadata";
 import { HomepageBrand, HomepageActions, HomepageScene, HomepageGraph } from "@/components/homepage/homepage-parts";
 
-export const metadata: Metadata = {
-  title: "CashContour — Personal money tracking",
-  description:
-    "Record income and expenses, plan monthly bills, and understand your spending history in one calm workspace",
-};
+export const metadata: Metadata = pageMetadata.home;
 
 export default function HomePage() {
   return (

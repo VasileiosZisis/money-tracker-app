@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/site/metadata";
 import { redirect } from "next/navigation";
 import {
   FolderOpen,
@@ -39,6 +41,8 @@ import {
   type PageSearchParams,
 } from "@/lib/routes/search-params";
 import { cn } from "@/lib/utils";
+
+export const metadata: Metadata = pageMetadata.transactions;
 
 type TransactionType = "INCOME" | "EXPENSE";
 type TypeFilter = "ALL" | TransactionType;

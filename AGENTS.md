@@ -204,6 +204,7 @@ than creating parallel feature implementations.
 | Area | Location |
 | --- | --- |
 | Public homepage and artwork | `app/page.tsx`, `components/homepage/`, `public/homepage/` |
+| Public metadata and discovery | `lib/site/`, `app/robots.ts`, `app/sitemap.ts`, `public/branding/cashcontour-social.png` |
 | Public not-found page | `app/not-found.tsx`, `app/not-found.module.css` |
 | Public synthetic demo | `app/demo/`, `components/demo/`, `lib/demo/`, `actions/demo.ts`, `lib/validators/demo.ts` |
 | Login and OAuth | `app/(auth)/login/page.tsx`, `app/api/auth/[...nextauth]/route.ts` |

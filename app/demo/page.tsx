@@ -4,11 +4,9 @@ import { DemoWorkspace } from "@/components/demo/demo-workspace";
 import { calculateDemo } from "@/lib/demo/calculate";
 import { createDemoSnapshot } from "@/lib/demo/fixtures";
 import { normalizeDemoSelection } from "@/lib/demo/selection";
+import { pageMetadata } from "@/lib/site/metadata";
 
-export const metadata: Metadata = {
-  title: "Try the demo — CashContour",
-  description: "Explore CashContour with fictional transactions, monthly plans, and spending history. No sign-in required.",
-};
+export const metadata: Metadata = pageMetadata.demo;
 
 export default async function DemoPage({ searchParams }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;

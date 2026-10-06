@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/site/metadata";
 import {
   CalendarClock,
   Download,
@@ -36,6 +38,8 @@ import {
   resolveSearchParams,
   type PageSearchParams,
 } from "@/lib/routes/search-params";
+
+export const metadata: Metadata = pageMetadata.settings;
 
 const settingsSections = [
   {

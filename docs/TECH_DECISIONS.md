@@ -661,6 +661,9 @@ Insights-page interaction rules:
 - preserve the Decimal precision of average values and changes through the
   server-rendered presentation contract so sub-cent averages retain their true
   sign; round only their formatted currency display
+- calculate overall and category average monthly changes by subtracting period
+  expense totals before dividing by the comparison length; do not subtract
+  separately rounded monthly averages
 - compute income and spending consistency from eligible completed months in
   the shared Insights period, using Decimal medians and linearly interpolated
   quartiles; classify the coefficient `(Q3 - Q1) / (Q3 + Q1)` as Low at 10%
@@ -787,6 +790,16 @@ Do not move business logic into large client components.
 Current assumptions:
 
 - target hosting: Vercel
+- public product name: CashContour; official URL: `https://www.cashcontour.com`.
+  Vercel redirects `cashcontour.com` to `www.cashcontour.com`.
+- Public metadata and discovery rules are centralized under `lib/site/`.
+  The official origin is fixed for metadata, canonicals, and sharing URLs;
+  only `VERCEL_ENV=production` permits indexing. Preview, Development, and local
+  builds use noindex, disallow crawling, and return an empty sitemap. Production
+  robots rules exclude `/api/` but permit crawling login to read its noindex.
+  The production sitemap includes only `/` and `/demo`; their canonicals omit
+  query strings. Login, onboarding, and authenticated layouts/pages use
+  noindex, follow. These directives supplement, never replace, authentication.
 - Postgres provider: Neon, project `money-tracker-app`
 - Git pushes to `main` deploy Production; other branches deploy Preview without
   a commit-message marker. `codex/preview` is the long-lived testing branch.
@@ -807,6 +820,10 @@ Current assumptions:
   Preview/Development. Preserve production credentials. Google OAuth stays the
   only provider; register each stable testing-branch callback on the existing
   client. Leave `NEXTAUTH_URL` unset on Vercel and preserve preview protection.
+- Register `https://www.cashcontour.com/api/auth/callback/google` on the existing
+  Google OAuth client, preserving localhost and stable preview registrations.
+  Google consent-screen name, homepage, and authorized domain are external
+  provider settings; repository branding changes do not update them.
 - Release by merging to `main` for a new Production build, not by promoting a
   preview artifact with preview environment configuration.
 
