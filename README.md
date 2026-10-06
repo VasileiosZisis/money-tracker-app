@@ -1,227 +1,255 @@
 # CashContour
 
-CashContour is a manual-first personal finance web app for recording everyday
-income and expenses, understanding monthly cashflow, and planning the rest of
-the month.
+CashContour is a manual-first personal finance app for recording income and
+expenses, understanding cashflow, and planning the rest of the month. Actual
+transactions, expected bills and income, and forecast estimates stay separate
+so users can understand where each number comes from.
 
-It is designed as a trustworthy replacement for a monthly spreadsheet: actual
-totals always come from transactions, while planned bills, planned income, and
-forecast estimates remain separate and explainable.
+[Live website](https://www.cashcontour.com) ·
+[Try the interactive demo](https://www.cashcontour.com/demo) ·
+[Architecture decisions](docs/TECH_DECISIONS.md) ·
+[AI-assisted development workflow](#ai-assisted-development-workflow)
 
-Official website: [www.cashcontour.com](https://www.cashcontour.com).
+The project brings together responsive UI, authenticated server workflows,
+relational data modeling, financial calculations, regression tests, and
+production deployment. I develop it with AI assistance under documented
+constraints and independent agent review, while retaining responsibility for
+product scope, technical decisions, and accepting changes.
 
-## Public metadata and indexing
+## Explore the app
 
-- The official metadata base is `https://www.cashcontour.com`; the homepage and
-  public demo have their own query-free canonical URLs and branded sharing cards.
-- Only Vercel Production (`VERCEL_ENV=production`) permits indexing. Preview,
-  Development, and local environments use `noindex`, block crawling through
-  `robots.txt`, and publish an empty sitemap. Preserve Vercel preview protection.
-- The production sitemap contains only `/` and `/demo`. Login, onboarding,
-  and authenticated workspaces use `noindex, follow`; authentication remains
-  the access-control boundary. Production robots rules exclude `/api/` and
-  allow crawling login so its `noindex` can be read.
-- Browser titles use CashContour with individual workspace titles. The existing
-  favicon and browser-mode manifest remain unchanged.
+The public demo needs no sign-in. It includes fictional EUR records covering
+24 completed months and a fixed example date. You can:
 
-## What the app does
+- create, edit, delete, and filter transactions
+- pay or receive planned items, skip them, link existing transactions, and undo handling
+- see Dashboard, Total Balance, and Insights recalculate after your changes
 
-### Track actual money
+Edits stay in the current tab's session. Reset restores the sample; closing the
+tab ends its session. Demo validation and financial calculations run on the
+server without reading or writing account records. Categories, templates, and
+account settings are fixed in the demo; CSV workflows require an account.
 
-- Sign in with Google and complete a required first-time setup.
-- Choose one base currency for the account.
-- Confirm one account time zone for transaction defaults and planning calculations.
-- Create, edit, and delete income and expense transactions.
-- Organize transactions with categories and optional category-scoped
-  subcategories.
-- Archive and restore categories without breaking historical records.
-- Filter transactions by month, type, category, and subcategory.
+<details>
+<summary>View a screenshot of the deployed public demo</summary>
 
-### Move data in and out
+![CashContour public demo Dashboard showing fictional EUR balances, monthly cashflow, spending estimates, and attention signals](docs/assets/demo-dashboard.jpg)
 
-- Import CSV files through an explicit upload, preview, validation, mapping, and
-  confirmation flow.
-- Map unknown categories or create them during import.
-- Export a selected month's transactions as CSV.
-- Keep imported transactions subject to the same validation rules as manually
-  entered transactions.
+Captured from the public deployment with fictional sample data. The deployed
+interface may differ from changes in the current checkout.
 
-Only CSV import is supported currently. The app does not perform fuzzy
-historical duplicate detection or overwrite existing transactions.
+</details>
 
-### Plan recurring monthly items
+## Implemented features
 
-- Manage monthly planned bill and planned income templates in one `/planned`
-  workspace.
-- Assign each template a category, optional subcategory, amount, day of month,
-  Source, and Note.
-- Activate, deactivate, edit, or delete templates.
-- For a selected month, mark a bill paid or income received, skip it, undo the
-  occurrence, or link an existing transaction.
-- Marking an item paid or received creates a normal transaction; linking an
-  existing transaction does not create a duplicate.
+| Area | What users can do |
+| --- | --- |
+| Authentication and setup | Sign in with Google, choose one base currency, and confirm an IANA account time zone before using the app. Each personal account has isolated records. |
+| Transactions | Create, edit, and delete income and expenses with a local date, category, optional subcategory, Source, and Note. Filter by month, type, category, and subcategory through URL-backed controls. |
+| Categories | Manage income/expense categories and category-scoped subcategories. Archive and restore categories while preserving historical relationships. |
+| Monthly planning | Create bill and income templates with due/expected days from 1–28. Explicitly pay, receive, skip, undo, or link compatible transactions for a selected month. |
+| Dashboard | Review actual income, expenses, and net; projected month-end net; remaining-spend forecasts and confidence; daily/weekly safe spend; spending pace; planned-income realization; spending breakdowns; and Needs Attention signals. |
+| Total Balance | Review a completed-month ledger with preset/custom ranges, starting and ending balances, monthly carry-forward, and separate positive adjustments for opening balances or previously untracked money. |
+| Insights | Explore monthly results and break-even gaps, spending composition, income/spending consistency, unusual months, category trends, expense change drivers, and trailing year-over-year comparisons when enough history exists. |
+| CSV and settings | Preview, validate, and map imported CSV rows before confirmation; export a selected month's transactions; update the account time zone; and switch between light and dark themes. |
 
-Monthly occurrence actions are available from the dashboard. The app never
-automatically matches a planned item to a transaction.
+Actual income and expense totals come only from transactions. Balance
+adjustments affect Total Balance only. Insights uses actual history and excludes
+the incomplete current month from historical baselines and completed-period
+comparisons; eligible empty months remain part of that history.
 
-### Understand the month
+CSV is the supported import format. Import creates new transactions and never
+overwrites existing ones; duplicate prevention is limited to one confirmation
+flow, without fuzzy historical matching.
 
-The dashboard combines actual activity with conservative planning estimates:
+## Architecture
 
-- income, expenses, and net left now
-- projected month-end net
-- forecast remaining spend and forecast confidence
-- safe to spend
-- daily and weekly safe spend
-- spending pace against up to six usable trailing months
-- planned-income realization
-- actual spending by category and subcategory
-- recent transactions and pending planned items
-- a deterministic Needs Attention panel for due, overdue, negative, stale, or
-  low-confidence conditions
+| Layer | Implementation |
+| --- | --- |
+| UI and routing | Next.js 16 App Router, React 19, and TypeScript; server-rendered account pages with client components for interactive forms, charts, and browser state. |
+| Components and styling | Tailwind CSS 4, shadcn-based shared primitives, CSS-variable light/dark themes, and Recharts visualizations. |
+| Server boundaries | Server actions for application mutations; route handlers for CSV preview/confirmation, export downloads, and NextAuth. Zod schemas validate mutation inputs on the server. |
+| Identity and ownership | NextAuth 4 with Google OAuth, JWT sessions, and a local Prisma adapter. Application identity comes from `session.user.id`; user-owned entity and relationship access is checked on the server. |
+| Persistence | PostgreSQL with Prisma 7 and the PostgreSQL driver adapter. Committed migrations define the relational schema. |
+| Domain and presentation | Server-side modules calculate forecasts, balances, and historical analysis. Presentation helpers serialize money and prepare display data for the UI. |
+| Hosting | Vercel for the web app and Neon for PostgreSQL, with separate production and non-production database targets. |
 
-Forecasts are calculated on demand and are never stored. They are estimates,
-not an account balance or a guarantee.
+For authenticated workflows, pages and server endpoints resolve account identity,
+read or mutate owned records through Prisma, and calculate domain results on the
+server. Clients receive serialized data. Route redirects provide navigation
+and setup gates; server authentication and ownership checks protect data access.
+Session and preference memoization is scoped to one server request.
 
-### Review completed history
+### Engineering decisions
 
-Total Balance is a completed-month historical ledger built from actual
-transactions and optional positive balance adjustments. It supports preset and
-custom completed periods and shows starting balance, period change, ending
-balance, and monthly history.
+- **Exact money arithmetic.** PostgreSQL `numeric(14,2)` and Prisma `Decimal`
+  preserve monetary precision. Money crosses client boundaries as strings;
+  numeric chart conversions are for display only. Currency labels use
+  `Intl.NumberFormat` with the account's base currency.
+- **An explicit financial calendar.** Transactions store real `YYYY-MM-DD`
+  local dates. A confirmed account time zone defines today and the current
+  month, avoiding dependence on the deployment server's calendar. The app
+  refreshes date-sensitive views at account-local midnight.
+- **Separate plans from actual records.** Reusable monthly templates have
+  separate occurrence state. Marking paid/received explicitly creates a normal
+  transaction; linking uses an existing compatible transaction. Undo deletes
+  generated transactions but preserves manually linked ones.
+- **Explainable forecasts.** Calculations run on demand and are not persisted.
+  Active unhandled bills stay reserved, including overdue bills. Their
+  categories are excluded from variable-spend estimates to avoid double counting.
+  Pending income affects projected net but does not increase safe-to-spend.
+- **Comparable historical periods.** Insights distinguishes months before
+  tracking began from eligible months with no activity. Completed-month
+  comparisons and category-history eligibility prevent misleading baselines.
+- **A demo with a separate data boundary.** Public actions validate fictional
+  snapshots and reuse server-side financial helpers. Per-tab browser storage
+  holds accepted demo state; the demo has no database access or guest-account
+  fallback. Shared presentation components keep the demo and account UI aligned.
 
-Balance adjustments are intended for opening balances or previously untracked
-money. They affect Total Balance only; they do not count as transaction income
-and do not change monthly totals, planned items, safe-to-spend, or forecasts.
-
-Total Balance is not bank-synced and is not a reconciliation system.
-
-### Analyze completed history
-
-The Insights workspace explains historical income, spending, and monthly
-results using actual transactions. It includes:
-
-- monthly result and break-even analysis
-- spending composition by category
-- income and spending consistency
-- unusual-month investigation with links to filtered transactions
-- category-specific spending trends and monthly history
-- configurable change drivers and trailing year-over-year patterns
-
-The shared history period covers 3, 6, or 12 completed months. Category
-selection affects only the category-specific analysis, while Drivers of change
-and Year-over-year patterns use their own comparison periods. Insights remains
-descriptive and does not create budgets or replace safe-to-spend.
-
-## How planning works
-
-Actual income and expense totals come only from transactions. Active planned
-bills reserve future spend until they are paid or skipped. Pending planned
-income improves the projected month-end result but is deliberately excluded
-from safe-to-spend.
+For the current month, the core planning relationships are:
 
 ```text
-netLeftNow = incomeSoFar - expenseSoFar
-forecastRemainingSpend = unpaidPlannedBills + variableCategoryForecast
+netLeftNow = actualIncome - actualExpenses
+forecastRemainingSpend = unpaidPlannedBills + variableSpendingEstimate
 safeToSpend = netLeftNow - forecastRemainingSpend
-dailySafeSpend = safeToSpend / remainingDaysIncludingToday
-weeklySafeSpend = dailySafeSpend * min(7, remainingDaysIncludingToday)
-projectedEndOfMonthNet = netLeftNow + pendingPlannedIncome - forecastRemainingSpend
+projectedEndOfMonthNet = safeToSpend + pendingPlannedIncome
 ```
 
-Variable spending uses recent eligible expense history where available.
-Categories covered by active planned bills are excluded from that calculation
-to avoid double counting.
+Variable spending uses up to six usable completed months, with explicit
+fallbacks and confidence rules. Safe-spend estimates preserve negative values;
+they are planning estimates, not bank balances or guarantees. Detailed formulas
+and month behavior live in [technical decisions](docs/TECH_DECISIONS.md#forecast-decisions).
 
-## Routes
+### Code map
 
-| Route | Purpose |
+| Location | Responsibility |
 | --- | --- |
-| `/login` | Google sign-in |
-| `/setup` | Required currency, account time zone, and optional default-category setup |
-| `/dashboard` | Monthly snapshot, planning metrics, Total Balance, and monthly planned-item actions |
-| `/transactions` | Transaction entry, filtering, editing, and deletion |
-| `/insights` | Historical cashflow, spending patterns, and category analysis |
-| `/categories` | Category and subcategory management |
-| `/planned` | Planned bill and planned income template management |
-| `/import` | CSV import preview and confirmation |
-| `/export` | Selected-month CSV export |
-| `/settings` | Account time-zone settings |
+| [`app/`](app/) | Public pages, authenticated workspaces, onboarding layouts, and route handlers. |
+| [`actions/`](actions/) | Server actions for transactions, categories, planned items, adjustments, setup, and the separate public demo. |
+| [`lib/auth/`](lib/auth/) and [`lib/validators/`](lib/validators/) | Account identity, preferences, OAuth adapter, and server input schemas. |
+| [`lib/forecast/`](lib/forecast/), [`lib/balance/`](lib/balance/), [`lib/insights/`](lib/insights/), and [`lib/dates/`](lib/dates/) | Financial calculations, historical eligibility, and account-local dates. |
+| [`lib/import/`](lib/import/) and [`lib/export/`](lib/export/) | CSV parsing, validation, mapping, confirmation, and serialization. |
+| [`lib/demo/`](lib/demo/) and [`lib/presentation/`](lib/presentation/) | Fictional snapshots/transitions and server-prepared display models. |
+| [`components/`](components/) | Shared primitives, app shell, and feature UI. |
+| [`prisma/`](prisma/) | Database schema and committed migrations. |
 
-`/planned-income` is retained as a protected compatibility redirect to the
-income view of `/planned`.
+## AI-assisted development workflow
 
-All app routes require authentication. Setup must be completed before the main
-app can be used.
+I use AI to assist with implementation, code exploration, and review. The
+workflow makes requirements, constraints, and review criteria explicit so that
+suggestions can be evaluated against the app's actual behavior.
 
-## Product boundaries
+- **Repository instructions:** [AGENTS.md](AGENTS.md) defines execution rules,
+  ownership safeguards, money/date invariants, scope boundaries, and review
+  requirements. It also requires preserving unrelated work and reporting
+  exactly which checks were run.
+- **Canonical documentation:** [Design System](docs/DESIGN_SYSTEM.md),
+  [Technical Decisions](docs/TECH_DECISIONS.md), and
+  [Product Spec](docs/PRODUCT_SPEC.md) give agents and developers a shared
+  reference. Behavior and architecture changes require updates to the relevant
+  document; roadmap ideas become implementation scope only when selected.
+- **Version-aware guidance:** Installed dependencies and the lockfile establish
+  the versions in use. Project instructions prioritize Context7 for
+  version-specific library questions and relevant implementation skills,
+  subject to the project's locked decisions.
+- **Independent review agents:** The repository defines read-only reviewers
+  under [.codex/agents/](.codex/agents/). Relevant behavior changes receive
+  review after implementation, with multiple reviewers running in parallel
+  when their domains apply.
 
-CashContour is a personal, single-currency, web-first tool. It intentionally
-does not include:
+| Review agent | Focus |
+| --- | --- |
+| [`reviewer`](.codex/agents/reviewer.toml) | Concrete correctness issues, regressions, error handling, and maintainability risks. |
+| [`money_integrity`](.codex/agents/money-integrity.toml) | Decimal arithmetic, actual-versus-planned behavior, forecasts, dates, and historical calculations. |
+| [`data_isolation`](.codex/agents/data-isolation.toml) | Authentication, authorization, ownership, related IDs, and cross-user access. |
+| [`test_auditor`](.codex/agents/test-auditor.toml) | Meaningful regression and edge-case test gaps. |
 
-- bank syncing, multiple accounts, or bank reconciliation
-- multi-currency transactions or FX conversion
-- budgets, envelopes, rollover budgets, or sinking funds
-- recurrence rules beyond monthly planned templates
-- fuzzy or automatic transaction matching
-- shared household workspaces
-- paid plans or subscriptions
-- native mobile apps
-- AI categorization or AI forecasting
-- background jobs, reminders, or notification delivery
-- investment or net-worth tracking
+The implementing agent must independently verify reported findings against the
+code and project rules, consolidate duplicates, discard unsupported findings,
+and resolve valid issues. Material logic fixes receive a final relevant review.
+Tests and checks provide evidence when executed; agent approval alone is not
+proof of correctness. I retain responsibility for deciding scope, reviewing
+tradeoffs, and accepting the result. Commands that run tests, builds, servers,
+or database operations require explicit authorization under the project workflow.
 
-Candidate future work lives in `docs/ROADMAP.md` and is not current product
-scope until explicitly selected.
+## Testing and verification
 
-## Tech stack
+`npm test` runs the targeted regression suite using Node's test runner through
+`tsx`. Its focus includes:
 
-- Next.js 16 App Router, React 19, and TypeScript
-- Tailwind CSS 4 and shadcn-based UI components
-- PostgreSQL and Prisma 7
-- NextAuth with Google OAuth and a Prisma adapter
-- Zod validation and server-side database access
-- Recharts for dashboard visualizations
+- Decimal-safe forecasting, confidence, negative safe spend, spending pace,
+  planned-income realization, and balance carry-forward
+- account-local dates and UTC month boundaries
+- historical medians, category eligibility, valid zero-activity months,
+  unusual-month detection, and year-over-year comparisons
+- planned-item validators and lifecycle helpers; demo generated/link/skip/undo
+  transitions and their effects on financial summaries
+- demo validation, storage recovery, and stale-response handling
+- URL/editor state, form selections, presentation contracts, public metadata,
+  and selected UI behavior
 
-Money values are stored as PostgreSQL `numeric(14,2)` / Prisma `Decimal`.
-Transaction dates are stored as local `YYYY-MM-DD` strings to avoid timezone
-month-boundary errors. A confirmed IANA account time zone defines today and the
-current month for every server calculation, independent of the deployment
-server's clock. Every database operation is scoped to the authenticated user.
+These are targeted domain and contract tests. OAuth, real-account database
+workflows, and complete browser journeys also need integration or manual
+verification; the package scripts do not include a browser end-to-end suite.
+
+| Command | Purpose |
+| --- | --- |
+| `npm test` | Targeted regression suite. |
+| `npm run lint` | ESLint. |
+| `npm run typecheck` | TypeScript without emitting files. |
+| `npm run build` | Prisma generation followed by the Next.js production build; does not apply migrations. |
+| `npm run check` | Lint, typecheck, and build in sequence; does not include tests. |
 
 ## Local development
 
 ### Prerequisites
 
-- Node.js and npm
-- PostgreSQL
-- Google OAuth credentials
+- Node.js 22.x, version 22.12 or newer, and npm (compatible with the locked dependencies)
+- a PostgreSQL development database
+- Google OAuth credentials for authenticated workflows
 
-### 1. Install dependencies
+### 1. Configure the environment
 
-```bash
-npm install
-```
-
-### 2. Configure the environment
-
-Create `.env.local`:
+Create `.env.local` before installing dependencies: the install hook generates
+Prisma Client and loads the database configuration.
 
 ```env
-DATABASE_URL=postgresql://...
-DATABASE_URL_UNPOOLED=postgresql://...
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE
 NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=...
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
+NEXTAUTH_SECRET=YOUR_RANDOM_SECRET
+GOOGLE_CLIENT_ID=YOUR_GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET=YOUR_GOOGLE_CLIENT_SECRET
 ```
 
-### 3. Apply the database migrations
+Optionally set `DATABASE_URL_UNPOOLED` to a direct connection for Prisma CLI
+commands; otherwise they use `DATABASE_URL`. For a new contributor's checkout,
+use your own non-production database and Google OAuth client. Register
+`http://localhost:3000/api/auth/callback/google` as an authorized redirect URI.
+The maintained deployment's shared preview setup is described in the
+[deployment guide](docs/DEPLOYMENT.md).
+
+### 2. Install the locked dependencies
 
 ```bash
-npm run prisma:generate
+npm ci
+```
+
+The install hook generates Prisma Client. After schema changes, regenerate it
+with `npm run prisma:generate`.
+
+### 3. Apply committed migrations
+
+Confirm the database target in `.env.local` and any exported environment
+variables, then apply the committed migrations to your development database:
+
+```bash
 npx prisma migrate deploy
 ```
+
+The CLI prefers `DATABASE_URL_UNPOOLED` when configured. Exported environment
+variables take precedence over dotenv files; `.env.local` takes precedence over
+`.env`. Author new migrations against a disposable development database, as
+described in the deployment guide.
 
 ### 4. Start the app
 
@@ -229,105 +257,58 @@ npx prisma migrate deploy
 npm run dev
 ```
 
-## Verification
+Open [localhost:3000](http://localhost:3000) to explore the public demo, or sign
+in with Google and complete currency/time-zone setup for an account.
 
-```bash
-npm test
-npm run lint
-npm run typecheck
-npm run build
-```
+## Routes
 
-Run the lint, typecheck, and production build sequence together with:
+| Route | Purpose |
+| --- | --- |
+| `/` | Public product introduction. |
+| `/demo` | Public interactive demo with fictional per-tab data. |
+| `/login` | Google sign-in. |
+| `/setup` | Required currency, time zone, and optional default-category setup. |
+| `/dashboard` | Monthly Snapshot, planning estimates, Total Balance, and planned-item handling. |
+| `/transactions` | Transaction entry, filtering, editing, and deletion. |
+| `/insights` | Historical cashflow, spending patterns, and comparisons. |
+| `/categories` | Category and subcategory management. |
+| `/planned` | Monthly planned bill and income template management. |
+| `/settings` | Account time zone, CSV import/export, and theme. |
 
-```bash
-npm run check
-```
+Account workspaces require authentication and completed setup.
+`/planned-income` remains a protected compatibility redirect to
+`/planned?type=INCOME`. Import/export have no standalone workspace routes:
+Settings hosts both workflows, with `/api/import/preview`, `/api/import/confirm`,
+and `/settings/export/download` providing their server endpoints.
 
-## Deployment
+## Deployment and scope
 
-Vercel deploys automatically on Git pushes. `main` is the Production branch;
-all other branches use Preview. Local commits do not deploy, and commit messages
-do not require a deployment marker. Keep the Ignored Build Step set to Automatic.
+The maintained deployment uses Vercel and Neon. Pushes to `main` create
+Production deployments; other branches create Previews. Production and
+non-production use separate database targets and NextAuth secrets. Migrations
+are applied manually, separately from builds. Releases create a new Production
+build from `main`; a code rollback does not roll back database migrations.
 
-### Environment separation
+See [Deployment and Public Discovery](docs/DEPLOYMENT.md) for environment
+separation, migration procedures, preview OAuth, release steps, and indexing.
 
-| Setting | Production | Preview / Development |
-| --- | --- | --- |
-| Neon branch and database | `production` / `neondb` | `preview` / `previewdb` |
-| `DATABASE_URL` | Production pooled URL, Production only | Preview pooled URL, all preview branches and Development |
-| `NEXTAUTH_SECRET` | Existing production secret | Separate non-production secret |
-| Google OAuth credentials | Existing Google client | Same client with preview callback registered |
-
-All preview deployments and local development share the persistent preview
-database. It starts without production records and uses the preview-only
-`preview_owner` role. Never put production database credentials in Preview,
-Development, or local `.env.local`. Keep `.env.test.local` separate.
-
-Create Neon's `preview` branch using Schema only, with auto-deletion disabled.
-Create the `preview_owner` role and a fresh `previewdb` database on that branch.
-Leave the copied `neondb` unused: its tables exist but its migration-history rows
-were not copied, so it cannot be initialized by replaying migrations normally.
-Do not install automatic per-deployment Neon branching for this shared setup.
-
-### Manual migrations
-
-`DATABASE_URL` is the pooled application connection. Prisma CLI prefers the
-optional direct `DATABASE_URL_UNPOOLED`, falling back to `DATABASE_URL`.
-Exported variables take precedence over dotenv files; `.env.local` takes
-precedence over `.env`. In `APP_ENV=test`, Prisma uses `.env.test.local`'s
-`DATABASE_URL` or an explicitly exported test `DATABASE_URL`, never a non-test
-direct URL or an implicit local/default database.
-
-Before each migration, verify the endpoint, database, and role. Use the direct
-preview connection to initialize `previewdb` and test committed migrations:
-
-```powershell
-$env:DATABASE_URL_UNPOOLED = '<direct preview/previewdb connection string>'
-npx prisma migrate deploy
-Remove-Item Env:\DATABASE_URL_UNPOOLED
-```
-
-When changing migration targets, explicitly set `DATABASE_URL_UNPOOLED`; setting
-only `DATABASE_URL` does not override a configured direct URL. Apply tested,
-backward-compatible migrations to production before merging dependent code.
-The build command does not apply migrations. Do not use `migrate dev`, `db push`,
-or reset commands against production or the shared preview database; author new
-migrations against a disposable development database instead. Never copy preview
-records into production. Vercel rollbacks do not roll back database migrations.
-
-### Preview authentication and release
-
-The production Google OAuth callback is
-`https://www.cashcontour.com/api/auth/callback/google`. Keep it registered on the
-existing Google OAuth client alongside the localhost and stable preview callbacks.
-Google consent-screen branding should use CashContour, homepage
-`https://www.cashcontour.com`, and authorized domain `cashcontour.com`; these
-provider settings are maintained outside this repository.
-
-Keep `NEXTAUTH_URL` unset on Vercel with system environment variables enabled.
-Locally, keep `NEXTAUTH_URL=http://localhost:3000`. Use the stable branch domain
-shown in the deployment's Domains, not a commit-specific domain. Register its
-exact `https://<branch-host>/api/auth/callback/google` URL in the existing Google
-OAuth client without removing production or localhost callbacks. Other branches
-need their own callback registration to test Google login. Keep Vercel's preview
-login protection enabled.
-
-Use the long-lived `codex/preview` branch for a reusable authenticated preview.
-Verify login, setup, and fictional transactions there, then merge to `main` for
-a new Production build with Production variables. Do not promote an existing
-preview artifact as the release path. Environment changes affect new deployments
-only. Coordinate schema changes because all preview branches share one database.
+CashContour supports multiple isolated personal users, each with one base
+currency. Its scope is manual tracking and explainable monthly planning. Bank
+sync, multiple financial accounts/reconciliation, FX, budgets/envelopes,
+advanced recurrence, shared workspaces, billing, native mobile apps, investment
+tracking, and background notifications are outside the implemented scope.
+The app has no AI categorization or forecasting features; AI assistance is part
+of the development workflow.
 
 ## Project documentation
 
-Use these sources in order for current product and implementation decisions:
+| Document | Responsibility |
+| --- | --- |
+| [AGENTS.md](AGENTS.md) | Execution workflow, critical safeguards, and independent review policy. |
+| [Design System](docs/DESIGN_SYSTEM.md) | Visual language, shared components, and interaction conventions. |
+| [Technical Decisions](docs/TECH_DECISIONS.md) | Architecture, data rules, formulas, and implementation constraints. |
+| [Product Spec](docs/PRODUCT_SPEC.md) | Current implemented behavior and scope. |
+| [Roadmap](docs/ROADMAP.md) | Candidate future work, not automatically selected implementation scope. |
+| [Deployment Guide](docs/DEPLOYMENT.md) | Operational procedures for the maintained deployment. |
 
-1. `AGENTS.md`
-2. `docs/DESIGN_SYSTEM.md`
-3. `docs/TECH_DECISIONS.md`
-4. `docs/PRODUCT_SPEC.md`
-5. `docs/ROADMAP.md` for candidate future work
-
-Historical specifications and completed implementation plans are retained under
-`docs/archive/` for reference only.
+Historical specifications and completed plans remain in [docs/archive/](docs/archive/).

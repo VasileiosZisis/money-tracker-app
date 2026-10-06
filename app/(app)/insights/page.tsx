@@ -578,8 +578,8 @@ export default async function InsightsPage({
           title="Drivers of change"
         />
 
-        <SpendingChangeCard spendingChange={spendingChange} display={buildMoneyPresentation(spendingChange, user.currency, true)} bars={buildChangeBars(spendingChange.categories)} controls={(
-            {spendingChange.window ? (
+        <SpendingChangeCard spendingChange={spendingChange} display={buildMoneyPresentation(spendingChange, user.currency, true)} bars={buildChangeBars(spendingChange.categories)} controls={
+            spendingChange.window ? (
               <form
                 action="/insights"
                 method="get"
@@ -625,8 +625,8 @@ export default async function InsightsPage({
                   Apply
                 </Button>
               </form>
-            ) : null}
-        )} />
+            ) : null
+        } />
       </section>
 
       <section
