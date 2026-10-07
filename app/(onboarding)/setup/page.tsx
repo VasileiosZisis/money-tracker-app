@@ -110,9 +110,9 @@ export default async function SetupPage({
       variant={variant}
       errorMessage={errorMessage}
       form={
-        <form action={isTimeZoneCompletion ? finishTimeZoneSetupAction : finishSetupAction} className="grid gap-4">
+        <form action={isTimeZoneCompletion ? finishTimeZoneSetupAction : finishSetupAction} className="setup-form">
           <SetupFields variant={variant} selectedCurrency={selectedCurrency} initialTimeZone={user.timeZone} timeZones={timeZones} />
-          <Button type="submit" className="w-full justify-center">
+          <Button type="submit" className="setup-submit">
             {isTimeZoneCompletion ? "Save and continue" : "Finish setup"}
             <ArrowRight />
           </Button>

@@ -285,6 +285,32 @@ Rules:
   delays. Reduced motion disables it, and focus entering the page immediately
   reveals all content. Text and navigation remain readable without JavaScript.
 
+### Setup and onboarding
+
+- Real onboarding and `/dev/setup` share an open centered form, maximum width
+  520px, outside the app shell. The header uses the actual CashContour SVG logo
+  linked to `/`, at homepage responsive sizes. No artwork, marketing cards,
+  additional navigation, footer or theme toggle is shown.
+- Setup-scoped `--setup-*` variables in `app/globals.css` provide solid navy
+  `#060c14`, mint `#9aebe1`, off-white `#eef4fa`, muted `#aebacc`, input fill
+  `#0e1824` and border `#344252`, independent of saved app theme preferences.
+  Bind Inter explicitly. Native select popups use a dark color scheme.
+- First-time setup presents Set up your / workspace, A few details to make
+  CashContour yours, Base currency, Account time zone and a checked Create
+  starter categories option. The time-zone-only update presents Confirm your /
+  time zone and Keep your financial day consistent across devices. The second
+  heading line is mint; headings are 52px on desktop and 36px below 768px.
+- Selects are 56px high on desktop and 48px below 1024px. Primary actions are
+  full-width mint, matching homepage controls at 64px/20px on desktop and
+  52px/16px below 1024px. Checkbox text has no surrounding card.
+- Setup presentation copy omits trailing periods. Browser time-zone guidance
+  remains visible. Errors are inline alerts above the fields; preview completion
+  is a live status. The local preview adds a compact toolbar above the shared form.
+- Keep natural scrolling, comfortable gutters and clear keyboard focus. There
+  is no entrance animation; reduced motion disables hover transitions. Setup
+  does not alter the saved app theme. The Settings time-zone control keeps its
+  existing appearance and guidance.
+
 ### Public not-found page
 
 - Unknown public URLs use the server-rendered root not-found page, outside the

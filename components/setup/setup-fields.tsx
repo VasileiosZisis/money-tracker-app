@@ -31,31 +31,30 @@ export function SetupFields({ variant, selectedCurrency, initialTimeZone, timeZo
   return (
     <>
       {variant === "first-time" ? (
-        <div className="space-y-2">
-          <label htmlFor="currency" className="text-sm font-medium text-foreground">Base currency</label>
-          <Select id="currency" name="currency" defaultValue={selectedCurrency}>
+        <div className="setup-field">
+          <label htmlFor="currency">Base currency</label>
+          <Select id="currency" name="currency" defaultValue={selectedCurrency} className="setup-select" aria-describedby="currency-description">
             {allowedCurrencies.map((currency) => (
               <option key={currency} value={currency}>{currencyLabels[currency]}</option>
             ))}
           </Select>
-          <p className="text-sm leading-6 text-muted-foreground">
-            This currency is used throughout the dashboard, transaction list, and CSV export.
+          <p id="currency-description" className="setup-helper">
+            Used for all your transactions and reports
           </p>
         </div>
       ) : null}
-      <div className="space-y-2">
-        <label htmlFor="timeZone" className="text-sm font-medium text-foreground">Account time zone</label>
-        <TimeZoneSelect id="timeZone" initialTimeZone={initialTimeZone} timeZones={timeZones} />
+      <div className="setup-field">
+        <label htmlFor="timeZone">Account time zone</label>
+        <TimeZoneSelect id="timeZone" initialTimeZone={initialTimeZone} timeZones={timeZones} appearance="setup" />
       </div>
       {variant === "first-time" ? (
-        <div className="rounded-xl border border-border/80 bg-background/60 p-4">
-          <label className="flex items-start gap-3">
-            <input type="checkbox" name="createDefaults" defaultChecked className="mt-0.5 size-4 rounded border-input bg-background text-primary" />
-            <span className="space-y-1">
-              <span className="block text-sm font-semibold text-foreground">Create default categories</span>
-              <span className="block text-sm leading-6 text-muted-foreground">
-                Adds a starter set of income and expense categories. It is safe to use if you
-                want to begin with sensible defaults.
+        <div className="setup-defaults">
+          <label className="setup-checkbox-label">
+            <input type="checkbox" name="createDefaults" defaultChecked aria-describedby="defaults-description" />
+            <span>
+              <span className="setup-checkbox-title">Create starter categories</span>
+              <span id="defaults-description" className="setup-helper">
+                Start with common income and expense categories
               </span>
             </span>
           </label>

@@ -145,6 +145,15 @@ simpler than a full accounting or budgeting suite.
   content on keyboard focus. The page remains readable without JavaScript and
   allows natural scrolling on short screens.
 - First login requires setup before the authenticated app can be used.
+- Setup uses a centered single form on the fixed CashContour navy/mint palette,
+  with the actual logo linked home and no artwork, cards or theme toggle. Saved
+  app theme preferences are retained. Currency, time zone and optional starter
+  categories remain together rather than becoming separate wizard steps.
+- The first-time heading is Set up your / workspace; completed accounts missing
+  a confirmed time zone see Confirm your / time zone with only the time-zone field.
+  Errors remain inline alerts, and short screens scroll naturally without entrance
+  animation. The page remains readable and real submission works without JavaScript;
+  without browser detection, users select their time zone explicitly.
 - Setup includes:
   - choosing a base currency
   - confirming an account time zone suggested from the current browser
@@ -168,7 +177,7 @@ simpler than a full accounting or budgeting suite.
   error exercises the matching setup notice. Valid submission displays Preview
   complete — no account changes were saved; invalid input shows setup validation.
   Changes last only while the mounted preview is open and never reach account actions.
-- The preview shares the real setup UI and standalone theme controls, has noindex
+- The preview shares the real setup UI and fixed navy palette, has noindex
   metadata and disables simulated submission until JavaScript is ready. Back to
   dashboard follows the existing authentication/setup gates.
 

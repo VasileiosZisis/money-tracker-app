@@ -103,6 +103,14 @@ values and the setup validators in a browser-only reducer, with no persistence o
 network mutation. Submission is disabled in server HTML until hydration. Metadata
 is noindex; direct local access does not require authentication.
 
+The shared setup frame uses a fixed navy/mint palette and Inter through scoped
+CSS variables, without reading or changing saved app theme preferences. Real
+onboarding retains a server-rendered form with its existing actions and redirects;
+the preview retains its client-only submit handler. `TimeZoneSelect` accepts an
+optional `appearance="setup"` for presentation and period-free guidance, defaulting
+to its existing Settings appearance. Time-zone suggestion, selection, validators,
+account identity and persistence behavior are unchanged.
+
 Two layers are required.
 
 ### 1. Auth protection

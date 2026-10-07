@@ -6,6 +6,8 @@ import { readFileSync } from "node:fs";
 import { SetupPreview } from "./setup-preview";
 import { SetupScreen } from "./setup-screen";
 import { SetupFields } from "./setup-fields";
+import { TimeZoneSelect } from "../settings/time-zone-select";
+import { allowedCurrencies } from "@/lib/validators/setup";
 
 test("preview server HTML disables submission and never binds an account server action", () => {
   const html = renderToStaticMarkup(createElement(SetupPreview, { timeZones: ["UTC"] }));
@@ -31,6 +33,45 @@ test("both shared variants retain their fields, form slot and accessible error n
       assert.doesNotMatch(html, /name="currency"|name="createDefaults"/);
     }
   }
+});
+
+test("setup fields preserve the complete currency list, default category choice and initial time zone", () => {
+  const html = renderToStaticMarkup(createElement(SetupFields, {
+    variant: "first-time", selectedCurrency: "CHF", initialTimeZone: "UTC", timeZones: ["Europe/London"],
+  }));
+  for (const currency of allowedCurrencies) assert.match(html, new RegExp(`value="${currency}"`));
+  assert.match(html, /value="CHF" selected/);
+  assert.match(html, /value="UTC" selected/);
+  assert.match(html, /name="createDefaults"[^>]*checked/);
+  assert.match(html, /id="currency"[^>]*aria-describedby="currency-description"/);
+  assert.match(html, /id="currency-description"/);
+  assert.match(html, /aria-describedby="timeZone-description"/);
+  assert.match(html, /id="timeZone-description"/);
+});
+
+test("setup time-zone appearance preserves selection and Settings guidance remains unchanged", () => {
+  const props = { id: "zone", name: "accountZone", initialTimeZone: "UTC", timeZones: ["Europe/London"] };
+  const settingsHtml = renderToStaticMarkup(createElement(TimeZoneSelect, props));
+  const setupHtml = renderToStaticMarkup(createElement(TimeZoneSelect, { ...props, appearance: "setup" }));
+  for (const html of [settingsHtml, setupHtml]) {
+    assert.match(html, /name="accountZone"/);
+    assert.match(html, /value="UTC" selected/);
+    assert.match(html, /required/);
+    assert.match(html, /aria-describedby="zone-description"/);
+  }
+  assert.match(settingsHtml, /Confirm the time zone that should define your financial day\.<\/p>/);
+  assert.doesNotMatch(settingsHtml, /setup-select/);
+  assert.match(setupHtml, /Confirm the time zone that should define your financial day<\/p>/);
+  assert.match(setupHtml, /setup-select/);
+});
+
+test("without browser detection the setup requires an explicit time-zone choice", () => {
+  const html = renderToStaticMarkup(createElement(SetupFields, {
+    variant: "time-zone", selectedCurrency: "EUR", initialTimeZone: null, timeZones: ["UTC"],
+  }));
+  assert.match(html, /value="" disabled="" selected=""/);
+  assert.match(html, /name="timeZone"[^>]*required/);
+  assert.doesNotMatch(html, /This device reports|name="currency"|name="createDefaults"/);
 });
 
 test("preview entry and shared UI remain separate from authenticated setup actions", () => {

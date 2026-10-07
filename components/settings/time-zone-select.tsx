@@ -6,6 +6,7 @@ import { Select } from "@/components/ui/select";
 import { isValidTimeZone } from "@/lib/dates/time-zone";
 
 type TimeZoneSelectProps = {
+  appearance?: "default" | "setup";
   id: string;
   initialTimeZone?: string | null;
   name?: string;
@@ -33,6 +34,7 @@ function getServerTimeZoneSnapshot() {
 }
 
 export function TimeZoneSelect({
+  appearance = "default",
   id,
   initialTimeZone,
   name = "timeZone",
@@ -61,12 +63,17 @@ export function TimeZoneSelect({
 
     return [...allTimeZones].sort((left, right) => left.localeCompare(right));
   }, [deviceTimeZone, selectedTimeZone, timeZones]);
+  const description = deviceTimeZone
+    ? `This device reports ${formatTimeZoneLabel(deviceTimeZone)}. Confirm the time zone that should define your financial day.`
+    : "Confirm the time zone that should define your financial day.";
 
   return (
-    <div className="space-y-2">
+    <div className={appearance === "setup" ? "setup-time-zone" : "space-y-2"}>
       <Select
         id={id}
         name={name}
+        className={appearance === "setup" ? "setup-select" : undefined}
+        aria-describedby={`${id}-description`}
         value={selectedTimeZone}
         onChange={(event) => setSelectedTimeZoneOverride(event.target.value)}
         required
@@ -80,10 +87,8 @@ export function TimeZoneSelect({
           </option>
         ))}
       </Select>
-      <p className="text-sm leading-6 text-muted-foreground">
-        {deviceTimeZone
-          ? `This device reports ${formatTimeZoneLabel(deviceTimeZone)}. Confirm the time zone that should define your financial day.`
-          : "Confirm the time zone that should define your financial day."}
+      <p id={`${id}-description`} className={appearance === "setup" ? "setup-helper" : "text-sm leading-6 text-muted-foreground"}>
+        {appearance === "setup" ? description.replace(/\.+$/, "") : description}
       </p>
     </div>
   );
