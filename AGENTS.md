@@ -209,6 +209,7 @@ than creating parallel feature implementations.
 | Public synthetic demo | `app/demo/`, `components/demo/`, `lib/demo/`, `actions/demo.ts`, `lib/validators/demo.ts` |
 | Login and OAuth | `app/(auth)/login/page.tsx`, `app/api/auth/[...nextauth]/route.ts` |
 | Setup and onboarding redirects | `app/(onboarding)/setup/page.tsx`, `app/(onboarding)/layout.tsx` |
+| Shared setup UI and local preview | `components/setup/`, `app/dev/setup/page.tsx`, `lib/dev/` |
 | App shell and setup gate | `app/(app)/layout.tsx`, `components/app-shell/`, `proxy.ts` |
 | App workspaces | `app/(app)/dashboard/`, `app/(app)/transactions/`, `app/(app)/insights/`, `app/(app)/categories/`, `app/(app)/planned/`, `app/(app)/settings/` |
 | Income compatibility route | `app/(app)/planned-income/page.tsx` |

@@ -89,6 +89,20 @@ Do not introduce:
 
 ## Route protection + setup enforcement
 
+### Local setup preview
+
+`/dev/setup` is outside the authenticated and onboarding route groups. Its server
+page returns the native not-found boundary unless `NODE_ENV` is `development` and
+`VERCEL` is unset. The authenticated layout uses the same predicate to enable the
+Development sidebar group. It is unavailable in production and deployed previews.
+
+Shared `components/setup/` presentation accepts fields/form slots without importing
+session helpers, database access or account actions. Real onboarding wrappers retain
+their existing lookups, server actions and redirects. The local preview uses fictional
+values and the setup validators in a browser-only reducer, with no persistence or
+network mutation. Submission is disabled in server HTML until hydration. Metadata
+is noindex; direct local access does not require authentication.
+
 Two layers are required.
 
 ### 1. Auth protection

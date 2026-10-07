@@ -30,6 +30,33 @@ Leave the copied `neondb` unused: its tables exist but its migration-history row
 were not copied, so it cannot be initialized by replaying migrations normally.
 Do not install automatic per-deployment Neon branching for this shared setup.
 
+### Fictional preview sample data
+
+After signing in through Google on the preview app and completing currency and
+time-zone setup, populate that existing account explicitly:
+
+```powershell
+npx tsx prisma/seed.ts goneaway182@gmail.com
+```
+
+The seed requires the known Neon preview endpoint, `previewdb`, and the
+`preview_owner` role. It uses `.env.local` unless `DATABASE_URL` is already
+exported. It refuses other targets and never creates a user or changes setup.
+Local development and Preview deployments share these sample records.
+
+It adds labeled fictional categories, 24 completed months plus current-month
+transactions, monthly planned items and occurrences, and one opening balance
+adjustment, using the account's currency and time zone. Stable account-specific
+IDs prevent duplicates. Repeating the seed adds missing records and preserves
+existing records; incompatible ownership or relationship changes abort the
+entire transaction. It can recreate deleted sample records when run again.
+New generated transactions inherit the saved template Source and Note, including
+edits made after an earlier seed run.
+An opening adjustment keeps its original month on later runs. No migrations
+are applied. Success prints inserted/skipped counts after relationship checks.
+
+Targeted regression checks: `npx tsx --test prisma/preview-seed.test.ts`.
+
 ### Manual migrations
 
 `DATABASE_URL` is the pooled application connection. Prisma CLI prefers the

@@ -10,6 +10,7 @@ import {
 import { WorkspaceShell } from '@/components/app-shell/workspace-shell'
 import { getAccountDateContext } from '@/lib/dates/time-zone'
 import { privateRobots } from '@/lib/site/metadata'
+import { isLocalPreviewEnabled } from '@/lib/dev/local-preview'
 
 export const metadata: Metadata = { robots: privateRobots }
 
@@ -69,7 +70,7 @@ export default async function AppLayout ({
 
   return (
     <WorkspaceShell
-      sidebar={<AppSidebar displayName={displayName} initials={initials} userImage={userImage} />}
+      sidebar={<AppSidebar displayName={displayName} initials={initials} userImage={userImage} showDevelopment={isLocalPreviewEnabled(process.env.NODE_ENV, process.env.VERCEL)} />}
       contextBar={<PageContextBar key={`${user.timeZone}:${dateContext.localDate}`} initialDateContext={dateContext} timeZone={user.timeZone} />}
     >
       {children}

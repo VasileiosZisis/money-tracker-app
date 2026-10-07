@@ -27,6 +27,7 @@ export type WorkspaceSidebarProps = {
   homeHref: string;
   activeHref?: string;
   footer?: ReactNode;
+  extraContent?: ReactNode;
   disabled?: boolean;
   onNavigate?: (event: MouseEvent<HTMLAnchorElement>, href: string) => void;
 };
@@ -39,7 +40,7 @@ function isActivePath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function WorkspaceSidebar({ items, homeHref, activeHref, footer, disabled = false, onNavigate }: WorkspaceSidebarProps) {
+export function WorkspaceSidebar({ items, homeHref, activeHref, footer, extraContent, disabled = false, onNavigate }: WorkspaceSidebarProps) {
   const pathname = usePathname();
   const { isMobile, open, openMobile, setOpenMobile } = useSidebar();
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -113,6 +114,7 @@ export function WorkspaceSidebar({ items, homeHref, activeHref, footer, disabled
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        {extraContent}
       </SidebarContent>
 
       {footer ? <SidebarFooter>{footer}</SidebarFooter> : null}

@@ -1,14 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 
 import { HomepageMotion } from "@/components/homepage/homepage-motion";
+import { getSession } from "@/lib/auth/session";
 import { pageMetadata } from "@/lib/site/metadata";
 import { HomepageBrand, HomepageActions, HomepageScene, HomepageGraph } from "@/components/homepage/homepage-parts";
 
 export const metadata: Metadata = pageMetadata.home;
 
-export default function HomePage() {
+export default async function HomePage() {
+  const session = await getSession();
+
+  if (session?.user?.id) {
+    redirect("/dashboard");
+  }
+
   return (
     <div className="homepage" id="homepage">
       <HomepageMotion />

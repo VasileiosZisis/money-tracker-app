@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Settings2 } from "lucide-react";
+import { Settings2, FlaskConical } from "lucide-react";
 
 import { appNavItems } from "@/components/app-shell/nav-items";
 import SignOutButton from "@/components/auth/SignOutButton";
@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   useSidebar,
+  SidebarGroup,
+  SidebarGroupContent,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -27,14 +29,30 @@ import { cn } from "@/lib/utils";
 
 import { WorkspaceSidebar } from "@/components/app-shell/workspace-sidebar";
 
-type AppSidebarProps = { displayName: string; initials: string; userImage: string | null };
-export function AppSidebar({ displayName, initials, userImage }: AppSidebarProps) {
+type AppSidebarProps = { displayName: string; initials: string; userImage: string | null; showDevelopment?: boolean };
+export function AppSidebar({ displayName, initials, userImage, showDevelopment = false }: AppSidebarProps) {
   const pathname = usePathname();
   const settingsActive = pathname === "/settings" || pathname.startsWith("/settings/");
   // Navigation inside the authenticated footer closes the mobile drawer as before.
   const { isMobile, setOpenMobile } = useSidebar();
   function handleNavigate() { if (isMobile) setOpenMobile(false); }
-  return <WorkspaceSidebar items={appNavItems} homeHref="/dashboard" footer={(
+  return <WorkspaceSidebar items={appNavItems} homeHref="/dashboard" extraContent={showDevelopment ? (
+    <SidebarGroup>
+      <h2 className="px-3 pb-2 text-xs font-semibold text-muted-foreground">Development</h2>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <a href="/dev/setup">
+                <span className="flex size-8 items-center justify-center rounded-lg border border-border/50 bg-background/60 text-muted-foreground"><FlaskConical className="size-4.5" /></span>
+                <span>Setup preview</span>
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  ) : null} footer={(
 <>
         <SidebarMenu>
           <SidebarMenuItem>

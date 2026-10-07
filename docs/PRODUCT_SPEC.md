@@ -59,8 +59,10 @@ simpler than a full accounting or budgeting suite.
 
 ### Public Homepage
 
-- `/` renders a public CashContour introduction for both signed-out and
-  signed-in visitors, without automatically redirecting.
+- `/` renders a public CashContour introduction for signed-out visitors.
+  Signed-in visitors are redirected server-side to `/dashboard`; the app's
+  existing setup gate sends them to `/setup` if onboarding is incomplete or
+  their account time zone is not confirmed.
 - Its five editorial sections introduce transaction tracking, monthly planning,
   and historical Insights, followed by a closing invitation without a footer. Floating
   previews show static fictional EUR examples without visible Sample data labels; the homepage
@@ -153,6 +155,22 @@ simpler than a full accounting or budgeting suite.
   redirected to `/setup`.
 - Authenticated users with completed setup are redirected away from `/setup`
   to `/dashboard`.
+
+### Local Development Setup Preview
+
+- `/dev/setup` previews the current first-time setup and time-zone-only update
+  without creating an account or changing onboarding status. It is available only
+  under local development (`NODE_ENV=development`, `VERCEL` unset), otherwise 404.
+- The authenticated sidebar exposes Development → Setup preview locally. Direct
+  preview access requires no sign-in and uses fictional EUR values, the browser's
+  suggested time zone and checked starter categories.
+- Switching versions and Reset preview restore fields and clear feedback. Show
+  error exercises the matching setup notice. Valid submission displays Preview
+  complete — no account changes were saved; invalid input shows setup validation.
+  Changes last only while the mounted preview is open and never reach account actions.
+- The preview shares the real setup UI and standalone theme controls, has noindex
+  metadata and disables simulated submission until JavaScript is ready. Back to
+  dashboard follows the existing authentication/setup gates.
 
 ### Currency And Dates
 

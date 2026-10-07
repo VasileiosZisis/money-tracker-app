@@ -331,6 +331,12 @@ Rules:
 
 ### App shell
 
+- Local development adds a separate Development sidebar group with Setup preview.
+  It opens the standalone onboarding frame rather than placing setup in the app shell.
+  A compact preview toolbar switches first-time/time-zone versions, shows an error,
+  resets fictional selections and links back to the dashboard. Reuse the real setup
+  presentation and fields; simulated completion is announced inline.
+
 - Desktop uses the shadcn sidebar pattern with `SidebarProvider`, a full-height flush-left sidebar rail, and the page `main` element as the primary content container.
 - Primary navigation lives in the sidebar.
 - The sidebar header is one 72px-high row with 12px horizontal padding and 8px gaps, ordered Toggle navigation, CashContour symbol, and CashContour wordmark. The 36px toggle sits outside the dashboard branding link, whose accessible label is `CashContour home`. The symbol is 43.2px wide and the wordmark is up to 165.6px wide; their layout slots match the artwork widths without reserving extra logo space. The wordmark shrinks proportionally on narrow phones. Transparent light/dark SVGs live in `public/branding/` and switch with the existing theme class.
