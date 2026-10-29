@@ -228,6 +228,11 @@ use your own non-production database and Google OAuth client. Register
 The maintained deployment's shared preview setup is described in the
 [deployment guide](docs/DEPLOYMENT.md).
 
+For Neon connections, use `sslmode=verify-full` in `DATABASE_URL` and
+`DATABASE_URL_UNPOOLED`, including test URLs. Replace `sslmode=require` if
+present; explicit `verify-full` preserves certificate and hostname verification
+and avoids the PostgreSQL driver's SSL-mode deprecation warning.
+
 ### 2. Install the locked dependencies
 
 ```bash

@@ -83,7 +83,7 @@ Add a compact daily decision panel with items like:
 - overdue planned bills
 - planned bills due today
 - safe-to-spend is negative
-- unusually high category spending
+- unusually high spending in user-selected categories (future opt-in idea)
 - missing expected income
 - no transactions entered for several days
 
@@ -124,21 +124,37 @@ consistent.
 
 ## Useful New Features
 
-### 6. Category run-rate warnings
+### 6. Opt-in run-rate warnings for selected categories
 
-Show when a category is trending higher than usual.
+Let users choose which expense categories they want to monitor for spending
+that is running above its usual pace during the current month. Warnings are
+opt-in per category; no category is monitored by default, and users can turn
+monitoring off.
+
+Category history is not equally useful for every spending pattern. Regular
+groceries may support a meaningful pace comparison, while travel or
+entertainment may have many zero-spend months followed by intentional large
+purchases. Even recurring utilities can arrive as single monthly payments.
+Users decide where pace warnings would be useful rather than the app applying
+them universally.
 
 Example:
 
 ```text
-Food spending is 28% higher than your recent monthly average.
+Food spending is ahead of your usual pace for this point in the month.
 ```
 
 Rules:
 
 - keep it deterministic
-- keep it explainable
+- keep it explainable, showing actual spending and the historical comparison
+- warn only for categories the user explicitly selects
+- describe recorded spending pace without treating historical spending as a budget
 - avoid AI or fuzzy categorization
+
+This remains a roadmap candidate. The selection UI, historical baseline,
+minimum history, warning thresholds, and dashboard placement need to be defined
+when the feature is selected for implementation.
 
 ### 7. Month progress context
 
@@ -225,7 +241,7 @@ Implemented:
 
 Still open:
 
-1. Add category run-rate warnings.
+1. Add opt-in run-rate warnings for user-selected expense categories.
 2. Add month progress context.
 3. Add month-end review.
 4. Add a richer data completeness indicator if the current stale-entry signal is not enough.
