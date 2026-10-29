@@ -225,22 +225,24 @@ export function buildDashboardAttentionItems(
     spendingPace.direction === "above" &&
     spendingPace.percentageDifference !== null &&
     spendingPace.historicalDailyExpense.gt(0) &&
+    spendingPace.historicalExpenseToDate !== null &&
+    currentDayOfMonth !== null &&
     spendingPace.monthsUsed.length > 0
       ? [
           {
             type: "ABOVE_USUAL_SPENDING_PACE",
             title: "Spending pace is above usual",
-            description: `Variable spending is ${formatDashboardMoney(
+            description: `By day ${currentDayOfMonth}, variable spending is ${formatDashboardMoney(
               params.currency,
-              spendingPace.currentDailyExpense,
-            )}/day, ${spendingPace.percentageDifference
+              spendingPace.variableExpenseSoFar,
+            )} versus approximately ${formatDashboardMoney(
+              params.currency,
+              spendingPace.historicalExpenseToDate,
+            )} at your historical pace—${spendingPace.percentageDifference
               .abs()
-              .toFixed(1)}% above the usual ${formatDashboardMoney(
-              params.currency,
-              spendingPace.historicalDailyExpense,
-            )}/day based on ${spendingPace.monthsUsed.length} historical ${
+              .toFixed(1)}% above usual, based on ${spendingPace.monthsUsed.length} historical ${
               spendingPace.monthsUsed.length === 1 ? "month" : "months"
-            }.`,
+            }. Active planned-bill categories are excluded.`,
             tone: "warning",
           },
         ]

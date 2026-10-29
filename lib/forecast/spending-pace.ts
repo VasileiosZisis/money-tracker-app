@@ -19,6 +19,8 @@ export type SpendingPaceDirection =
   | "unavailable";
 
 export type SpendingPaceResult = {
+  variableExpenseSoFar: Prisma.Decimal;
+  historicalExpenseToDate: Prisma.Decimal | null;
   currentDailyExpense: Prisma.Decimal;
   historicalDailyExpense: Prisma.Decimal;
   percentageDifference: Prisma.Decimal | null;
@@ -47,6 +49,8 @@ export function calculateSpendingPace(
 
   if (monthContext.monthRelation === "future" || monthContext.elapsedDays <= 0) {
     return {
+      variableExpenseSoFar: ZERO_DECIMAL,
+      historicalExpenseToDate: null,
       currentDailyExpense: ZERO_DECIMAL,
       historicalDailyExpense: ZERO_DECIMAL,
       percentageDifference: null,
@@ -69,6 +73,8 @@ export function calculateSpendingPace(
 
   if (monthsUsed.length === 0) {
     return {
+      variableExpenseSoFar: currentExpense,
+      historicalExpenseToDate: null,
       currentDailyExpense,
       historicalDailyExpense: ZERO_DECIMAL,
       percentageDifference: null,
@@ -102,6 +108,10 @@ export function calculateSpendingPace(
       : "on-pace";
 
   return {
+    variableExpenseSoFar: currentExpense,
+    historicalExpenseToDate: historicalDailyExpense.gt(0)
+      ? historicalDailyExpense.mul(monthContext.elapsedDays)
+      : null,
     currentDailyExpense,
     historicalDailyExpense,
     percentageDifference,

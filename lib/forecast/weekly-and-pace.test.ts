@@ -3,6 +3,7 @@ import test from "node:test";
 
 import { Prisma } from "@/generated/prisma/client";
 import { TransactionType } from "@/generated/prisma/enums";
+import { getAccountDateContext } from "@/lib/dates/time-zone";
 
 import {
   buildForecastMonthContext,
@@ -130,6 +131,8 @@ test("calculates current spending pace against six usable historical months", ()
   );
 
   assert.equal(result.currentDailyExpense.toString(), "20");
+  assert.equal(result.variableExpenseSoFar.toString(), "200");
+  assert.equal(result.historicalExpenseToDate?.toString(), "100");
   assert.equal(result.historicalDailyExpense.toString(), "10");
   assert.equal(result.percentageDifference?.toString(), "100");
   assert.equal(result.direction, "above");
@@ -151,6 +154,8 @@ test("uses full calendar days for past-month pace and classifies exact matches",
   );
 
   assert.equal(context.elapsedDays, 31);
+  assert.equal(result.variableExpenseSoFar.toString(), "310");
+  assert.equal(result.historicalExpenseToDate?.toString(), "310");
   assert.equal(result.currentDailyExpense.toString(), "10");
   assert.equal(result.percentageDifference?.toString(), "0");
   assert.equal(result.direction, "on-pace");
@@ -180,13 +185,24 @@ test("excludes active planned-bill categories from current and historical pace",
     [
       ...historicalExpensesAtTenPerDay(),
       ...fixedExpenses,
-      variableExpense("2026-08-05", "50.00"),
+      variableExpense("2026-08-10", "50.00"),
+      variableExpense("2026-08-11", "9000.00"),
+      {
+        ...variableExpense("2026-08-05", "9000.00"),
+        type: TransactionType.INCOME,
+      },
+      {
+        ...variableExpense("2026-07-05", "9000.00"),
+        type: TransactionType.INCOME,
+      },
     ],
     plannedBills,
     context,
   );
 
   assert.equal(result.currentDailyExpense.toString(), "5");
+  assert.equal(result.variableExpenseSoFar.toString(), "50");
+  assert.equal(result.historicalExpenseToDate?.toString(), "100");
   assert.equal(result.historicalDailyExpense.toString(), "10");
   assert.equal(result.percentageDifference?.toString(), "-50");
   assert.equal(result.direction, "below");
@@ -211,9 +227,13 @@ test("returns unavailable without history and for future months", () => {
   );
 
   assert.equal(noHistory.currentDailyExpense.toString(), "5");
+  assert.equal(noHistory.variableExpenseSoFar.toString(), "50");
+  assert.equal(noHistory.historicalExpenseToDate, null);
   assert.equal(noHistory.direction, "unavailable");
   assert.equal(noHistory.percentageDifference, null);
   assert.equal(future.currentDailyExpense.toString(), "0");
+  assert.equal(future.variableExpenseSoFar.toString(), "0");
+  assert.equal(future.historicalExpenseToDate, null);
   assert.equal(future.direction, "unavailable");
 });
 
@@ -231,4 +251,81 @@ test("forecast summary exposes spending pace", () => {
   assert.equal(summary.spendingPace.currentDailyExpense.toString(), "10");
   assert.equal(summary.spendingPace.direction, "on-pace");
   assert.equal(summary.spendingPace.monthsUsed.length, 6);
+});
+
+test("retains exact actual spending and uses the existing fractional historical daily pace", () => {
+  const result = calculateSpendingPace(
+    [
+      variableExpense("2026-07-01", "100.00"),
+      variableExpense("2026-08-01", "100.01"),
+    ],
+    [],
+    buildForecastMonthContext({
+      selectedMonth: "2026-08",
+      referenceDate: "2026-08-31",
+    }),
+  );
+
+  assert.equal(result.variableExpenseSoFar.toString(), "100.01");
+  assert.equal(result.currentDailyExpense.toString(), "3.2261");
+  assert.notEqual(
+    result.currentDailyExpense.mul(31).toString(),
+    result.variableExpenseSoFar.toString(),
+  );
+  assert.equal(result.historicalDailyExpense.toString(), "3.2258");
+  assert.equal(result.historicalExpenseToDate?.toString(), "99.9998");
+  assert.deepEqual(result.monthsUsed, ["2026-07"]);
+});
+
+test("includes today in first-day and month-end comparison amounts", () => {
+  for (const [selectedMonth, previousMonth, previousDays, day] of [
+    ["2026-08", "2026-07", 31, 1],
+    ["2026-02", "2026-01", 31, 28],
+    ["2028-02", "2028-01", 31, 29],
+    ["2026-04", "2026-03", 31, 30],
+    ["2026-08", "2026-07", 31, 31],
+  ] as const) {
+    const amount = new Prisma.Decimal("10.00").mul(day);
+    const result = calculateSpendingPace(
+      [
+        variableExpense(`${previousMonth}-01`, new Prisma.Decimal("10.00").mul(previousDays).toString()),
+        variableExpense(`${selectedMonth}-${String(day).padStart(2, "0")}`, amount.toString()),
+      ],
+      [],
+      buildForecastMonthContext({
+        selectedMonth,
+        referenceDate: `${selectedMonth}-${String(day).padStart(2, "0")}`,
+      }),
+    );
+
+    assert.equal(result.variableExpenseSoFar.toString(), amount.toString());
+    assert.equal(result.historicalExpenseToDate?.toString(), amount.toString());
+    assert.equal(result.direction, "on-pace");
+  }
+});
+
+test("comparison follows the account-local date when the UTC month has not rolled over", () => {
+  const instant = new Date("2026-07-31T22:30:00.000Z");
+  const transactions = [
+    variableExpense("2026-07-01", "310.00"),
+    variableExpense("2026-08-01", "20.00"),
+    variableExpense("2026-08-02", "500.00"),
+  ];
+  const calculate = (timeZone: string) => calculateSpendingPace(
+    transactions,
+    [],
+    buildForecastMonthContext({
+      selectedMonth: "2026-08",
+      referenceDate: getAccountDateContext(timeZone, instant).localDate,
+    }),
+  );
+  const local = calculate("Europe/Chisinau");
+  const utc = calculate("UTC");
+
+  assert.equal(local.variableExpenseSoFar.toString(), "20");
+  assert.equal(local.historicalExpenseToDate?.toString(), "10");
+  assert.equal(local.direction, "above");
+  assert.equal(utc.variableExpenseSoFar.toString(), "0");
+  assert.equal(utc.historicalExpenseToDate, null);
+  assert.equal(utc.direction, "unavailable");
 });

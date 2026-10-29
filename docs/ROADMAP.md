@@ -156,18 +156,26 @@ This remains a roadmap candidate. The selection UI, historical baseline,
 minimum history, warning thresholds, and dashboard placement need to be defined
 when the feature is selected for implementation.
 
-### 7. Month progress context
+### 7. Make spending pace easier to understand with month-to-date comparison context
 
-Compare month progress to spending progress.
+Implemented: the existing above-usual Spending pace warning in Needs Attention
+compares actual variable spending so far this month with the approximate amount
+at the historical daily pace for the same number of elapsed days including
+today. The Spending pace metric stays compact.
 
 Example:
 
 ```text
-45% of the month passed
-62% of expected spending used
+Spending pace is above usual
+By day 15, variable spending is €600 versus approximately €450 at your historical pace—33.3% above usual, based on 6 historical months. Active planned-bill categories are excluded.
 ```
 
-This quickly tells the user if they are ahead or behind pace.
+The explanation uses the existing metric's historical baseline,
+variable-expense exclusions, percentage difference, and account-local elapsed-day
+calculation. It appears only for an above-usual current-month pace and preserves
+the warning's urgency order and the six-item attention limit. Historical pace
+is descriptive context, not a budget or spending limit. The authenticated
+dashboard and fictional public demo use the same explanation.
 
 ### 8. Planned income templates
 
@@ -203,28 +211,55 @@ V1b dashboard polish:
 
 ### 9. Month-end review
 
-At the end of each month, show:
+Provide a compact review of a selected completed month that answers: how did
+the month finish, what explains the result, and is anything left to record?
 
-- actual income
-- actual expenses
-- planned bills paid/skipped/missed
-- top spending categories
-- variance from forecast
+Proposed scope:
 
-This helps the user build trust in the forecast and correct next-month planning inputs.
+- actual income, actual expenses, and the recorded monthly surplus or shortfall
+- comparison with the previous month, including the category changes that
+  explain the difference in expenses and any change in income
+- planned bills summarized as paid, skipped, or unhandled, and planned income
+  summarized as received, skipped, or unhandled
+- unresolved planned items with links into existing record, link-transaction,
+  and skip workflows
+- links to the selected month's Transactions, Planned Items, and Insights
 
-### 10. Data completeness indicator
-
-Manual tracking depends on consistent data entry.
-
-Show signals like:
+Illustrative fictional example:
 
 ```text
-Last transaction entered: 4 days ago
-Forecast may be less accurate
+September review
+Income: €3,200 | Expenses: €2,750 | Recorded surplus: €450
+The surplus fell €180 from August. Income stayed the same.
+Expenses increased €180: Travel +€250, Groceries +€50,
+Shopping -€70, Utilities -€50; all other categories were unchanged.
+
+Bills: 6 paid, 1 skipped, 1 unhandled
+Income: 2 received, 0 skipped, 1 unhandled
+Review: Internet €40 due September 12; reimbursement €150 expected September 22.
+Record payment/receipt, link an existing transaction, or skip.
 ```
 
-This helps prevent the user from over-trusting stale data.
+Rules and boundaries:
+
+- use actual transactions for income and expense totals; unhandled planned
+  amounts do not themselves contribute to actual totals, while existing
+  transactions count even if they have not been linked to a planned item
+- call unresolved items `unhandled`, not `missed` or `unpaid`; the app cannot
+  infer whether the user forgot to record a real payment or receipt
+- describe changes neutrally, including intentional irregular spending such as
+  travel, without treating historical spending as a budget
+- let the review reflect later record corrections; a completed calendar month
+  does not certify complete tracking or require a formal close-month action
+- use existing manual workflows without automatic corrections or matching
+- exclude forecast-accuracy reporting from this scope: forecasts are computed
+  on demand and not persisted, so a later recalculation cannot establish what
+  the user saw earlier in the month
+
+This remains a roadmap candidate, not an active implementation plan. Placement,
+comparison eligibility and empty states, and historical planned-item rules for
+templates later edited, deactivated, or deleted need to be defined when selected
+for implementation. The review requires no notifications or background jobs.
 
 ## Recommended Priority Order
 
@@ -238,13 +273,12 @@ Implemented:
 6. Add weekly safe-to-spend for the next seven days or the rest of the month.
 7. Add overall spending pace against up to six usable historical months.
 8. Add planned-income realization with actual-versus-planned amounts.
+9. Make spending pace easier to understand with month-to-date comparison context in Needs Attention.
 
 Still open:
 
 1. Add opt-in run-rate warnings for user-selected expense categories.
-2. Add month progress context.
-3. Add month-end review.
-4. Add a richer data completeness indicator if the current stale-entry signal is not enough.
+2. Add month-end review with recorded results, spending-change explanations, and unresolved planned items.
 
 ## Product Direction
 

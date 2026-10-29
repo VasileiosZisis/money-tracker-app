@@ -4,7 +4,7 @@ import { Prisma } from "@/generated/prisma/client";
 
 import { updateDemo, resetDemo } from "@/actions/demo";
 import { calculateDemo } from "./calculate";
-import { createDemoSnapshot, DEMO_DATE, DEMO_MONTH } from "./fixtures";
+import { createDemoSnapshot, DEMO_CURRENCY, DEMO_DATE, DEMO_MONTH } from "./fixtures";
 import { defaultDemoSelection, demoHref, normalizeDemoSelection } from "./selection";
 import { transitionDemo } from "./transitions";
 import type { DemoSnapshot, DemoTransactionFields } from "./types";
@@ -35,6 +35,27 @@ test("creating fractional expenses is Decimal-safe and visitors are isolated", (
   assert.equal(calculate(next).dashboard.expense, "1190.45");
   assert.equal(calculate(original).dashboard.expense, "1190.15");
   assert.equal(calculate(createDemoSnapshot()).dashboard.expense, "1190.15");
+});
+
+test("fictional expense changes update the shared month-to-date spending pace warning", () => {
+  const original = createDemoSnapshot();
+  assert.equal(calculate(original).dashboard.attention.some((item) => item.type === "ABOVE_USUAL_SPENDING_PACE"), false);
+  const next = transitionDemo(original, { kind: "create", fields: { ...fields, amount: "1000.00" } });
+  const data = calculate(next);
+  const warning = data.dashboard.attention.find((item) => item.type === "ABOVE_USUAL_SPENDING_PACE");
+  const formatter = new Intl.NumberFormat(undefined, { style: "currency", currency: DEMO_CURRENCY });
+
+  assert.equal(warning?.title, "Spending pace is above usual");
+  assert.equal(warning?.tone, "warning");
+  assert.equal(
+    warning?.description,
+    `By day 15, variable spending is ${formatter.format(Number("1207.75"))} versus approximately ${formatter.format(Number("352.1325"))} at your historical pace—243.0% above usual, based on 6 historical months. Active planned-bill categories are excluded.`,
+  );
+  assert.equal(data.dashboard.expense, "2190.15");
+  assert.equal(calculate(original).dashboard.expense, "1190.15");
+  assert.deepEqual(JSON.parse(JSON.stringify(data.dashboard.attention)), data.dashboard.attention);
+  const past = calculateDemo(next, { ...defaultDemoSelection, month: "2026-08" });
+  assert.equal(past.dashboard.attention.some((item) => item.type === "ABOVE_USUAL_SPENDING_PACE"), false);
 });
 
 test("pending income affects projection only; receiving can exceed 100% realization", () => {

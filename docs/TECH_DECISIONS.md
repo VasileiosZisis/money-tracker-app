@@ -497,6 +497,7 @@ Locked formulas:
 - `weeklySafeSpend = safeToSpend / remainingDaysIncludingToday * weeklySafeSpendDays`
 - `currentDailyPace = selectedMonthVariableExpensesSoFar / elapsedDays`
 - `historicalDailyPace = trailingUsableMonthVariableExpenses / trailingUsableMonthCalendarDays`
+- `historicalExpenseToDate = historicalDailyPace * elapsedDays`
 - `spendingPacePercentage = (currentDailyPace - historicalDailyPace) / historicalDailyPace * 100`
 - `plannedIncomeRealization = actualReceivedPlannedIncome / totalActivePlannedIncome * 100`
 
@@ -519,6 +520,17 @@ Forecast rules:
   baseline exists; direction is based on the percentage rounded to one decimal
 - the Spending pace metric stays compact; only an above-usual current-month pace
   creates a warning attention signal, ordered after due-soon planned bills
+- that signal compares the exact `variableExpenseSoFar` transaction sum with
+  `historicalExpenseToDate`, using the existing historical daily pace rounded to
+  four decimal places and account-local elapsed days including today. The
+  comparison stays Decimal until currency formatting; never reconstruct the
+  actual sum from the rounded current daily pace. Without a positive baseline
+  or for a future month, the historical comparison is null
+- the signal shows the day, actual and approximate historical comparison
+  amounts, existing percentage difference, usable historical-month count, and
+  active planned-bill category exclusion. It describes recorded pace, not a
+  budget, spending limit, or new forecast; warning eligibility, priority, and
+  the six-item attention limit remain unchanged
 - planned-income realization uses the linked/generated transaction amount for
   received occurrences and includes pending and skipped active templates in its
   denominator; results may exceed 100% and are rounded to one decimal

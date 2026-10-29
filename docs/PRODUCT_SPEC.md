@@ -578,6 +578,7 @@ weeklySafeSpend = safeToSpend / remainingDaysIncludingToday * weeklySafeSpendDay
 projectedEndOfMonthNet = netLeftNow + pendingPlannedIncome - forecastRemainingSpend
 currentDailyPace = selectedMonthVariableExpensesSoFar / elapsedDays
 historicalDailyPace = trailingUsableMonthVariableExpenses / trailingUsableMonthCalendarDays
+historicalExpenseToDate = historicalDailyPace * elapsedDays
 spendingPacePercentage = (currentDailyPace - historicalDailyPace) / historicalDailyPace * 100
 plannedIncomeRealization = actualReceivedPlannedIncome / totalActivePlannedIncome * 100
 ```
@@ -605,6 +606,12 @@ Rules:
   months and months without a usable historical baseline are unavailable.
 - Spending pace direction is above, below, or on pace after rounding the
   percentage difference to one decimal place.
+- Its current-month above-usual Needs Attention item compares exact recorded
+  variable expenses through today with the existing historical daily pace
+  multiplied by elapsed days including today. Historical pace retains its
+  existing four-decimal precision; the comparison amount is formatted in the
+  user's currency only for display. No historical comparison is available
+  without a positive baseline or for a future month.
 - Planned-income realization uses actual transaction amounts from received
   linked/generated occurrences over every active planned-income template amount
   for the selected month. Pending and skipped templates remain in the denominator.
@@ -709,6 +716,14 @@ Implemented signals include:
 - stale transaction entry
 - low forecast confidence
 
+The above-usual spending pace signal explains the month-to-date comparison:
+`By day 15, variable spending is €600 versus approximately €450 at your historical
+pace—33.3% above usual, based on 6 historical months. Active planned-bill
+categories are excluded.` It appears only for the current month when the
+existing pace rules identify above-usual spending. The Spending pace metric
+stays compact. This comparison is descriptive history, not a budget or spending
+limit, and is also used by the fictional public demo.
+
 The panel does not perform automatic corrections or matching.
 
 ## Routes
@@ -749,9 +764,7 @@ Open product ideas are maintained in `docs/ROADMAP.md`.
 Current candidates include:
 
 - opt-in run-rate warnings for user-selected expense categories
-- month progress context
-- month-end review
-- richer data-completeness context
+- month-end review with recorded results, spending-change explanations, and unresolved planned items
 
 Roadmap ideas are not implementation requirements until explicitly selected.
 

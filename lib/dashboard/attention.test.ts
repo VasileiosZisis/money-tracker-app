@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { Prisma } from "@/generated/prisma/client";
+import { computeForecastSummary } from "@/lib/forecast";
+import { TransactionType } from "@/generated/prisma/enums";
 
 import {
   buildDashboardAttentionItems,
@@ -47,6 +49,8 @@ function makeIncome(overrides: Partial<PlannedIncome> = {}): PlannedIncome {
 
 function makeSpendingPace(overrides: Partial<SpendingPace> = {}): SpendingPace {
   return {
+    variableExpenseSoFar: new Prisma.Decimal("100.00"),
+    historicalExpenseToDate: new Prisma.Decimal("100.00"),
     currentDailyExpense: new Prisma.Decimal("10.00"),
     historicalDailyExpense: new Prisma.Decimal("10.00"),
     percentageDifference: new Prisma.Decimal(0),
@@ -280,6 +284,7 @@ test("adds above-usual current-month spending pace attention with baseline conte
     makeParams({
       forecast: {
         spendingPace: makeSpendingPace({
+          variableExpenseSoFar: new Prisma.Decimal("200.00"),
           currentDailyExpense: new Prisma.Decimal("20.00"),
           historicalDailyExpense: new Prisma.Decimal("10.00"),
           percentageDifference: new Prisma.Decimal("100.0"),
@@ -291,11 +296,11 @@ test("adds above-usual current-month spending pace attention with baseline conte
   const currentPace = new Intl.NumberFormat(undefined, {
     style: "currency",
     currency: "USD",
-  }).format(20);
+  }).format(200);
   const historicalPace = new Intl.NumberFormat(undefined, {
     style: "currency",
     currency: "USD",
-  }).format(10);
+  }).format(100);
 
   assert.deepEqual(
     items.filter((item) => item.type === "ABOVE_USUAL_SPENDING_PACE"),
@@ -303,11 +308,35 @@ test("adds above-usual current-month spending pace attention with baseline conte
       {
         type: "ABOVE_USUAL_SPENDING_PACE",
         title: "Spending pace is above usual",
-        description: `Variable spending is ${currentPace}/day, 100.0% above the usual ${historicalPace}/day based on 6 historical months.`,
+        description: `By day 10, variable spending is ${currentPace} versus approximately ${historicalPace} at your historical pace—100.0% above usual, based on 6 historical months. Active planned-bill categories are excluded.`,
         tone: "warning",
       },
     ],
   );
+});
+
+test("formats exact actuals and fractional historical comparisons in the account currency with singular history", () => {
+  const forecast = computeForecastSummary({
+    selectedMonth: "2026-08",
+    referenceDate: "2026-08-31",
+    plannedBills: [],
+    transactions: [
+      { type: TransactionType.EXPENSE, categoryId: "food", localDate: "2026-07-01", amount: new Prisma.Decimal("100.00") },
+      { type: TransactionType.EXPENSE, categoryId: "food", localDate: "2026-08-01", amount: new Prisma.Decimal("200.01") },
+    ],
+  });
+
+  for (const currency of ["EUR", "JPY", "KWD"]) {
+    const formatter = new Intl.NumberFormat(undefined, { style: "currency", currency });
+    const items = buildDashboardAttentionItems(makeParams({ currency, forecast }));
+    const warning = items.find((item) => item.type === "ABOVE_USUAL_SPENDING_PACE");
+
+    assert.equal(
+      warning?.description,
+      `By day 31, variable spending is ${formatter.format(Number("200.01"))} versus approximately ${formatter.format(Number("99.9998"))} at your historical pace—100.0% above usual, based on 1 historical month. Active planned-bill categories are excluded.`,
+    );
+    assert.equal(warning?.tone, "warning");
+  }
 });
 
 test("excludes non-actionable spending pace states from attention", () => {
