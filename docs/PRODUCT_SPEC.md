@@ -748,7 +748,7 @@ Open product ideas are maintained in `docs/ROADMAP.md`.
 
 Current candidates include:
 
-- category run-rate warnings
+- opt-in run-rate warnings for user-selected expense categories
 - month progress context
 - month-end review
 - richer data-completeness context
