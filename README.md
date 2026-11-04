@@ -1,20 +1,28 @@
 # CashContour
 
-CashContour is a manual-first personal finance app for recording income and
-expenses, understanding cashflow, and planning the rest of the month. Actual
-transactions, expected bills and income, and forecast estimates stay separate
-so users can understand where each number comes from.
+CashContour is a manual-first personal finance app for tracking income and
+expenses, understanding cashflow, and planning the rest of the month.
 
 [Live website](https://www.cashcontour.com) ·
 [Try the interactive demo](https://www.cashcontour.com/demo) ·
 [Architecture decisions](docs/TECH_DECISIONS.md) ·
 [AI-assisted development workflow](#ai-assisted-development-workflow)
 
-The project brings together responsive UI, authenticated server workflows,
-relational data modeling, financial calculations, regression tests, and
-production deployment. I develop it with AI assistance under documented
-constraints and independent agent review, while retaining responsibility for
-product scope, technical decisions, and accepting changes.
+[![CashContour demo Dashboard in dark mode, showing navigation, Total Balance, and Monthly Snapshot with fictional EUR data](docs/assets/demo-dashboard-overview.jpg)](https://www.cashcontour.com/demo)
+
+*Public demo with fictional EUR data.* [View the full-page screenshot](docs/assets/demo-dashboard.jpg).
+
+## Development highlights
+
+- **Full-stack delivery:** responsive React UI, Next.js server workflows,
+  PostgreSQL persistence, and Vercel deployment.
+- **Financial correctness:** Decimal arithmetic, account-local dates, and
+  explainable forecasts that keep actual transactions separate from plans.
+- **Server-side safeguards:** authenticated ownership checks and Zod input
+  validation protect user-owned records.
+- **Documented AI workflow:** canonical docs, `AGENTS.md`, specialized review
+  subagents, and regression tests guide development. I retain responsibility
+  for technical decisions and accepting changes.
 
 ## Explore the app
 
@@ -29,16 +37,6 @@ Edits stay in the current tab's session. Reset restores the sample; closing the
 tab ends its session. Demo validation and financial calculations run on the
 server without reading or writing account records. Categories, templates, and
 account settings are fixed in the demo; CSV workflows require an account.
-
-<details>
-<summary>View a screenshot of the deployed public demo</summary>
-
-![CashContour public demo Dashboard showing fictional EUR balances, monthly cashflow, spending estimates, and attention signals](docs/assets/demo-dashboard.jpg)
-
-Captured from the public deployment with fictional sample data. The deployed
-interface may differ from changes in the current checkout.
-
-</details>
 
 ## Implemented features
 
