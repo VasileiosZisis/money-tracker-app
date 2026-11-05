@@ -28,10 +28,13 @@ Core traits:
 - The official website is `https://www.cashcontour.com`. Workspace browser titles
   follow `<Workspace> — CashContour`; the homepage and 404 use their existing
   absolute titles without appending another brand suffix.
-- `public/branding/cashcontour-social.png` is the shared 1200 × 630 Open Graph
-  and Twitter/X image. It uses the existing dark-background symbol and wordmark,
-  Inter text, the homepage navy/mint palette, and the message
-  “Your money. A clearer picture.” Preserve supplied logo proportions.
+- `public/branding/cashcontour-social-v2.png` is the shared 1200 × 630 Open Graph
+  and Twitter/X image. It combines CashContour branding and a large white/mint
+  headline with the homepage's notebook, receipt, pen and coffee still life on
+  navy. The message remains “Your money. A clearer picture.” The versioned filename
+  gives the new artwork its own image URL; the original card remains available
+  as a previous version. The generation brief is recorded in
+  `docs/asset-prompts/cashcontour-social-v2.md`.
 - Public-page sharing descriptions and alternative text describe the product;
   never include personal records or financial figures in metadata.
 

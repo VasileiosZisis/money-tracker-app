@@ -8,10 +8,10 @@ export const SITE_DESCRIPTION =
 export const privateRobots = { index: false, follow: true };
 
 const socialImage = {
-  url: `${SITE_URL}/branding/cashcontour-social.png`,
+  url: `${SITE_URL}/branding/cashcontour-social-v2.png`,
   width: 1200,
   height: 630,
-  alt: "CashContour logo on navy with the message: Your money. A clearer picture.",
+  alt: "CashContour logo with a notebook, receipt, pen and coffee on navy. Your money. A clearer picture.",
 };
 
 // NODE_ENV is also production during preview builds; only Vercel Production is indexable.

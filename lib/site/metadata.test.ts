@@ -128,14 +128,14 @@ test("the shared preview image exists as a 1200 by 630 PNG with descriptive alt 
   assert.ok(Array.isArray(images));
   const image = images[0];
   assert.ok(image && typeof image === "object" && "url" in image && "width" in image);
-  assert.equal(image.url, SITE_URL + "/branding/cashcontour-social.png");
+  assert.equal(image.url, SITE_URL + "/branding/cashcontour-social-v2.png");
   assert.equal(image.width, 1200);
   assert.equal(image.height, 630);
   assert.match(image.alt ?? "", /CashContour.*Your money\. A clearer picture\./);
   assert.deepEqual(pageMetadata.demo.openGraph?.images, images);
   assert.deepEqual(pageMetadata.home.twitter?.images, pageMetadata.demo.twitter?.images);
 
-  const png = readFileSync(new URL("../../public/branding/cashcontour-social.png", import.meta.url));
+  const png = readFileSync(new URL("../../public/branding/cashcontour-social-v2.png", import.meta.url));
   assert.equal(png.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
   assert.equal(png.readUInt32BE(16), 1200);
   assert.equal(png.readUInt32BE(20), 630);
