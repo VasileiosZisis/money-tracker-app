@@ -327,7 +327,7 @@ export function ImportWorkspace({ currentMonth }: { currentMonth: string }) {
       ) : null}
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(300px,0.75fr)]">
-        <Card>
+        <Card inset>
           <CardHeader>
             <CardTitle>Upload CSV file</CardTitle>
           </CardHeader>
@@ -381,7 +381,7 @@ export function ImportWorkspace({ currentMonth }: { currentMonth: string }) {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card inset>
           <CardHeader>
             <CardTitle>How it works</CardTitle>
             <CardDescription>
@@ -422,7 +422,7 @@ export function ImportWorkspace({ currentMonth }: { currentMonth: string }) {
       {preview ? (
         <>
           <section className="grid gap-4 md:grid-cols-4">
-            <Card>
+            <Card inset>
               <CardContent className="flex flex-col gap-1 p-4">
                 <p className="text-sm font-medium text-muted-foreground">Total rows</p>
                 <p className="text-xl font-semibold tracking-tight text-foreground">
@@ -430,7 +430,7 @@ export function ImportWorkspace({ currentMonth }: { currentMonth: string }) {
                 </p>
               </CardContent>
             </Card>
-            <Card>
+            <Card inset>
               <CardContent className="flex flex-col gap-1 p-4">
                 <p className="text-sm font-medium text-muted-foreground">Valid rows</p>
                 <p className="text-xl font-semibold tracking-tight text-foreground">
@@ -438,7 +438,7 @@ export function ImportWorkspace({ currentMonth }: { currentMonth: string }) {
                 </p>
               </CardContent>
             </Card>
-            <Card>
+            <Card inset>
               <CardContent className="flex flex-col gap-1 p-4">
                 <p className="text-sm font-medium text-muted-foreground">Invalid rows</p>
                 <p className="text-xl font-semibold tracking-tight text-foreground">
@@ -446,7 +446,7 @@ export function ImportWorkspace({ currentMonth }: { currentMonth: string }) {
                 </p>
               </CardContent>
             </Card>
-            <Card>
+            <Card inset>
               <CardContent className="flex flex-col gap-1 p-4">
                 <p className="text-sm font-medium text-muted-foreground">Categories to create</p>
                 <p className="text-xl font-semibold tracking-tight text-foreground">
@@ -457,7 +457,7 @@ export function ImportWorkspace({ currentMonth }: { currentMonth: string }) {
           </section>
 
           <section className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(300px,0.8fr)]">
-            <Card>
+            <Card inset>
               <CardHeader>
                 <CardTitle>Column mapping</CardTitle>
                 <CardDescription>
@@ -523,7 +523,7 @@ export function ImportWorkspace({ currentMonth }: { currentMonth: string }) {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card inset>
               <CardHeader>
                 <CardTitle>Confirm import</CardTitle>
                 <CardDescription>
@@ -581,7 +581,7 @@ export function ImportWorkspace({ currentMonth }: { currentMonth: string }) {
           </section>
 
           {preview.categoriesToResolve.length > 0 ? (
-            <Card>
+            <Card inset>
               <CardHeader>
                 <CardTitle>Resolve categories</CardTitle>
                 <CardDescription>
@@ -703,7 +703,7 @@ export function ImportWorkspace({ currentMonth }: { currentMonth: string }) {
             </Card>
           ) : null}
 
-          <Card>
+          <Card inset>
             <CardHeader>
               <CardTitle>Preview rows</CardTitle>
               <CardDescription>

@@ -77,7 +77,8 @@ export function MetricCard ({
   badgeLabel,
   badgeVariant = 'outline',
   badgePlacement = 'below',
-  className
+  className,
+  inset = false
 }: {
   title: string
   value: string
@@ -87,6 +88,7 @@ export function MetricCard ({
   badgeVariant?: 'accent' | 'success' | 'warning' | 'destructive' | 'outline'
   badgePlacement?: 'below' | 'title'
   className?: string
+  inset?: boolean
 }) {
   const toneStyles = getToneStyles(tone)
   const valueElement = (
@@ -123,7 +125,7 @@ export function MetricCard ({
   ) : null
 
   return (
-    <Card className={cn('h-full min-w-0', className)}>
+    <Card inset={inset} className={cn('h-full min-w-0', className)}>
       <CardContent className='flex h-full flex-col gap-4 p-4'>
         <div className='flex items-center justify-between gap-3'>
           <div className='min-w-0 space-y-1.5'>
@@ -150,12 +152,14 @@ export function MetricCard ({
 }
 
 export function NeedsAttentionSection ({
-  items
+  items,
+  inset = false
 }: {
   items: AttentionItem[]
+  inset?: boolean
 }) {
   return (
-    <Card className='overflow-hidden'>
+    <Card inset={inset} className='overflow-hidden'>
       <CardHeader className='border-b border-border/70 pb-4'>
         <div className='flex flex-wrap items-start justify-between gap-3'>
           <div className='space-y-1.5'>

@@ -1,23 +1,29 @@
 import type { ReactNode } from "react";
 import { BarChart3 } from "lucide-react";
-import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardContent, WorkspaceCardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatMonthLabel } from "@/lib/dates/month";
 import type { SpendingChangeInsight } from "@/lib/insights/spending-history";
 import { SpendingChangeDriversView } from "./spending-change-drivers-view";
 import { displayFormatter, displaySignedMoney, type MoneyPresentation } from "./display-money";
 const formatCompletedMonthRange = (start: string, end: string) => `${formatMonthLabel(start)} – ${formatMonthLabel(end)}`;
-export function SpendingChangeCard({ spendingChange, display, bars, controls }: {
-  spendingChange: SpendingChangeInsight; display: MoneyPresentation; bars: Record<string, { direction: number; width: number }>; controls: ReactNode;
+export function SpendingChangeCard({ spendingChange, display, bars, controls, headingId }: {
+  spendingChange: SpendingChangeInsight; display: MoneyPresentation; bars: Record<string, { direction: number; width: number }>; controls: ReactNode; headingId?: string;
 }) {
   const formatter = displayFormatter(display);
   const isNegative = (amount: string) => display.signs[amount] < 0;
   const isPositive = (amount: string) => display.signs[amount] > 0;
   return (
         <Card>
-          <CardHeader className="gap-3 lg:flex-row lg:items-end">
-            {controls}
-          </CardHeader>
+          {headingId ? (
+            <WorkspaceCardHeader id={headingId} title="Drivers of change" stackBelowXl>
+              {controls}
+            </WorkspaceCardHeader>
+          ) : (
+            <CardHeader className="gap-3 lg:flex-row lg:items-end">
+              {controls}
+            </CardHeader>
+          )}
           <CardContent className="pt-4">
             {!spendingChange.window ||
             !spendingChange.previousStartMonth ||

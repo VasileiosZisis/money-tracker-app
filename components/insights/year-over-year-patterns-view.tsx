@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { CalendarRange } from "lucide-react";
 import { displayFormatter, displaySignedMoney, displayChangePercent, type MoneyPresentation } from "./display-money";
 
@@ -67,7 +68,9 @@ function AnnualMetricPanel({
 export function YearOverYearPatternsView({
   insight,
   display, bars,
+  header,
 }: {
+  header?: ReactNode;
   insight: LongTermPatternsInsight;
   display: MoneyPresentation;
   bars: Record<string, { direction: number; width: number }>;
@@ -75,8 +78,9 @@ export function YearOverYearPatternsView({
   const formatter = displayFormatter(display);
   return (
     <Card>
+      {header}
       {insight.hasSufficientHistory ? (
-        <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-end">
+        <CardHeader>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
             <span>
               Previous: {formatRange(

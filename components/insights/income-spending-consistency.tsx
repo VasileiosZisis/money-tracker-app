@@ -1,11 +1,10 @@
+import type { ReactNode } from "react";
 import { BarChart3 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import type {
@@ -115,11 +114,11 @@ function ConsistencyMetricPanel({
 export function IncomeSpendingConsistency({
   insight,
   currency,
-  historyPeriodLabel,
+  header,
 }: {
+  header?: ReactNode;
   insight: IncomeSpendingConsistencyInsight;
   currency: string;
-  historyPeriodLabel: string;
 }) {
   const formatter = new Intl.NumberFormat(undefined, {
     style: "currency",
@@ -128,18 +127,7 @@ export function IncomeSpendingConsistency({
 
   return (
     <Card>
-      <CardHeader className="gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <CardTitle className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span className="text-muted-foreground">History Period:</span>
-          <span>{historyPeriodLabel}</span>
-        </CardTitle>
-        {insight.completedMonthCount > 0 ? (
-          <span className="text-sm text-muted-foreground">
-            {insight.completedMonthCount} completed{" "}
-            {insight.completedMonthCount === 1 ? "month" : "months"}
-          </span>
-        ) : null}
-      </CardHeader>
+      {header}
       <CardContent className="pt-4">
         {!insight.hasSufficientHistory ||
         !insight.income ||

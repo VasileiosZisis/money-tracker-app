@@ -67,12 +67,13 @@ export function PlannedItemFiltersDisclosure({
             </Select>
           </Field>
 
-          <Button type="submit">Apply</Button>
+          <Button type="submit" className="h-10">Apply</Button>
         </form>
 
         <Button
           type="button"
           variant="outline"
+          className="h-10"
           aria-expanded={isOpen}
           aria-controls="planned-item-filter-panel"
           onClick={() => setIsOpen(true)}
@@ -83,7 +84,7 @@ export function PlannedItemFiltersDisclosure({
       </div>
 
       {isOpen ? (
-        <Card id="planned-item-filter-panel">
+        <Card inset id="planned-item-filter-panel">
           <form method="get">
             {selectedType !== "ALL" ? (
               <input type="hidden" name="type" value={selectedType} />

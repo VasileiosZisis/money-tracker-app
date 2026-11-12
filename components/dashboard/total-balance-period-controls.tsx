@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Field,
-  FieldGroup,
   FieldLabel,
   FieldTitle,
 } from "@/components/ui/field";
@@ -78,10 +77,10 @@ export function TotalBalancePeriodControls({
       : defaultCompletedYear;
 
   return (
-    <form method="get">
+    <form method="get" className="min-w-0 max-w-full">
       <input type="hidden" name="month" value={month} />
-      <FieldGroup className="gap-4">
-        <FieldGroup className="w-fit flex-row items-end gap-3">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-end gap-3">
           <Field className="w-fit *:w-fit">
             <Select
               id="balanceRange"
@@ -102,47 +101,47 @@ export function TotalBalancePeriodControls({
             </Select>
           </Field>
 
-          <Button type="submit">
+          <Button type="submit" className="h-10">
             Apply
           </Button>
-        </FieldGroup>
+        </div>
 
         {range === "custom" ? (
-          <Card className="w-1/2">
+          <Card inset className="w-fit max-w-full">
             <CardContent className="p-4">
-              <FieldGroup className="gap-4 md:grid md:grid-cols-[auto_1fr] md:items-end">
-              <Field>
-                <FieldTitle id="balanceModeLabel">Custom period</FieldTitle>
-                <input type="hidden" name="balanceMode" value={mode} />
-                <ToggleGroup
-                  aria-labelledby="balanceModeLabel"
-                  value={[mode]}
-                  variant="outline"
-                  size="lg"
-                  spacing={2}
-                  onValueChange={(values) => {
-                    const nextMode = values[0] as
-                      | BalancePeriodMode
-                      | undefined;
+              <div className="flex flex-col gap-4">
+                <Field>
+                  <FieldTitle id="balanceModeLabel">Custom period</FieldTitle>
+                  <input type="hidden" name="balanceMode" value={mode} />
+                  <ToggleGroup
+                    aria-labelledby="balanceModeLabel"
+                    value={[mode]}
+                    variant="outline"
+                    size="lg"
+                    spacing={2}
+                    onValueChange={(values) => {
+                      const nextMode = values[0] as
+                        | BalancePeriodMode
+                        | undefined;
 
-                    if (nextMode) {
-                      setMode(nextMode);
-                    }
-                  }}
-                >
-                  <ToggleGroupItem value="months">Months</ToggleGroupItem>
-                  <ToggleGroupItem value="years">Years</ToggleGroupItem>
-                </ToggleGroup>
-              </Field>
+                      if (nextMode) {
+                        setMode(nextMode);
+                      }
+                    }}
+                  >
+                    <ToggleGroupItem value="months">Months</ToggleGroupItem>
+                    <ToggleGroupItem value="years">Years</ToggleGroupItem>
+                  </ToggleGroup>
+                </Field>
 
-                <FieldGroup className="grid grid-cols-2 gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Field className="w-fit *:w-fit">
                     <FieldLabel htmlFor="balanceStart">Start</FieldLabel>
                     <Input
                       key={`start-${mode}`}
                       id="balanceStart"
                       name="balanceStart"
-                      className="w-fit"
+                      className="w-fit max-w-full"
                       type={mode === "months" ? "month" : "number"}
                       min={mode === "years" ? "1000" : undefined}
                       max={
@@ -160,7 +159,7 @@ export function TotalBalancePeriodControls({
                       key={`end-${mode}`}
                       id="balanceEnd"
                       name="balanceEnd"
-                      className="w-fit"
+                      className="w-fit max-w-full"
                       type={mode === "months" ? "month" : "number"}
                       min={mode === "years" ? "1000" : undefined}
                       max={
@@ -172,12 +171,12 @@ export function TotalBalancePeriodControls({
                       required
                     />
                   </Field>
-                </FieldGroup>
-              </FieldGroup>
+                </div>
+              </div>
             </CardContent>
           </Card>
         ) : null}
-      </FieldGroup>
+      </div>
     </form>
   );
 }

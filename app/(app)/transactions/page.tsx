@@ -1,4 +1,4 @@
-import { FinancialRow } from "@/components/ui/financial-row";
+import { FinancialListItem, FinancialRow } from "@/components/ui/financial-row";
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/site/metadata";
 import { redirect } from "next/navigation";
@@ -22,8 +22,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
+  WorkspaceCardHeader,
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -280,9 +279,7 @@ export default async function TransactionsPage({
       <section className="flex flex-col gap-4">
         <div className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
           <Card className="h-fit">
-            <CardHeader>
-              <CardTitle>Add transaction</CardTitle>
-            </CardHeader>
+            <WorkspaceCardHeader title="Add transaction" />
             <CardContent className="pt-4">
               <form action={createTransactionAction} className="grid gap-4">
                 <TransactionFormFields
@@ -312,23 +309,21 @@ export default async function TransactionsPage({
             </CardContent>
           </Card>
 
-          <div className="flex min-w-0 flex-col gap-4">
-            <TransactionFiltersDisclosure
-              key={`${selectedMonth}:${selectedType}:${effectiveCategoryFilter ?? ""}:${effectiveSubcategoryFilter ?? ""}`}
-              categories={meta.categories}
-              resetHref={buildTransactionsPageUrl({ month: selectedMonth })}
-              selectedCategoryId={effectiveCategoryFilter}
-              selectedMonth={selectedMonth}
-              selectedSubcategoryId={effectiveSubcategoryFilter}
-              selectedType={selectedType}
-            />
-
-            <Card className="overflow-hidden">
-              <CardHeader className="border-b border-border/70 pb-4">
-                <CardTitle>Transactions list</CardTitle>
-              </CardHeader>
+          <div className="min-w-0">
+            <Card>
+              <WorkspaceCardHeader title="Transactions list" className="flex-col items-stretch">
+                <TransactionFiltersDisclosure
+                  key={`${selectedMonth}:${selectedType}:${effectiveCategoryFilter ?? ""}:${effectiveSubcategoryFilter ?? ""}`}
+                  categories={meta.categories}
+                  resetHref={buildTransactionsPageUrl({ month: selectedMonth })}
+                  selectedCategoryId={effectiveCategoryFilter}
+                  selectedMonth={selectedMonth}
+                  selectedSubcategoryId={effectiveSubcategoryFilter}
+                  selectedType={selectedType}
+                />
+              </WorkspaceCardHeader>
               <InlineEditorProvider initialEditorId={editingTransaction?.id}>
-                <CardContent className="grid gap-4 p-4">
+                <CardContent className="grid gap-3 p-4">
             {transactions.length === 0 ? (
               <EmptyState
                 icon={FolderOpen}
@@ -346,11 +341,7 @@ export default async function TransactionsPage({
                 const note = transaction.note?.trim() ?? "";
 
                 return (
-                  <div
-                    key={transaction.id}
-                    className="rounded-xl border border-border/80 bg-background/60 p-4"
-                  >
-                    <div className="space-y-4">
+                  <FinancialListItem key={transaction.id}>
                       <FinancialRow heading="h3" archived={transaction.category.isArchived} type={transaction.type} category={transaction.category.name} secondary={[transaction.subcategory?.name, note].filter(Boolean).join(' / ')} dateLabel={formatLocalDate(transaction.localDate)} amount={formatter.format(Number(transaction.amount))} />
 
                       <div className="flex flex-wrap gap-2">
@@ -398,8 +389,7 @@ export default async function TransactionsPage({
                           updateAction={updateTransactionAction}
                         />
                       </InlineEditorPanel>
-                    </div>
-                  </div>
+                  </FinancialListItem>
                 );
               })
             )}

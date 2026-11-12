@@ -2,13 +2,19 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
+const Card = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & { inset?: boolean }
+>(
+  ({ className, inset, ...props }, ref) => (
     <div
       ref={ref}
-      data-surface="glass"
+      data-surface={inset ? undefined : "glass"}
       className={cn(
-        "rounded-2xl border border-border/80 bg-card/90 text-card-foreground shadow-surface backdrop-blur-xl",
+        "border border-border/80 text-card-foreground",
+        inset
+          ? "rounded-xl bg-background/60"
+          : "rounded-2xl bg-card/90 shadow-surface backdrop-blur-xl",
         className,
       )}
       {...props}
@@ -43,6 +49,37 @@ const CardTitle = React.forwardRef<
 ));
 
 CardTitle.displayName = "CardTitle";
+
+function WorkspaceCardHeader({
+  id,
+  title,
+  level = 2,
+  stackBelowXl = false,
+  className,
+  children,
+}: {
+  id?: string;
+  title: string;
+  level?: 2 | 3;
+  stackBelowXl?: boolean;
+  className?: string;
+  children?: React.ReactNode;
+}) {
+  const Heading = level === 2 ? "h2" : "h3";
+
+  return (
+    <CardHeader className={cn(
+      "flex-row flex-wrap items-center justify-between gap-3",
+      stackBelowXl && "max-xl:flex-col max-xl:items-start",
+      className,
+    )}>
+      <Heading id={id} className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+        {title}
+      </Heading>
+      {children}
+    </CardHeader>
+  );
+}
 
 const CardDescription = React.forwardRef<
   HTMLParagraphElement,
@@ -79,4 +116,4 @@ const CardFooter = React.forwardRef<
 
 CardFooter.displayName = "CardFooter";
 
-export { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle };
+export { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, WorkspaceCardHeader };

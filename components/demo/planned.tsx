@@ -30,7 +30,7 @@ export function DemoPlannedHandling({ item, month, busy, run, display, close, sh
       }}>
         {showNote ? <label className="flex flex-col gap-1.5 text-sm font-medium sm:col-span-full">Note<Textarea name="note" defaultValue={item.note} maxLength={500} disabled={busy} /></label> : null}
       </PlannedHandleForm>
-      {!occurrence ? <div className="flex justify-end"><Button type="button" size="sm" variant="outline" onClick={() => void run({ kind: "skip", templateId: item.id, month })}><SkipForward data-icon="inline-start" />Skip this month</Button></div> : null}
+      {!occurrence ? <div className="flex justify-start"><Button type="button" size="sm" variant="outline" onClick={() => void run({ kind: "skip", templateId: item.id, month })}><SkipForward data-icon="inline-start" />Skip this month</Button></div> : null}
       <PlannedLinkForm id={`demo-${item.id}`} requireChoice candidates={item.candidates.map(row => ({ id: row.id, label: `${row.localDate} - ${row.categoryName} - ${display.money[row.amount]}${row.hints.length ? ` - ${row.hints.join(', ')}` : ''}` }))} disabled={busy} onSubmit={event => {
         event.preventDefault(); void run({ kind: "link", templateId: item.id, month, transactionId: String(new FormData(event.currentTarget).get('transactionId') ?? '') });
       }} />

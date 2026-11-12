@@ -122,12 +122,13 @@ export function TransactionFiltersDisclosure({
             />
           </Field>
 
-          <Button type="submit">Apply</Button>
+          <Button type="submit" className="h-10">Apply</Button>
         </form>
 
         <Button
           type="button"
           variant="outline"
+          className="h-10"
           aria-expanded={isOpen}
           aria-controls="transaction-filter-panel"
           onClick={() => setIsOpen(true)}
@@ -138,7 +139,7 @@ export function TransactionFiltersDisclosure({
       </div>
 
       {isOpen ? (
-        <Card id="transaction-filter-panel">
+        <Card inset id="transaction-filter-panel">
           <form method="get" onSubmit={onApply ? (event) => { event.preventDefault(); onApply(new FormData(event.currentTarget)); } : undefined}>
             <input type="hidden" name="month" value={selectedMonth} />
 

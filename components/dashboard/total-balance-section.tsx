@@ -1,5 +1,4 @@
 import { SummaryValues } from '@/components/dashboard/summary-card'
-import { SectionHeading } from '@/components/app-shell/section-heading'
 import { History } from 'lucide-react'
 
 import type {
@@ -9,7 +8,7 @@ import type {
 import { BalanceAdjustmentCreateDisclosure } from '@/components/dashboard/balance-adjustment-create-disclosure'
 import { TotalBalanceChart } from '@/components/dashboard/total-balance-chart'
 import { TotalBalancePeriodControls } from '@/components/dashboard/total-balance-period-controls'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, WorkspaceCardHeader } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { PageNotice } from '@/components/ui/page-notice'
 import { formatMonthLabel } from '@/lib/dates/month'
@@ -93,26 +92,20 @@ export function TotalBalanceSection ({
       aria-labelledby='total-balance-heading'
       className='flex flex-col gap-4'
     >
-      <div className='flex flex-col gap-4'>
-        <div className='flex flex-col gap-1.5'>
-          <SectionHeading id="total-balance-heading" title="Total Balance" />
-        </div>
-      </div>
-
-      <TotalBalancePeriodControls
-        month={month}
-        query={data.queryParams}
-        latestCompletedMonth={data.latestCompletedMonth}
-      />
-
-      {data.validationError ? (
-        <PageNotice variant='error' title='Invalid Total Balance period'>
-          {data.validationError} Showing the all-time range instead.
-        </PageNotice>
-      ) : null}
-
-      <Card className='overflow-hidden'>
+      <Card>
+        <WorkspaceCardHeader id="total-balance-heading" title="Total Balance" stackBelowXl>
+          <TotalBalancePeriodControls
+            month={month}
+            query={data.queryParams}
+            latestCompletedMonth={data.latestCompletedMonth}
+          />
+        </WorkspaceCardHeader>
         <CardContent className='flex flex-col gap-5 p-4'>
+          {data.validationError ? (
+            <PageNotice variant='error' title='Invalid Total Balance period'>
+              {data.validationError} Showing the all-time range instead.
+            </PageNotice>
+          ) : null}
           {summary ? (
             <div className='flex flex-col gap-5'>
               <SummaryValues primary={{ label: 'Ending balance', value: formatter.format(Number(summary.endingBalance.toString())), tone: summary.endingBalance.lt(0) ? 'danger' : 'default' }} secondary={[

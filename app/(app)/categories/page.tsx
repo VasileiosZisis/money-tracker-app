@@ -1,3 +1,4 @@
+import { FinancialListItem } from "@/components/ui/financial-row";
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/site/metadata";
 import {
@@ -27,8 +28,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
+  WorkspaceCardHeader,
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -248,9 +248,7 @@ export default async function CategoriesPage({
       <section className="flex flex-col gap-4">
         <div className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
           <Card className="h-fit">
-            <CardHeader>
-              <CardTitle>Add category</CardTitle>
-            </CardHeader>
+            <WorkspaceCardHeader title="Add category" />
             <CardContent className="pt-4">
               <form action={createCategoryAction} className="grid gap-4">
                 <CategoryCreateFields />
@@ -265,20 +263,18 @@ export default async function CategoriesPage({
             </CardContent>
           </Card>
 
-          <div className="flex min-w-0 flex-col gap-4">
-            <CategoryFiltersDisclosure
-              key={`${selectedType}:${selectedStatus}`}
-              resetHref={buildCategoriesPageUrl({ type: selectedType })}
-              selectedStatus={selectedStatus}
-              selectedType={selectedType}
-            />
-
-            <Card className="overflow-hidden">
-              <CardHeader className="border-b border-border/70 pb-4">
-                <CardTitle>Categories list</CardTitle>
-              </CardHeader>
+          <div className="min-w-0">
+            <Card>
+              <WorkspaceCardHeader title="Categories list" className="flex-col items-stretch">
+                <CategoryFiltersDisclosure
+                  key={`${selectedType}:${selectedStatus}`}
+                  resetHref={buildCategoriesPageUrl({ type: selectedType })}
+                  selectedStatus={selectedStatus}
+                  selectedType={selectedType}
+                />
+              </WorkspaceCardHeader>
               <InlineEditorProvider initialEditorId={editingCategory?.id}>
-                <CardContent className="grid gap-4 p-4">
+                <CardContent className="grid gap-3 p-4">
                 {visibleCategories.length === 0 ? (
                   <EmptyState
                     icon={FolderOpen}
@@ -291,11 +287,7 @@ export default async function CategoriesPage({
                       .join(" / ");
 
                     return (
-                      <div
-                        key={category.id}
-                        className="rounded-xl border border-border/80 bg-background/60 p-4"
-                      >
-                        <div className="space-y-4">
+                      <FinancialListItem key={category.id}>
                           <div
                             className={cn(
                               "flex min-w-0 gap-3",
@@ -318,11 +310,11 @@ export default async function CategoriesPage({
                               )}
                             </div>
                             <div className="flex min-w-0 flex-col">
-                              <h3 className="text-sm font-semibold tracking-tight text-foreground">
+                              <h3 className="wrap-anywhere text-sm font-semibold tracking-tight text-foreground">
                                 {category.name}
                               </h3>
                               {subcategoryNames ? (
-                                <p className="text-sm leading-6 text-muted-foreground">
+                                <p className="wrap-anywhere text-sm leading-6 text-muted-foreground">
                                   {subcategoryNames}
                                 </p>
                               ) : null}
@@ -374,8 +366,7 @@ export default async function CategoriesPage({
                               updateAction={updateCategoryAction}
                             />
                           </InlineEditorPanel>
-                        </div>
-                      </div>
+                      </FinancialListItem>
                     );
                   })
                 )}

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Search } from "lucide-react";
-import type { MouseEvent } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import { displayFormatter, displaySignedMoney, type MoneyPresentation } from "./display-money";
 
 import { Badge } from "@/components/ui/badge";
@@ -8,8 +8,6 @@ import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatMonthLabel } from "@/lib/dates/month";
@@ -48,30 +46,19 @@ function investigationLabel(observation: UnusualMonthObservation) {
 export function UnusualMonthsView({
   insight,
   display, transactionHrefs, onTransactionClick, disabled = false,
-  historyPeriodLabel,
+  header,
 }: {
+  header?: ReactNode;
   insight: UnusualMonthsInsight;
   display: MoneyPresentation;
   transactionHrefs: Record<string, string>;
   onTransactionClick?: (event: MouseEvent<HTMLAnchorElement>, href: string) => void;
   disabled?: boolean;
-  historyPeriodLabel: string;
 }) {
   const formatter = displayFormatter(display);
   return (
     <Card>
-      <CardHeader className="gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <CardTitle className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span className="text-muted-foreground">History Period:</span>
-          <span>{historyPeriodLabel}</span>
-        </CardTitle>
-        {insight.completedMonthCount > 0 ? (
-          <span className="text-sm text-muted-foreground">
-            {insight.completedMonthCount} completed{" "}
-            {insight.completedMonthCount === 1 ? "month" : "months"}
-          </span>
-        ) : null}
-      </CardHeader>
+      {header}
       <CardContent className="pt-4">
         {!insight.hasSufficientHistory ? (
           <EmptyState

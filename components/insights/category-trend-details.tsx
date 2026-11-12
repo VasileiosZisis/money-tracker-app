@@ -11,22 +11,16 @@ import type { SpendingInsight } from "@/lib/insights/spending-history";
 import { SpendingTrendsChart } from "./spending-trends-chart";
 import { displayFormatter, displaySignedMoney, type MoneyPresentation } from "./display-money";
 
-export function CategoryTrendDetails({ insight, comparison, selectedCategory, completedPeriodLabel, chartData, historyRows, currency, display, currentTransactionsHref, transactionHrefs, onTransactionClick, disabled = false }: {
+export function CategoryTrendDetails({ insight, comparison, selectedCategory, chartData, historyRows, currency, display, currentTransactionsHref, transactionHrefs, onTransactionClick, disabled = false, inset = false }: {
   insight: SpendingInsight; comparison: { value: string; description: string }; selectedCategory: { id: string; name: string };
-  completedPeriodLabel: string; chartData: ComponentProps<typeof SpendingTrendsChart>["data"]; historyRows: SpendingInsight["months"];
+  chartData: ComponentProps<typeof SpendingTrendsChart>["data"]; historyRows: SpendingInsight["months"];
   currency: string; display: MoneyPresentation; currentTransactionsHref: string; transactionHrefs: Record<string, string>;
-  onTransactionClick?: (event: MouseEvent<HTMLAnchorElement>, href: string) => void; disabled?: boolean;
+  onTransactionClick?: (event: MouseEvent<HTMLAnchorElement>, href: string) => void; disabled?: boolean; inset?: boolean;
 }) {
   const formatter = displayFormatter(display);
   const isNegative = (amount: string) => display.signs[amount] < 0;
   return <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span className="text-muted-foreground">History Period:</span>
-            <span>{completedPeriodLabel}</span>
-          </CardTitle>
-        </CardHeader>
+      <Card inset={inset}>
         <CardContent className="pt-4">
           {insight.hasCategorySpending ? (
             <SpendingTrendsChart
@@ -55,7 +49,7 @@ export function CategoryTrendDetails({ insight, comparison, selectedCategory, co
       </Card>
 
       <div className="grid gap-3 md:grid-cols-3">
-        <Card>
+        <Card inset={inset}>
           <CardContent className="flex min-h-36 flex-col justify-between gap-4 pt-4">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm font-medium text-muted-foreground">
@@ -81,7 +75,7 @@ export function CategoryTrendDetails({ insight, comparison, selectedCategory, co
           </CardContent>
         </Card>
 
-        <Card>
+        <Card inset={inset}>
           <CardContent className="flex min-h-36 flex-col justify-between gap-4 pt-4">
             <p className="text-sm font-medium text-muted-foreground">
               This month
@@ -97,7 +91,7 @@ export function CategoryTrendDetails({ insight, comparison, selectedCategory, co
           </CardContent>
         </Card>
 
-        <Card>
+        <Card inset={inset}>
           <CardContent className="flex min-h-36 flex-col justify-between gap-4 pt-4">
             <p className="text-sm font-medium text-muted-foreground">
               Compared with typical
@@ -114,7 +108,7 @@ export function CategoryTrendDetails({ insight, comparison, selectedCategory, co
         </Card>
       </div>
 
-      <Card>
+      <Card inset={inset}>
         <CardHeader>
           <CardTitle>Monthly history</CardTitle>
         </CardHeader>

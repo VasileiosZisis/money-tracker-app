@@ -1,7 +1,7 @@
-import type { ComponentProps, MouseEventHandler } from "react";
+import type { ComponentProps, MouseEventHandler, ReactNode } from "react";
 import { BarChart3 } from "lucide-react";
 import Link from "next/link";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { buttonVariants } from "@/components/ui/button";
@@ -10,10 +10,11 @@ import { MonthlyResultChart } from "./monthly-result-chart";
 import type { MonthlyResultInsight } from "@/lib/insights/spending-history";
 import { displayFormatter, displaySignedMoney, type MoneyPresentation } from "./display-money";
 
-export function MonthlyResultCard({ monthlyResultInsight, monthlyResultChartData, completedPeriodLabel, currency, display, transactionsHref, onTransactionClick, disabled = false }: {
+export function MonthlyResultCard({ monthlyResultInsight, monthlyResultChartData, currency, display, transactionsHref, header, onTransactionClick, disabled = false }: {
+  header?: ReactNode;
   monthlyResultInsight: MonthlyResultInsight;
   monthlyResultChartData: ComponentProps<typeof MonthlyResultChart>["data"];
-  completedPeriodLabel: string; currency: string; display: MoneyPresentation; transactionsHref: string;
+  currency: string; display: MoneyPresentation; transactionsHref: string;
   onTransactionClick?: MouseEventHandler<HTMLAnchorElement>; disabled?: boolean;
 }) {
   const formatter = displayFormatter(display);
@@ -21,11 +22,8 @@ export function MonthlyResultCard({ monthlyResultInsight, monthlyResultChartData
   const isPositive = (amount: string) => display.signs[amount] > 0;
   return (
         <Card>
+        {header}
         <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span className="text-muted-foreground">History Period:</span>
-            <span>{completedPeriodLabel}</span>
-          </CardTitle>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
             <span className="flex items-center gap-1.5">
               <span className="size-2.5 rounded-full bg-success" />

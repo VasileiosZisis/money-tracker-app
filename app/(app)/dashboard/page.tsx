@@ -50,8 +50,7 @@ import {
 import { getForecastState, getForecastConfidenceMeta, getSpendingPaceMeta, getIncomeRealizationMeta } from '@/lib/presentation/dashboard'
 import { MetricCard, NeedsAttentionSection } from '@/components/dashboard/dashboard-cards'
 import { SummaryValues } from '@/components/dashboard/summary-card'
-import { FinancialRow } from '@/components/ui/financial-row'
-import { SectionHeading } from '@/components/app-shell/section-heading'
+import { FinancialListItem, FinancialRow } from '@/components/ui/financial-row'
 import { MonthCashflowChart } from '@/components/dashboard/month-cashflow-chart'
 import { SpendingByCategoryChart } from '@/components/dashboard/spending-by-category-chart'
 import { TotalBalanceSection } from '@/components/dashboard/total-balance-section'
@@ -60,8 +59,7 @@ import { buttonVariants } from '@/components/ui/button'
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle
+  WorkspaceCardHeader
 } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ToastFeedback } from '@/components/ui/toast-feedback'
@@ -590,33 +588,30 @@ export default async function DashboardPage ({
           aria-labelledby='monthly-snapshot-heading'
           className='flex min-w-0 flex-col gap-4'
         >
-        <SectionHeading id="monthly-snapshot-heading" title="Monthly Snapshot" />
-
-      <DashboardMonthFilter
-        id='monthly-snapshot-month'
-        selectedMonth={selectedMonth}
-        balanceQuery={balanceQuery}
-      />
-
-      <section>
-        <Card className='overflow-hidden'>
-          <CardContent className='p-4'>
-            <div className='flex flex-col gap-5'>
-              <SummaryValues primary={{ label: 'Net left now', value: formatMoney(formatter, data.netLeft), tone: data.netLeft.lt(0) ? 'danger' : data.netLeft.gt(0) ? 'success' : 'default' }} secondary={[
-                { label: 'Income total', value: formatMoney(formatter, data.incomeSum), tone: 'success' },
-                { label: 'Expense total', value: formatMoney(formatter, data.expenseSum), tone: 'danger' },
-                { label: 'Projected net left', value: formatMoney(formatter, data.forecast.projectedEndOfMonthNet), tone: data.forecast.projectedEndOfMonthNet.lt(0) ? 'danger' : data.forecast.projectedEndOfMonthNet.gt(0) ? 'success' : 'default' }
-              ]} />
-
-              <MonthCashflowChart
-                currency={data.currency}
-                data={data.chartSeries}
-                yAxisMax={data.chartYAxisMax}
+          <Card>
+            <WorkspaceCardHeader id="monthly-snapshot-heading" title="Monthly Snapshot" stackBelowXl>
+              <DashboardMonthFilter
+                id='monthly-snapshot-month'
+                selectedMonth={selectedMonth}
+                balanceQuery={balanceQuery}
               />
-            </div>
-          </CardContent>
-        </Card>
-      </section>
+            </WorkspaceCardHeader>
+            <CardContent className='p-4'>
+              <div className='flex flex-col gap-5'>
+                <SummaryValues primary={{ label: 'Net left now', value: formatMoney(formatter, data.netLeft), tone: data.netLeft.lt(0) ? 'danger' : data.netLeft.gt(0) ? 'success' : 'default' }} secondary={[
+                  { label: 'Income total', value: formatMoney(formatter, data.incomeSum), tone: 'success' },
+                  { label: 'Expense total', value: formatMoney(formatter, data.expenseSum), tone: 'danger' },
+                  { label: 'Projected net left', value: formatMoney(formatter, data.forecast.projectedEndOfMonthNet), tone: data.forecast.projectedEndOfMonthNet.lt(0) ? 'danger' : data.forecast.projectedEndOfMonthNet.gt(0) ? 'success' : 'default' }
+                ]} />
+
+                <MonthCashflowChart
+                  currency={data.currency}
+                  data={data.chartSeries}
+                  yAxisMax={data.chartYAxisMax}
+                />
+              </div>
+            </CardContent>
+          </Card>
         </section>
       </div>
 
@@ -624,13 +619,14 @@ export default async function DashboardPage ({
         aria-labelledby='spending-by-category-heading'
         className='flex flex-col gap-4'
       >
-        <SectionHeading id="spending-by-category-heading" title="Monthly Spendings" />
-        <DashboardMonthFilter
-          id='monthly-spendings-month'
-          selectedMonth={selectedMonth}
-          balanceQuery={balanceQuery}
-        />
         <Card>
+          <WorkspaceCardHeader id="spending-by-category-heading" title="Monthly Spendings" stackBelowXl>
+            <DashboardMonthFilter
+              id='monthly-spendings-month'
+              selectedMonth={selectedMonth}
+              balanceQuery={balanceQuery}
+            />
+          </WorkspaceCardHeader>
           <CardContent className='p-4'>
             {data.spendingByCategory.length > 0 ? (
               <SpendingByCategoryChart
@@ -652,103 +648,105 @@ export default async function DashboardPage ({
         aria-labelledby='planning-forecast-heading'
         className='flex flex-col gap-4'
       >
-        <SectionHeading id="planning-forecast-heading" title="Planning & Forecast" />
-
-        <div className='grid gap-4 min-[1280px]:grid-cols-2'>
-          <MetricCard
-            title='Forecast remaining spend'
-            value={formatMoney(formatter, data.forecast.forecastRemainingSpend)}
-            tone={
-              data.forecast.forecastRemainingSpend.gt(0) ? 'warning' : 'default'
-            }
-            badgeLabel={
-              data.forecast.monthContext.monthRelation === 'current'
-                ? forecastConfidenceMeta.label
-                : undefined
-            }
-            badgeVariant={forecastConfidenceMeta.badgeVariant}
-            badgePlacement='title'
-            icon={<TrendingDown className='size-5' />}
-          />
-          <MetricCard
-            title='Safe to spend'
-            value={formatMoney(formatter, data.forecast.safeToSpend)}
-            tone={forecastState.tone}
-            icon={
-              forecastState.tone === 'danger' ? (
-                <ShieldAlert className='size-5' />
-              ) : (
-                <ShieldCheck className='size-5' />
-              )
-            }
-          />
-          <MetricCard
-            title='Daily safe spend'
-            value={formatDailyMoney(formatter, data.forecast.dailySafeSpend)}
-            tone={forecastState.tone}
-            badgeLabel={
-              data.forecast.monthContext.monthRelation === 'past'
-                ? 'Month complete'
-                : undefined
-            }
-            badgeVariant='outline'
-            icon={<TimerReset className='size-5' />}
-          />
-          <MetricCard
-            title='Weekly safe spend'
-            value={formatMoney(formatter, data.forecast.weeklySafeSpend)}
-            tone={forecastState.tone}
-            badgeLabel={
-              data.forecast.monthContext.monthRelation === 'past'
-                ? 'Month complete'
-                : data.forecast.weeklySafeSpendDays < 7
-                  ? 'Rest of month'
-                  : undefined
-            }
-            badgeVariant='outline'
-            badgePlacement='title'
-            icon={<CalendarRange className='size-5' />}
-          />
-          <MetricCard
-            title='Spending pace'
-            value={
-              data.forecast.monthContext.monthRelation === 'future'
-                ? 'Unavailable'
-                : formatDailyMoney(
-                    formatter,
-                    data.forecast.spendingPace.currentDailyExpense
+        <Card>
+          <WorkspaceCardHeader id="planning-forecast-heading" title="Planning & Forecast" />
+          <CardContent className='flex flex-col gap-4 pt-4'>
+            <div className='grid gap-4 min-[1280px]:grid-cols-2'>
+              <MetricCard inset
+                title='Forecast remaining spend'
+                value={formatMoney(formatter, data.forecast.forecastRemainingSpend)}
+                tone={
+                  data.forecast.forecastRemainingSpend.gt(0) ? 'warning' : 'default'
+                }
+                badgeLabel={
+                  data.forecast.monthContext.monthRelation === 'current'
+                    ? forecastConfidenceMeta.label
+                    : undefined
+                }
+                badgeVariant={forecastConfidenceMeta.badgeVariant}
+                badgePlacement='title'
+                icon={<TrendingDown className='size-5' />}
+              />
+              <MetricCard inset
+                title='Safe to spend'
+                value={formatMoney(formatter, data.forecast.safeToSpend)}
+                tone={forecastState.tone}
+                icon={
+                  forecastState.tone === 'danger' ? (
+                    <ShieldAlert className='size-5' />
+                  ) : (
+                    <ShieldCheck className='size-5' />
                   )
-            }
-            tone={spendingPaceMeta.tone}
-            badgeLabel={spendingPaceMeta.label}
-            badgeVariant={spendingPaceMeta.badgeVariant}
-            badgePlacement='title'
-            icon={<Gauge className='size-5' />}
-          />
-          <MetricCard
-            title='Income realization'
-            value={incomeRealizationValue}
-            tone={incomeRealizationMeta.tone}
-            badgeLabel={incomeRealizationBadge}
-            badgeVariant={incomeRealizationMeta.badgeVariant}
-            badgePlacement='title'
-            icon={<CircleDollarSign className='size-5' />}
-          />
-        </div>
+                }
+              />
+              <MetricCard inset
+                title='Daily safe spend'
+                value={formatDailyMoney(formatter, data.forecast.dailySafeSpend)}
+                tone={forecastState.tone}
+                badgeLabel={
+                  data.forecast.monthContext.monthRelation === 'past'
+                    ? 'Month complete'
+                    : undefined
+                }
+                badgeVariant='outline'
+                icon={<TimerReset className='size-5' />}
+              />
+              <MetricCard inset
+                title='Weekly safe spend'
+                value={formatMoney(formatter, data.forecast.weeklySafeSpend)}
+                tone={forecastState.tone}
+                badgeLabel={
+                  data.forecast.monthContext.monthRelation === 'past'
+                    ? 'Month complete'
+                    : data.forecast.weeklySafeSpendDays < 7
+                      ? 'Rest of month'
+                      : undefined
+                }
+                badgeVariant='outline'
+                badgePlacement='title'
+                icon={<CalendarRange className='size-5' />}
+              />
+              <MetricCard inset
+                title='Spending pace'
+                value={
+                  data.forecast.monthContext.monthRelation === 'future'
+                    ? 'Unavailable'
+                    : formatDailyMoney(
+                        formatter,
+                        data.forecast.spendingPace.currentDailyExpense
+                      )
+                }
+                tone={spendingPaceMeta.tone}
+                badgeLabel={spendingPaceMeta.label}
+                badgeVariant={spendingPaceMeta.badgeVariant}
+                badgePlacement='title'
+                icon={<Gauge className='size-5' />}
+              />
+              <MetricCard inset
+                title='Income realization'
+                value={incomeRealizationValue}
+                tone={incomeRealizationMeta.tone}
+                badgeLabel={incomeRealizationBadge}
+                badgeVariant={incomeRealizationMeta.badgeVariant}
+                badgePlacement='title'
+                icon={<CircleDollarSign className='size-5' />}
+              />
+            </div>
 
-        <NeedsAttentionSection items={data.attentionItems} />
+            <NeedsAttentionSection inset items={data.attentionItems} />
+          </CardContent>
+        </Card>
       </section>
 
       <section
         aria-labelledby='transactions-plans-heading'
         className='flex flex-col gap-4'
       >
-        <SectionHeading id="transactions-plans-heading" title="Transactions & Plans" />
-
-        <div className='grid items-start gap-4 min-[1280px]:grid-cols-3'>
-        <Card className='overflow-hidden'>
-          <CardHeader className='flex flex-row items-end justify-between gap-4 pb-0'>
-            <CardTitle>Recent transactions</CardTitle>
+        <Card>
+          <WorkspaceCardHeader id="transactions-plans-heading" title="Transactions & Plans" />
+          <CardContent className='grid items-start gap-4 pt-4 min-[1280px]:grid-cols-3'>
+        <Card inset>
+          <WorkspaceCardHeader title="Recent transactions" level={3}>
             <Link
               href='/transactions'
               className={cn(
@@ -759,8 +757,8 @@ export default async function DashboardPage ({
               View all
               <ArrowRight />
             </Link>
-          </CardHeader>
-          <CardContent className='px-3 pt-6'>
+          </WorkspaceCardHeader>
+          <CardContent className='grid gap-3 p-4'>
             {data.recentTransactions.length === 0 ? (
               <EmptyState
                 icon={FolderClock}
@@ -777,26 +775,17 @@ export default async function DashboardPage ({
                 }
               />
             ) : (
-              <div className='space-y-3'>
-                {data.recentTransactions.map(transaction => {
-                  return (
-                    <div
-                      key={transaction.id}
-                      className='rounded-xl border border-border/80 bg-background/60 p-3'
-                    >
-                      <FinancialRow truncateSecondary type={transaction.type} category={transaction.category.name} secondary={transaction.subcategory?.name} dateLabel={formatLocalDate(transaction.localDate)} amount={formatMoney(formatter, transaction.amount)} />
-
-                    </div>
-                  )
-                })}
-              </div>
+              data.recentTransactions.map(transaction => (
+                <FinancialListItem key={transaction.id}>
+                  <FinancialRow type={transaction.type} category={transaction.category.name} secondary={transaction.subcategory?.name} dateLabel={formatLocalDate(transaction.localDate)} amount={formatMoney(formatter, transaction.amount)} />
+                </FinancialListItem>
+              ))
             )}
           </CardContent>
         </Card>
 
-        <Card className='overflow-hidden min-[1280px]:col-span-2'>
-          <CardHeader className='flex flex-row items-end justify-between gap-4 border-b border-border/70 pb-4'>
-            <CardTitle>Planned items</CardTitle>
+        <Card inset className='min-[1280px]:col-span-2'>
+          <WorkspaceCardHeader title="Planned items" level={3} className="border-b border-border/70 pb-4">
             <Link
               href='/planned'
               className={cn(
@@ -807,22 +796,19 @@ export default async function DashboardPage ({
               View all
               <ArrowRight />
             </Link>
-          </CardHeader>
+          </WorkspaceCardHeader>
           <CardContent className='grid p-0 min-[868px]:grid-cols-2'>
             <section
               aria-labelledby='planned-income-heading'
               className='order-2 flex min-w-0 flex-col border-t border-border/70 min-[868px]:border-l min-[868px]:border-t-0'
             >
               <div className='p-4'>
-                <CardTitle id='planned-income-heading'>Planned income</CardTitle>
-              <div className='flex flex-wrap gap-2 pt-1'>
-                <Badge variant='outline' className='text-base'>
-                  {displayedPlannedIncomes.length}
-                </Badge>
-                <Badge variant='outline' className='border-0 text-base'>
-                  Pending {formatMoney(formatter, plannedIncomeSummary.pendingTotal)}
-                </Badge>
-              </div>
+                <h4 id='planned-income-heading' className='text-base font-semibold tracking-tight'>Planned income</h4>
+                <div className='pt-1'>
+                  <Badge variant='outline' className='border-0 px-0 text-base'>
+                    Pending {formatMoney(formatter, plannedIncomeSummary.pendingTotal)}
+                  </Badge>
+                </div>
               </div>
               <div className='grid gap-4 p-3'>
             {displayedPlannedIncomes.length === 0 ? (
@@ -886,7 +872,7 @@ export default async function DashboardPage ({
                     ) : (
                       <div className='grid gap-3 border-t border-border/70'>
                         <PlannedHandleForm id={plannedIncome.id} type="INCOME" amount={plannedIncome.amount.toString()} localDate={plannedIncome.defaultReceivedLocalDate} action={markIncomeReceivedAction} hiddenFields={<><input type="hidden" name="plannedIncomeId" value={plannedIncome.id} /><input type="hidden" name="month" value={selectedMonth} /></>} />
-                        <form action={skipIncomeAction} className='flex justify-end'>
+                        <form action={skipIncomeAction} className='flex justify-start'>
                           <input
                             type='hidden'
                             name='plannedIncomeId'
@@ -905,7 +891,7 @@ export default async function DashboardPage ({
                           </button>
                         </form>
                         {plannedIncome.linkCandidates.length > 0 ? (
-                          <PlannedLinkForm id={plannedIncome.id} candidates={plannedIncome.linkCandidates.map(candidate => ({ id: candidate.id, label: getLinkCandidateLabel(formatter, candidate, plannedIncome) }))} action={linkExistingIncomeTransactionAction} className="grid gap-3 border-t border-border/70 sm:grid-cols-[minmax(0,1fr)_auto]" hiddenFields={<><input type="hidden" name="plannedIncomeId" value={plannedIncome.id} /><input type="hidden" name="month" value={selectedMonth} /></>} />
+                          <PlannedLinkForm id={plannedIncome.id} candidates={plannedIncome.linkCandidates.map(candidate => ({ id: candidate.id, label: getLinkCandidateLabel(formatter, candidate, plannedIncome) }))} action={linkExistingIncomeTransactionAction} className="grid gap-3 border-t border-border/70" hiddenFields={<><input type="hidden" name="plannedIncomeId" value={plannedIncome.id} /><input type="hidden" name="month" value={selectedMonth} /></>} />
                         ) : null}
                       </div>
                     )}
@@ -921,15 +907,12 @@ export default async function DashboardPage ({
               className='order-1 flex min-w-0 flex-col'
             >
               <div className='p-4'>
-                <CardTitle id='planned-bills-heading'>Planned bills</CardTitle>
-              <div className='flex flex-wrap gap-2 pt-1'>
-                <Badge variant='outline' className='text-base'>
-                  {displayedPlannedBills.length}
-                </Badge>
-                <Badge variant='outline' className='border-0 text-base'>
-                  Reserved {formatMoney(formatter, displayedPlannedBillsTotal)}
-                </Badge>
-              </div>
+                <h4 id='planned-bills-heading' className='text-base font-semibold tracking-tight'>Planned bills</h4>
+                <div className='pt-1'>
+                  <Badge variant='outline' className='border-0 px-0 text-base'>
+                    Reserved {formatMoney(formatter, displayedPlannedBillsTotal)}
+                  </Badge>
+                </div>
               </div>
               <div className='grid gap-4 p-3'>
             {displayedPlannedBills.length === 0 ? (
@@ -993,7 +976,7 @@ export default async function DashboardPage ({
                     ) : (
                       <div className='grid gap-3 border-t border-border/70'>
                         <PlannedHandleForm id={plannedBill.id} type="EXPENSE" amount={plannedBill.amount.toString()} localDate={plannedBill.defaultPaymentLocalDate} action={markPaidAction} hiddenFields={<><input type="hidden" name="plannedBillId" value={plannedBill.id} /><input type="hidden" name="month" value={selectedMonth} /></>} />
-                        <form action={skipBillAction} className='flex justify-end'>
+                        <form action={skipBillAction} className='flex justify-start'>
                           <input
                             type='hidden'
                             name='plannedBillId'
@@ -1012,7 +995,7 @@ export default async function DashboardPage ({
                           </button>
                         </form>
                         {plannedBill.linkCandidates.length > 0 ? (
-                          <PlannedLinkForm id={plannedBill.id} candidates={plannedBill.linkCandidates.map(candidate => ({ id: candidate.id, label: getLinkCandidateLabel(formatter, candidate, plannedBill) }))} action={linkExistingTransactionAction} className="grid gap-3 border-t border-border/70 pt-4 sm:grid-cols-[minmax(0,1fr)_auto]" hiddenFields={<><input type="hidden" name="plannedBillId" value={plannedBill.id} /><input type="hidden" name="month" value={selectedMonth} /></>} />
+                          <PlannedLinkForm id={plannedBill.id} candidates={plannedBill.linkCandidates.map(candidate => ({ id: candidate.id, label: getLinkCandidateLabel(formatter, candidate, plannedBill) }))} action={linkExistingTransactionAction} className="grid gap-3 border-t border-border/70 pt-4" hiddenFields={<><input type="hidden" name="plannedBillId" value={plannedBill.id} /><input type="hidden" name="month" value={selectedMonth} /></>} />
                         ) : (
                           <p className='border-t border-border/70 text-sm leading-6 text-muted-foreground'>
                             No unlinked expense transactions found for this month.
@@ -1029,7 +1012,8 @@ export default async function DashboardPage ({
             </section>
           </CardContent>
         </Card>
-        </div>
+          </CardContent>
+        </Card>
       </section>
     </div>
   )

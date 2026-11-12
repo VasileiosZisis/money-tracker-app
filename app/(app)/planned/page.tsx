@@ -1,4 +1,4 @@
-import { FinancialRow } from "@/components/ui/financial-row";
+import { FinancialListItem, FinancialRow } from "@/components/ui/financial-row";
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/site/metadata";
 import {
@@ -39,8 +39,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
+  WorkspaceCardHeader,
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -439,9 +438,7 @@ export default async function PlannedPage({
       <section className="flex flex-col gap-4">
         <div className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
           <Card className="h-fit">
-            <CardHeader>
-              <CardTitle>Add planned item</CardTitle>
-            </CardHeader>
+            <WorkspaceCardHeader title="Add planned item" />
             <CardContent className="pt-4">
               <PlannedItemCreateTabs
                 key={initialCreateTab}
@@ -455,20 +452,18 @@ export default async function PlannedPage({
             </CardContent>
           </Card>
 
-          <div className="flex min-w-0 flex-col gap-4">
-            <PlannedItemFiltersDisclosure
-              key={`${selectedType}:${selectedStatus}`}
-              resetHref={buildPlannedPageUrl({ type: selectedType })}
-              selectedStatus={selectedStatus}
-              selectedType={selectedType}
-            />
-
-            <Card className="overflow-hidden">
-              <CardHeader className="border-b border-border/70 pb-4">
-                <CardTitle>Planned items list</CardTitle>
-              </CardHeader>
+          <div className="min-w-0">
+            <Card>
+              <WorkspaceCardHeader title="Planned items list" className="flex-col items-stretch">
+                <PlannedItemFiltersDisclosure
+                  key={`${selectedType}:${selectedStatus}`}
+                  resetHref={buildPlannedPageUrl({ type: selectedType })}
+                  selectedStatus={selectedStatus}
+                  selectedType={selectedType}
+                />
+              </WorkspaceCardHeader>
               <InlineEditorProvider initialEditorId={initialEditorId}>
-                <CardContent className="grid gap-4 p-4">
+                <CardContent className="grid gap-3 p-4">
                 {visibleItems.length === 0 ? (
                   <EmptyState icon={FolderOpen} title="No planned items" />
                 ) : (
@@ -482,11 +477,7 @@ export default async function PlannedPage({
                       );
 
                       return (
-                        <div
-                          key={editorValue}
-                          className="rounded-xl border border-border/80 bg-background/60 p-4"
-                        >
-                          <div className="space-y-4">
+                        <FinancialListItem key={editorValue}>
                             <FinancialRow planned type="EXPENSE" category={plannedBill.category.name} secondary={plannedBill.subcategory?.name} dateLabel={`Due day ${plannedBill.dueDayOfMonth}`} amount={formatMoney(formatter, plannedBill.amount)} />
 
                             <div className="flex flex-wrap gap-2">
@@ -585,8 +576,7 @@ export default async function PlannedPage({
                                 </div>
                               </form>
                             </InlineEditorPanel>
-                          </div>
-                        </div>
+                        </FinancialListItem>
                       );
                     }
 
@@ -598,11 +588,7 @@ export default async function PlannedPage({
                     );
 
                     return (
-                      <div
-                        key={editorValue}
-                        className="rounded-xl border border-border/80 bg-background/60 p-4"
-                      >
-                        <div className="space-y-4">
+                      <FinancialListItem key={editorValue}>
                           <FinancialRow planned type="INCOME" category={plannedIncome.category.name} secondary={plannedIncome.subcategory?.name} dateLabel={`Expected day ${plannedIncome.expectedDayOfMonth}`} amount={formatMoney(formatter, plannedIncome.amount)} />
 
                             <div className="flex flex-wrap gap-2">
@@ -701,8 +687,7 @@ export default async function PlannedPage({
                               </div>
                             </form>
                           </InlineEditorPanel>
-                        </div>
-                      </div>
+                      </FinancialListItem>
                     );
                   })
                 )}

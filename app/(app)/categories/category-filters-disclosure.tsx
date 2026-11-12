@@ -66,12 +66,13 @@ export function CategoryFiltersDisclosure({
             </Select>
           </Field>
 
-          <Button type="submit">Apply</Button>
+          <Button type="submit" className="h-10">Apply</Button>
         </form>
 
         <Button
           type="button"
           variant="outline"
+          className="h-10"
           aria-expanded={isOpen}
           aria-controls="category-filter-panel"
           onClick={() => setIsOpen(true)}
@@ -82,7 +83,7 @@ export function CategoryFiltersDisclosure({
       </div>
 
       {isOpen ? (
-        <Card id="category-filter-panel">
+        <Card inset id="category-filter-panel">
           <form method="get">
             {selectedType !== "ALL" ? (
               <input type="hidden" name="type" value={selectedType} />

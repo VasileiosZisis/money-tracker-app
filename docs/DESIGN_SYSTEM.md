@@ -383,17 +383,17 @@ Rules:
 - Current-page labels reuse the app navigation labels; all three contextual-bar items use `text-xl`, foreground color, and semibold weight.
 - Below `sm`, the contextual bar remains one line but uses compact text, an abbreviated day-and-month date, and a non-shrinking sidebar trigger so the full current-page label remains readable. From `sm` upward, it keeps the full date and `text-xl` treatment.
 - The Transactions page relies on the contextual bar for its page title and begins directly with working controls; transient action feedback uses the global toaster and does not reserve page layout space. Do not repeat an `Entries` eyebrow, `Transactions` heading, introductory description, or summary cards for Selected Month, Visible Entries, and Current Filter.
-- The Transactions workspace keeps Add Transaction in the left column and places the transaction-view controls directly above the Transactions List in the right column. The month input and primary Apply action match the compact Monthly Snapshot controls. An adjacent outline Filter action opens an inline card containing type, category, and subcategory controls with Apply and Reset actions. Advanced-filter choices cascade so type limits categories and category limits subcategories; resetting advanced filters preserves the selected month.
+- The Transactions workspace keeps Add Transaction in the left column. The Transactions list card in the right column contains its title, month picker, and advanced filter disclosure in its header. The month input and primary Apply action match the compact Monthly Snapshot controls. An adjacent outline Filter action opens an inline card containing type, category, and subcategory controls with Apply and Reset actions. Advanced-filter choices cascade so type limits categories and category limits subcategories; resetting advanced filters preserves the selected month.
 - The Add Transaction card stays at content height, uses a title-only header, and presents one full-width field per row in this order: Date, Type, Amount, Category, Subcategory, Source, and Note.
-- The Transactions List card uses a title-only header. Transaction rows reuse the dashboard transaction language: semantic trending icons replace type badges, category labels use `text-sm`, and dates sit above `text-base` mono amounts colored with success or destructive tokens. List dates omit the year because the selected month already provides that context.
+- The Transactions list and Dashboard Recent transactions share the same title treatment, row surface, padding, and summary alignment. Transaction rows use the same visual language across both lists: semantic trending icons replace type badges, category labels use `text-sm`, and dates sit above `text-base` mono amounts colored with success or destructive tokens. List dates omit the year because the selected month already provides that context.
 - Transaction and Dashboard Transactions & Plans summary rows keep the icon plus their primary/secondary text on the left and the date or planned day above the amount in a right-aligned stack at every width. Row actions and expanded workflows remain below this summary line.
 - In transaction rows, subcategory is optional secondary text beneath the category. A note follows the subcategory with ` / ` only when both values exist; notes without a subcategory render without a separator, and empty secondary lines are omitted.
 - Collapsed transaction rows expose only a `View/Edit` action. The expanded editor contains `Close/Cancel`, Delete, and Save changes; Save changes remains disabled until the current form differs from the stored transaction.
-- The Categories workspace mirrors the Transactions layout: Add category stays at content height in the 300px left column, while type/status controls and one unified Categories list occupy the flexible right column. The compact type control offers All, Income, and Expense; the adjacent Filter disclosure offers Active or Inactive status, with Active as the default.
+- The Categories workspace mirrors the Transactions layout: Add category stays at content height in the 300px left column, while one unified Categories list with type/status controls in its card header occupies the flexible right column. The compact type control offers All, Income, and Expense; the adjacent Filter disclosure offers Active or Inactive status, with Active as the default.
 - Category rows use the same semantic trending icons as transaction rows. The category name is the primary label, all subcategory names appear on the optional secondary line separated by ` / `, and collapsed rows expose only `View/Edit`.
 - An expanded category editor stages category and subcategory renames, additions, and removals until Save changes. It uses `Close/Cancel`, Archive for active categories or Restore for inactive categories, and keeps Save changes disabled until the staged values differ from the stored category.
 - Inline editors and balance-adjustment disclosures open and close immediately through local client state, allow only one related workflow to be open, and shallowly synchronize their existing query parameters through the native history API. Keep real no-scroll hrefs as deep-link and progressive-enhancement fallbacks; normal page-to-page links retain standard scroll behavior.
-- The Planned workspace follows the same responsive shell as Categories: a content-height 300px creation card in the left column and compact controls plus one unified Planned items list in the flexible right column. On smaller screens the creation card stacks before the list workspace.
+- The Planned workspace follows the same responsive shell as Categories: a content-height 300px creation card in the left column and one unified Planned items list with compact controls in its card header in the flexible right column. On smaller screens the creation card stacks before the list workspace.
 - Settings appears in the sidebar footer below the profile row. Its single page
   uses non-sticky anchor links to Account time zone, Import, Export, and Theme
   sections, all rendered together. Account time zone keeps the native styled
@@ -416,13 +416,13 @@ Rules:
 
 ### Dashboard composition
 
-- Lead with the selected month and the net result.
+- Lead with the selected month and the net result. Place the title and period controls for Total Balance, Monthly Snapshot, and Monthly Spendings inside their respective cards.
 - In Monthly Snapshot, place Income total, Expense total, and Projected net left—in that order—in one secondary metric row below Net left now and before the cash-flow chart. Mirror the Total Balance primary/secondary metric structure, use `gap-6` between secondary metrics, and render secondary values at `text-xl` so both lead cards align visually.
 - Dashboard composition uses five distinct responsive rows: Total Balance with Monthly Snapshot (`md` two-column), Spending by category at full width, the six planning metrics, Needs Attention at full width, and Transactions & Plans. Planning metrics use one column below `1280px` and two equal columns from `1280px`, ordered as Forecast remaining spend | Safe to spend, Daily safe spend | Weekly safe spend, and Spending pace | Income realization. In Transactions & Plans, Recent Transactions occupies one column and a unified Planned Items card occupies two columns from `1280px`; below that breakpoint, both cards use separate full-width rows with Planned Items below Recent Transactions.
 - Forecast remaining spend, Safe to spend, Daily safe spend, Weekly safe spend, Spending pace, and Income realization use the same compact label/value block with the icon vertically centered against that block and no descriptive helper below the amount. For the current selected month, Forecast remaining spend places a non-wrapping semantic confidence badge directly to the right of its label: success/green for High, warning/orange for Medium, and destructive/red for Low. Past and future selected months omit the confidence badge. Spending pace uses warning/orange above usual, success/green below usual, accent on pace, and outline when unavailable; above-usual historical-baseline context appears as a Needs Attention item instead of metric-card helper text. Income realization uses success at 100% or more, accent while the current month is incomplete, warning for an incomplete past month, and outline for future or unavailable states; its amount badge appears directly to the right of the Income realization label and shows actual received versus planned income.
 - On narrow screens, a metric label and its intact non-wrapping badge may wrap onto separate lines to keep the card within the viewport. From `sm` upward, the label and badge remain together on one line.
-- Use a `Planning & Forecast` section heading above the six planning metric cards and Needs Attention to distinguish planning-oriented information from Total Balance and Monthly Snapshot.
-- Use a `Transactions & Plans` section heading above Recent Transactions and the unified Planned Items card to separate activity and scheduled items from Planning & Forecast. The Planned Items card has one `/planned` View all action and keeps Planned Bills on the left and Planned Income on the right from `868px`; through `867px`, the sections stack with bills first. The two inner section headers have no bottom border. Between `1280px` and `1479px`, planned-item action forms keep the date and amount fields in two columns and move the submit action below them so native date controls remain readable; from `1480px`, all three controls share one row.
+- Use one Planning & Forecast card with an internal section title, six inset metric panels, and a full-width inset Needs Attention panel.
+- Use one Transactions & Plans card with an internal section title and inset panels for Recent Transactions and Planned Items. The Planned Items card has one `/planned` View all action and keeps Planned Bills on the left and Planned Income on the right from `868px`; through `867px`, the sections stack with bills first. The two inner section headers have no bottom border. From `1024px` up to `1480px`, planned-item action forms give the date field the wider of two columns and move the submit action below them so native date controls remain readable; from `1480px`, all three controls share one row.
 - The Needs Attention card uses a title-only header without supporting copy or a numeric count badge, and uses compact `p-3` content padding. Its signals use one column on small screens and two columns from `md`, allowing the six-item limit to form three rows; the empty state spans the full card width.
 - The current-month above-usual Spending pace signal explains month-to-date actual variable spending versus the approximate amount at the existing historical daily pace for elapsed days including today. Its description includes the day, currency-formatted amounts, percentage above usual, usable historical-month count, and active planned-bill category exclusion. Keep the metric card compact and preserve the signal's warning styling, urgency order, and the six-item limit; no additional card or disclosure is added.
 - Support the main number with income, expense, and ratio-based context derived from existing data.
@@ -435,7 +435,7 @@ Rules:
 - Recent transaction rows use semantic icon and amount color as the income/expense indicator, omit the redundant type badge, and show the subcategory as the optional secondary line. If no subcategory exists, render no secondary text.
 - Dashboard item containers inside Needs Attention, Recent Transactions, and both Planned Items sections use compact `p-3` padding.
 - In Recent Transactions and both Planned Items sections, primary/secondary text and date-or-day/amount stacks use no internal vertical gap.
-- Planned Bills list-item action areas and their internal separators add no top padding.
+- The Payment date and Amount row and the Received date and Amount row use `pt-4`, matching the Planned Bills Link existing transaction form. Align Skip this month and Link transaction to the start of their rows. Place Link transaction below its picker.
 - Do not invent analytics or charts that are not backed by real data.
 
 ### Insights composition
@@ -443,12 +443,12 @@ Rules:
 - Insights is a historical comparison workspace, not a second dashboard and
   not a category-management surface.
 - Do not repeat a page title below the contextual app bar. Organize the workspace
-  as peer Dashboard-style sections with accessible external headings in this
+  as peer Dashboard-style cards with accessible internal section headings in this
   order: Monthly result, Spending composition, Income and spending consistency,
   Unusual months, Category Spending Trends, Drivers of change, and Year-over-year
   patterns. Retain a visually hidden `Insights` level-one heading for document
-  structure, and do not repeat section titles inside their cards.
-- Lead Monthly result with the shared History Period control, followed by one
+  structure.
+- Place the Shared history period control in the Monthly result card header, followed by one
   compact, full-width line chart comparing monthly income and expenses. Keep the
   chart near 200px tall, show the result in its tooltip, and use an open, muted
   point plus `In progress` treatment for the current account-local month.
@@ -456,16 +456,7 @@ Rules:
   compact footer inside the same card instead of separate metric cards.
 - The 3, 6, or 12-month History Period applies to Monthly result, Spending
   composition, Income and spending consistency, Unusual months, and Category
-  Spending Trends. Show `History Period:` at the far left of each primary card
-  header, using the shared card-title styling, and keep the card's legend,
-  exact completed-month range, legend, total, or completed-month count on the
-  same row when present. Render the range immediately beside `History Period:`
-  with the same card-title styling, using muted foreground for the label and
-  standard foreground for the range. Drivers and
-  Year-over-year retain their independent controls and ranges without this
-  shared-period label. Do not repeat the completed-month range outside the
-  cards. The range describes the completed baseline even where current-month
-  context remains visible.
+  Spending Trends. Keep the shared period picker in Monthly result. Keep card legends and totals where applicable. Drivers and Year-over-year retain their independent comparison controls and ranges.
 - Follow Monthly result with a full-width Spending composition card that remains
   visible without a category selection. Show the completed period's total
   expenses and every category with activity as a ranked horizontal-bar list.
@@ -479,8 +470,8 @@ Rules:
   not use success, warning, or destructive treatments for variation levels.
   Unusual-month findings remain grouped by completed month with neutral labels,
   actual and typical amounts, and restrained Transactions links.
-- Place the Expense category control directly below the Category Spending Trends
-  heading. It affects only the category trend, Typical month, This month,
+- Place the Expense category control in the Category Spending Trends card header
+  above its inset chart, metrics, and monthly history panels. It affects only the category trend, Typical month, This month,
   Compared with typical, and Monthly history. Category selection remains
   optional and does not filter the preceding account-wide sections.
 - Follow Category Spending Trends with Drivers of change. Keep its
@@ -517,12 +508,13 @@ Rules:
 - Use `components/ui/card.tsx`.
 - Cards are translucent, lightly blurred, bordered, and elevated.
 - In light mode, card and icon-container borders should read a touch stronger than default shadcn neutrals so they do not wash out against the pale surface stack.
-- Nested content blocks inside cards use a lower-contrast background rather than another full shadow stack.
+- In signed-in workspaces, use the shared workspace card header for section and list titles. Use `text-xl` (20px) below `sm` and `text-2xl` (24px) from `sm` upward. Keep each section's pickers and filters inside its card. Picker groups sit below their title below `xl` (1280px). From `xl` upward, they may sit alongside the title when space permits.
+- Groups use an outer card and lower-contrast inset cards without their own shadow or blur. In Settings, Account time zone, Import, and Export group related panels this way, and Theme contains its controls directly.
 
 ### Inputs, selects, and textareas
 
 - Use `components/ui/input.tsx`, `components/ui/select.tsx`, and `components/ui/textarea.tsx`.
-- Inputs and selects use `h-10`; default buttons use `h-9`, with `h-10` for prominent actions.
+- Inputs and selects use `h-10`; default buttons use `h-9`, with `h-10` for prominent actions. Buttons beside an input or select use `h-10` and align with the field.
 - Inputs use subtle inset highlight, soft border, and a 3px ring on focus.
 - Date inputs keep the native calendar indicator at the right edge and ensure it follows the readable foreground treatment in both light and dark themes.
 - Avoid browser-default form styling in page code.
@@ -544,7 +536,7 @@ Rules:
   - one sentence of context when the title does not fully communicate the state
   - an action when the next step is obvious
 - The dashboard Planned Bills handled state uses only the `All planned bills handled` title without supporting description text.
-- The dashboard Planned Income section omits received and skipped items and summary badges; when every active item is handled, it shows only the `All planned income handled` title.
+- Planned Bills and Planned Income headers use Reserved and Pending amount badges without item counts. Both amounts align with the left edge of their headings. The dashboard Planned Income list omits received and skipped items. Its handled empty state uses only the `All planned income handled` title.
 
 ### Tables and lists
 
