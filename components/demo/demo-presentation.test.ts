@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
+import { register } from "node:module";
 import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { WorkspaceSidebar } from "@/components/app-shell/workspace-sidebar";
 import { ContextBarView } from "@/components/app-shell/context-bar-view";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { FinancialRow } from "@/components/ui/financial-row";
@@ -16,12 +16,26 @@ import { createDemoSnapshot, DEMO_INSTANT } from "@/lib/demo/fixtures";
 import { defaultDemoSelection } from "@/lib/demo/selection";
 import { getAccountDateContext } from "@/lib/dates/time-zone";
 
-test("shared sidebar exposes only the four demo destinations and explicit active view", () => {
+test("shared sidebar exposes only the four demo destinations and explicit active view", async () => {
+  // Node exposes the CommonJS export object as the default. Render its actual Image component.
+  const imageInterop = `
+    export async function resolve(specifier, context, nextResolve) {
+      const resolved = await nextResolve(specifier, context);
+      if (specifier !== "next/image") return resolved;
+      const source = "import image from " + JSON.stringify(resolved.url) +
+        "; export default image.default ?? image;";
+      return { url: "data:text/javascript," + encodeURIComponent(source), shortCircuit: true };
+    }
+  `;
+  register(`data:text/javascript,${encodeURIComponent(imageInterop)}`);
+  const { WorkspaceSidebar } = await import("@/components/app-shell/workspace-sidebar");
+
   const selection = { ...defaultDemoSelection, view: "planned" as const };
   const items = demoNavItems(selection);
   assert.deepEqual(items.map(item => item.view), ["dashboard", "transactions", "planned", "insights"]);
   assert.ok(items.every(item => item.href.startsWith("/demo")));
   const html = renderToStaticMarkup(createElement(SidebarProvider, null, createElement(WorkspaceSidebar, { items, homeHref: items[0].href, activeHref: items[2].href })));
+  assert.match(html, /<img[^>]+src="\/branding\/cashcontour-symbol-light\.svg"/);
   assert.match(html, /aria-current="page"/);
   assert.doesNotMatch(html, /href="\/(?:dashboard|transactions|planned|insights|categories|settings)(?:\?|"|\/)/);
   assert.doesNotMatch(html, /Open account menu|Sign out|>Settings</);

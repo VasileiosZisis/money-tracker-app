@@ -190,8 +190,21 @@ test("public actions return plain display data and reject account identity", asy
   const rejected = await updateDemo(createDemoSnapshot(), { ...defaultDemoSelection, userId: "real-user" }, { kind: "calculate" });
   assert.equal(rejected.ok, false);
   const reset = await resetDemo();
+  assert.deepEqual(JSON.parse(JSON.stringify(reset)), reset);
   assert.deepEqual(reset.snapshot, createDemoSnapshot());
   assert.deepEqual(reset.selection, defaultDemoSelection);
+});
+
+test("completed-month metric badges survive the demo response JSON round trip", async () => {
+  const result = await updateDemo(
+    createDemoSnapshot(),
+    { ...defaultDemoSelection, month: "2026-08" },
+    { kind: "calculate" },
+  );
+  assert.ok(result.ok);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.data)), result.data);
+  assert.equal(result.data.metrics.find((metric) => metric.title === "Daily safe spend")?.badgeLabel, "Month complete");
+  assert.equal(result.data.metrics.find((metric) => metric.title === "Weekly safe spend")?.badgeLabel, "Month complete");
 });
 
 test("demo destinations normalize filters and retain month independently", () => {

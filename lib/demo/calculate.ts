@@ -128,8 +128,12 @@ export function calculateDemo(snapshotInput: unknown, selectionInput: Partial<De
   const comparison = difference === null || difference === undefined
     ? { value: '—', description: 'Complete a month to establish a comparison' }
     : { value: formatDisplayMoney(formatter, new Prisma.Decimal(difference).abs().toString()), description: new Prisma.Decimal(difference).eq(0) ? 'On your typical monthly spending' : new Prisma.Decimal(difference).gt(0) ? 'Above your typical monthly spending' : 'Below your typical monthly spending' };
+  const metrics = buildDashboardMetrics(forecast, realization, DEMO_CURRENCY).map(({ badgeLabel, ...metric }) => ({
+    ...metric,
+    ...(badgeLabel === undefined ? {} : { badgeLabel }),
+  }));
   return { ...data, display, comparison, annualDisplay: buildMoneyPresentation(data.insights.longTerm, DEMO_CURRENCY), unusualDisplay: buildMoneyPresentation(data.insights.unusual, DEMO_CURRENCY),
-    metrics: buildDashboardMetrics(forecast, realization, DEMO_CURRENCY),
+    metrics,
     reservedBills,
     changeBars: buildChangeBars(change.categories), annualBars: buildChangeBars(data.insights.longTerm.categories),
   };
