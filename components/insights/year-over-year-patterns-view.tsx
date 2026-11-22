@@ -14,6 +14,7 @@ import type {
   LongTermPatternMetric,
   LongTermPatternsInsight,
 } from "@/lib/insights/long-term-patterns";
+import { cn } from "@/lib/utils";
 
 function formatRange(startMonth: string, endMonth: string) {
   return `${formatMonthLabel(startMonth)} – ${formatMonthLabel(endMonth)}`;
@@ -21,11 +22,13 @@ function formatRange(startMonth: string, endMonth: string) {
 
 function AnnualMetricPanel({
   title,
+  metricTone,
   metric,
   formatter, display,
   showPercentage,
 }: {
   title: string;
+  metricTone: "text-chart-1" | "text-chart-2" | "text-chart-3";
   metric: LongTermPatternMetric;
   formatter: ReturnType<typeof displayFormatter>;
   display: MoneyPresentation;
@@ -33,17 +36,20 @@ function AnnualMetricPanel({
 }) {
   return (
     <div className="grid gap-3 rounded-xl border border-border/70 bg-background/55 p-4">
-      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+      <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+        <span aria-hidden="true" className={cn("size-2 rounded-full bg-current", metricTone)} />
+        {title}
+      </h3>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <p className="text-sm text-muted-foreground">Previous</p>
-          <p className="mt-1 font-mono text-base font-semibold text-foreground">
+          <p className="mt-1 wrap-anywhere font-mono text-base font-semibold text-foreground">
             {formatter.format(Number(metric.previousTotal))}
           </p>
         </div>
         <div>
           <p className="text-sm text-muted-foreground">Recent</p>
-          <p className="mt-1 font-mono text-base font-semibold text-foreground">
+          <p className={cn("mt-1 wrap-anywhere font-mono text-xl font-bold", metricTone)}>
             {formatter.format(Number(metric.recentTotal))}
           </p>
         </div>
@@ -112,6 +118,7 @@ export function YearOverYearPatternsView({
             <div className="grid gap-4 lg:grid-cols-3">
               <AnnualMetricPanel
                 title="Income"
+                metricTone="text-chart-1"
                 metric={insight.income}
                 formatter={formatter}
                 display={display}
@@ -119,6 +126,7 @@ export function YearOverYearPatternsView({
               />
               <AnnualMetricPanel
                 title="Spending"
+                metricTone="text-chart-2"
                 metric={insight.expenses}
                 formatter={formatter}
                 display={display}
@@ -126,6 +134,7 @@ export function YearOverYearPatternsView({
               />
               <AnnualMetricPanel
                 title="Result"
+                metricTone="text-chart-3"
                 metric={insight.result}
                 formatter={formatter}
                 display={display}

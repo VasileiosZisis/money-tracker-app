@@ -271,11 +271,11 @@ All transaction operations are scoped to the authenticated user.
 monthly cashflow and category behavior without presenting historical results as
 a budget, recommendation, or amount available to spend.
 
-The contextual app bar identifies the route, so the content begins directly
-with peer analysis sections: Monthly result, Spending composition, Income and
-spending consistency, Unusual months, Category Spending Trends, Drivers of
-change, and Year-over-year patterns. Section titles and their controls sit
-inside their cards.
+The contextual app bar identifies the route. **Cash flow** contains Monthly
+result. **Spending habits** contains Income and spending consistency, Spending
+composition, and Category Spending Trends. **Changes over time** contains
+Drivers of change, Unusual months, and Year-over-year patterns. Card titles
+and their controls sit inside their cards.
 
 The URL-backed Shared history period control sits in the Monthly result card and applies to
 Monthly result, composition, consistency, unusual months, and category analysis.
@@ -648,7 +648,10 @@ balances when earlier activity exists.
 
 ### Dashboard
 
-The dashboard contains independent Total Balance and Monthly Snapshot sections.
+**Overview** groups the independent Total Balance and Monthly Snapshot sections
+with Monthly Spendings. **Outlook** contains Planning & Forecast, including
+Needs Attention. **Activity** contains Transactions & Plans.
+
 Monthly Snapshot supports a selected month and includes:
 
 - actual income total

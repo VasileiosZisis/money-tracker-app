@@ -12,6 +12,7 @@ import type {
   IncomeSpendingConsistencyInsight,
   IncomeSpendingConsistencyMetric,
 } from "@/lib/insights/spending-history";
+import { cn } from "@/lib/utils";
 
 function variationLabel(
   level: ConsistencyVariationLevel,
@@ -69,10 +70,15 @@ function ConsistencyMetricPanel({
   metric: IncomeSpendingConsistencyMetric;
   formatter: Intl.NumberFormat;
 }) {
+  const metricTone = subject === "income" ? "text-chart-1" : "text-chart-2";
+
   return (
     <div className="grid gap-4 rounded-xl border border-border/70 bg-background/55 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <span aria-hidden="true" className={cn("size-2 rounded-full bg-current", metricTone)} />
+          {title}
+        </h3>
         <Badge variant="outline" className="text-sm">
           {variationLabel(metric.variationLevel, subject)}
         </Badge>
@@ -82,7 +88,7 @@ function ConsistencyMetricPanel({
         <p className="text-sm font-medium text-muted-foreground">
           Typical monthly {subject}
         </p>
-        <p className="mt-1 font-mono text-2xl font-semibold tracking-tight text-foreground">
+        <p className={cn("mt-1 wrap-anywhere font-mono text-2xl font-semibold tracking-tight", metricTone)}>
           {formatter.format(Number(metric.typical))}
         </p>
       </div>
@@ -155,7 +161,7 @@ export function IncomeSpendingConsistency({
               />
             </div>
 
-            <div className="grid gap-3 rounded-xl border border-border/70 bg-background/55 p-4">
+            <div className="grid gap-3 rounded-xl border border-border/70 bg-chart-3/10 p-4">
               <div>
                 <h3 className="text-sm font-semibold text-foreground">
                   Negative-result context

@@ -59,8 +59,8 @@ export function MonthlyResultCard({ monthlyResultInsight, monthlyResultChartData
             />
           )}
         </CardContent>
-        <CardFooter className="grid items-stretch gap-0 border-t border-border/70 px-4 pb-0 sm:grid-cols-3">
-          <div className="flex flex-col justify-between gap-3 py-3 sm:pr-4">
+        <CardFooter className="grid items-stretch gap-0 border-t border-border/70 px-0 pb-0 sm:grid-cols-3">
+          <div className="flex flex-col justify-between gap-3 bg-chart-3/10 px-4 py-3 sm:rounded-bl-2xl">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm font-medium text-muted-foreground">
                 Typical monthly result
@@ -105,7 +105,7 @@ export function MonthlyResultCard({ monthlyResultInsight, monthlyResultChartData
             </div>
           </div>
 
-          <div className="flex flex-col justify-between gap-3 border-t border-border/70 py-3 sm:border-l sm:border-t-0 sm:px-4">
+          <div className="flex flex-col justify-between gap-3 border-t border-border/70 px-4 py-3 sm:border-l sm:border-t-0">
             <p className="text-sm font-medium text-muted-foreground">
               Break-even gap
             </p>
@@ -125,7 +125,7 @@ export function MonthlyResultCard({ monthlyResultInsight, monthlyResultChartData
             </div>
           </div>
 
-          <div className="flex flex-col justify-between gap-3 border-t border-border/70 py-3 sm:border-l sm:border-t-0 sm:pl-4">
+          <div className="flex flex-col justify-between gap-3 border-t border-border/70 px-4 py-3 sm:border-l sm:border-t-0">
             <p className="text-sm font-medium text-muted-foreground">
               Month outcomes
             </p>

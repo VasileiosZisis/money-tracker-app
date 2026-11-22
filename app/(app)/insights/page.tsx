@@ -1,3 +1,4 @@
+import { WorkspaceCardGroup } from "@/components/app-shell/workspace-card-group";
 import { SpendingCompositionCard } from "@/components/insights/spending-composition-card";
 import { SpendingChangeCard } from "@/components/insights/spending-change-card";
 import { MonthlyResultCard } from "@/components/insights/monthly-result-card";
@@ -426,203 +427,208 @@ export default async function InsightsPage({
   const historyRows = insight ? [...insight.months].reverse() : [];
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-7">
       <h1 className="sr-only">Insights</h1>
-      <section
-        aria-labelledby="monthly-result-heading"
-        className="flex flex-col gap-4"
-      >
-        <MonthlyResultCard
-          monthlyResultInsight={monthlyResultInsight}
-          monthlyResultChartData={monthlyResultChartData}
-          currency={user.currency}
-          display={buildMoneyPresentation(monthlyResultInsight, user.currency, true)}
-          transactionsHref={buildPathWithSearchParams("/transactions", { month: currentMonth })}
-          header={
-            <WorkspaceCardHeader id="monthly-result-heading" title="Monthly result" stackBelowXl>
-              <HistoryPeriodControl
-                period={period}
-                selectedCategoryId={selectedCategory?.id}
-                selectedChangeWindow={spendingChange.window ?? undefined}
-                selectedChangeMonth={spendingChange.selectedTargetMonth ?? undefined}
-              />
-            </WorkspaceCardHeader>
-          }
-        />
-      </section>
-
-      <section
-        aria-labelledby="spending-composition-heading"
-        className="flex flex-col gap-4"
-      >
-        <SpendingCompositionCard
-          header={<WorkspaceCardHeader id="spending-composition-heading" title="Spending composition" />}
-          spendingComposition={spendingComposition}
-          currency={user.currency}
-          display={buildMoneyPresentation(spendingComposition, user.currency)}
-        />
-      </section>
-
-      <section
-        aria-labelledby="income-spending-consistency-heading"
-        className="flex flex-col gap-4"
-      >
-        <IncomeSpendingConsistency
-          header={<WorkspaceCardHeader id="income-spending-consistency-heading" title="Income and spending consistency" />}
-          insight={incomeSpendingConsistency}
-          currency={user.currency}
-        />
-      </section>
-
-      <section
-        aria-labelledby="unusual-months-heading"
-        className="flex flex-col gap-4"
-      >
-        <UnusualMonths
-          header={<WorkspaceCardHeader id="unusual-months-heading" title="Unusual months" />}
-          insight={unusualMonths}
-          currency={user.currency}
-        />
-      </section>
-
-      <section
-        aria-labelledby="category-spending-heading"
-        className="flex flex-col gap-4"
-      >
-        <Card>
-          <WorkspaceCardHeader id="category-spending-heading" title="Category Spending Trends" stackBelowXl>
-            {categories.length > 0 ? (
-              <ExpenseCategoryControl
-                categories={categories}
-                period={period}
-                selectedCategoryId={selectedCategory?.id}
-                selectedChangeWindow={spendingChange.window ?? undefined}
-                selectedChangeMonth={spendingChange.selectedTargetMonth ?? undefined}
-              />
-            ) : null}
-          </WorkspaceCardHeader>
-          <CardContent className="flex flex-col gap-4 pt-4">
-            {categories.length === 0 || !selectedCategory ? (
-              <Card inset>
-                <CardContent className="pt-4">
-                  {categories.length === 0 ? (
-                    <EmptyState
-                      icon={FolderOpen}
-                      title="Create an expense category first"
-                      description="Category insights compare actual expense transactions within a category"
-                      action={(
-                        <Link
-                          href="/categories"
-                          className={buttonVariants({ variant: "default" })}
-                        >
-                          Manage categories
-                        </Link>
-                      )}
-                    />
-                  ) : (
-                    <EmptyState
-                      icon={BarChart3}
-                      title="Select an expense category"
-                      description="Choose a category to view its monthly spending history"
-                    />
-                  )}
-                </CardContent>
-              </Card>
-            ) : insight && comparison ? (
-              <CategoryTrendDetails
-                inset
-                insight={insight}
-                comparison={comparison}
-                selectedCategory={selectedCategory}
-                chartData={chartData}
-                historyRows={historyRows}
-                currency={user.currency}
-                display={buildMoneyPresentation(insight, user.currency, true)}
-                currentTransactionsHref={buildPathWithSearchParams("/transactions", {
-                  month: currentMonth,
-                  type: "EXPENSE",
-                  categoryId: selectedCategory.id,
-                })}
-                transactionHrefs={Object.fromEntries(historyRows.map(row => [
-                  row.month,
-                  buildPathWithSearchParams("/transactions", {
-                    month: row.month,
-                    type: "EXPENSE",
-                    categoryId: selectedCategory.id,
-                  }),
-                ]))}
-              />
-            ) : null}
-          </CardContent>
-        </Card>
-      </section>
-
-      <section
-        aria-labelledby="drivers-of-change-heading"
-        className="flex flex-col gap-4"
-      >
-        <SpendingChangeCard headingId="drivers-of-change-heading" spendingChange={spendingChange} display={buildMoneyPresentation(spendingChange, user.currency, true)} bars={buildChangeBars(spendingChange.categories)} controls={
-            spendingChange.window ? (
-              <form
-                action="/insights"
-                method="get"
-                className="flex min-w-0 flex-wrap items-end gap-2"
-              >
-                <PreservedInsightsFields
-                  changing="drivers"
+      <WorkspaceCardGroup id="insights-cash-flow-group" title="Cash flow">
+        <section
+          aria-labelledby="monthly-result-heading"
+          className="flex flex-col gap-4"
+        >
+          <MonthlyResultCard
+            monthlyResultInsight={monthlyResultInsight}
+            monthlyResultChartData={monthlyResultChartData}
+            currency={user.currency}
+            display={buildMoneyPresentation(monthlyResultInsight, user.currency, true)}
+            transactionsHref={buildPathWithSearchParams("/transactions", { month: currentMonth })}
+            header={
+              <WorkspaceCardHeader id="monthly-result-heading" title="Monthly result" stackBelowXl>
+                <HistoryPeriodControl
                   period={period}
                   selectedCategoryId={selectedCategory?.id}
                   selectedChangeWindow={spendingChange.window ?? undefined}
                   selectedChangeMonth={spendingChange.selectedTargetMonth ?? undefined}
                 />
-                <label className="grid text-sm font-medium text-foreground">
-                  <span className="sr-only">Comparison length</span>
-                  <Select
-                    name="changeWindow"
-                    defaultValue={String(spendingChange.window)}
-                  >
-                    {spendingChange.availableWindows.map((window) => (
-                      <option key={window} value={window}>
-                        {formatChangeWindow(window)}
-                      </option>
-                    ))}
-                  </Select>
-                </label>
-                {spendingChange.window === 1 &&
-                spendingChange.selectedTargetMonth ? (
+              </WorkspaceCardHeader>
+            }
+          />
+        </section>
+      </WorkspaceCardGroup>
+
+      <WorkspaceCardGroup id="insights-spending-habits-group" title="Spending habits">
+        <section
+          aria-labelledby="income-spending-consistency-heading"
+          className="flex flex-col gap-4"
+        >
+          <IncomeSpendingConsistency
+            header={<WorkspaceCardHeader id="income-spending-consistency-heading" title="Income and spending consistency" />}
+            insight={incomeSpendingConsistency}
+            currency={user.currency}
+          />
+        </section>
+
+        <section
+          aria-labelledby="spending-composition-heading"
+          className="flex flex-col gap-4"
+        >
+          <SpendingCompositionCard
+            header={<WorkspaceCardHeader id="spending-composition-heading" title="Spending composition" />}
+            spendingComposition={spendingComposition}
+            currency={user.currency}
+            display={buildMoneyPresentation(spendingComposition, user.currency)}
+          />
+        </section>
+
+        <section
+          aria-labelledby="category-spending-heading"
+          className="flex flex-col gap-4"
+        >
+          <Card>
+            <WorkspaceCardHeader id="category-spending-heading" title="Category Spending Trends" stackBelowXl>
+              {categories.length > 0 ? (
+                <ExpenseCategoryControl
+                  categories={categories}
+                  period={period}
+                  selectedCategoryId={selectedCategory?.id}
+                  selectedChangeWindow={spendingChange.window ?? undefined}
+                  selectedChangeMonth={spendingChange.selectedTargetMonth ?? undefined}
+                />
+              ) : null}
+            </WorkspaceCardHeader>
+            <CardContent className="flex flex-col gap-4 pt-4">
+              {categories.length === 0 || !selectedCategory ? (
+                <Card inset>
+                  <CardContent className="pt-4">
+                    {categories.length === 0 ? (
+                      <EmptyState
+                        icon={FolderOpen}
+                        title="Create an expense category first"
+                        description="Category insights compare actual expense transactions within a category"
+                        action={(
+                          <Link
+                            href="/categories"
+                            className={buttonVariants({ variant: "default" })}
+                          >
+                            Manage categories
+                          </Link>
+                        )}
+                      />
+                    ) : (
+                      <EmptyState
+                        icon={BarChart3}
+                        title="Select an expense category"
+                        description="Choose a category to view its monthly spending history"
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+              ) : insight && comparison ? (
+                <CategoryTrendDetails
+                  inset
+                  insight={insight}
+                  comparison={comparison}
+                  selectedCategory={selectedCategory}
+                  chartData={chartData}
+                  historyRows={historyRows}
+                  currency={user.currency}
+                  display={buildMoneyPresentation(insight, user.currency, true)}
+                  currentTransactionsHref={buildPathWithSearchParams("/transactions", {
+                    month: currentMonth,
+                    type: "EXPENSE",
+                    categoryId: selectedCategory.id,
+                  })}
+                  transactionHrefs={Object.fromEntries(historyRows.map(row => [
+                    row.month,
+                    buildPathWithSearchParams("/transactions", {
+                      month: row.month,
+                      type: "EXPENSE",
+                      categoryId: selectedCategory.id,
+                    }),
+                  ]))}
+                />
+              ) : null}
+            </CardContent>
+          </Card>
+        </section>
+      </WorkspaceCardGroup>
+
+      <WorkspaceCardGroup id="insights-changes-over-time-group" title="Changes over time">
+        <section
+          aria-labelledby="drivers-of-change-heading"
+          className="flex flex-col gap-4"
+        >
+          <SpendingChangeCard headingId="drivers-of-change-heading" spendingChange={spendingChange} display={buildMoneyPresentation(spendingChange, user.currency, true)} bars={buildChangeBars(spendingChange.categories)} controls={
+              spendingChange.window ? (
+                <form
+                  action="/insights"
+                  method="get"
+                  className="flex min-w-0 flex-wrap items-end gap-2"
+                >
+                  <PreservedInsightsFields
+                    changing="drivers"
+                    period={period}
+                    selectedCategoryId={selectedCategory?.id}
+                    selectedChangeWindow={spendingChange.window ?? undefined}
+                    selectedChangeMonth={spendingChange.selectedTargetMonth ?? undefined}
+                  />
                   <label className="grid text-sm font-medium text-foreground">
-                    <span className="sr-only">Compare</span>
+                    <span className="sr-only">Comparison length</span>
                     <Select
-                      name="changeMonth"
-                      defaultValue={spendingChange.selectedTargetMonth}
+                      name="changeWindow"
+                      defaultValue={String(spendingChange.window)}
                     >
-                      {spendingChange.availableTargetMonths.map((month) => (
-                        <option key={month} value={month}>
-                          {formatMonthPair(month)}
+                      {spendingChange.availableWindows.map((window) => (
+                        <option key={window} value={window}>
+                          {formatChangeWindow(window)}
                         </option>
                       ))}
                     </Select>
                   </label>
-                ) : null}
-                <Button type="submit" className="h-10">
-                  Apply
-                </Button>
-              </form>
-            ) : null
-        } />
-      </section>
+                  {spendingChange.window === 1 &&
+                  spendingChange.selectedTargetMonth ? (
+                    <label className="grid text-sm font-medium text-foreground">
+                      <span className="sr-only">Compare</span>
+                      <Select
+                        name="changeMonth"
+                        defaultValue={spendingChange.selectedTargetMonth}
+                      >
+                        {spendingChange.availableTargetMonths.map((month) => (
+                          <option key={month} value={month}>
+                            {formatMonthPair(month)}
+                          </option>
+                        ))}
+                      </Select>
+                    </label>
+                  ) : null}
+                  <Button type="submit" className="h-10">
+                    Apply
+                  </Button>
+                </form>
+              ) : null
+          } />
+        </section>
 
-      <section
-        aria-labelledby="year-over-year-patterns-heading"
-        className="flex flex-col gap-4"
-      >
-        <YearOverYearPatterns
-          header={<WorkspaceCardHeader id="year-over-year-patterns-heading" title="Year-over-year patterns" />}
-          insight={longTermPatterns}
-          currency={user.currency}
-        />
-      </section>
+        <section
+          aria-labelledby="unusual-months-heading"
+          className="flex flex-col gap-4"
+        >
+          <UnusualMonths
+            header={<WorkspaceCardHeader id="unusual-months-heading" title="Unusual months" />}
+            insight={unusualMonths}
+            currency={user.currency}
+          />
+        </section>
 
+        <section
+          aria-labelledby="year-over-year-patterns-heading"
+          className="flex flex-col gap-4"
+        >
+          <YearOverYearPatterns
+            header={<WorkspaceCardHeader id="year-over-year-patterns-heading" title="Year-over-year patterns" />}
+            insight={longTermPatterns}
+            currency={user.currency}
+          />
+        </section>
+      </WorkspaceCardGroup>
     </div>
   );
 }

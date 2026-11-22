@@ -416,6 +416,12 @@ Rules:
 
 ### Dashboard composition
 
+- Give each card group a semibold section label with a thin divider extending
+  to the right. **Overview** contains Total Balance,
+  Monthly Snapshot, and Monthly Spendings. **Outlook** contains Planning &
+  Forecast and its Needs Attention panel. **Activity** contains Transactions &
+  Plans. Use 28px between groups, 12px from each label to its first card, and
+  16px between top-level cards in a group.
 - Lead with the selected month and the net result. Place the title and period controls for Total Balance, Monthly Snapshot, and Monthly Spendings inside their respective cards.
 - In Monthly Snapshot, place Income total, Expense total, and Projected net left—in that order—in one secondary metric row below Net left now and before the cash-flow chart. Mirror the Total Balance primary/secondary metric structure, use `gap-6` between secondary metrics, and render secondary values at `text-xl` so both lead cards align visually.
 - Dashboard composition uses five distinct responsive rows: Total Balance with Monthly Snapshot (`md` two-column), Spending by category at full width, the six planning metrics, Needs Attention at full width, and Transactions & Plans. Planning metrics use one column below `1280px` and two equal columns from `1280px`, ordered as Forecast remaining spend | Safe to spend, Daily safe spend | Weekly safe spend, and Spending pace | Income realization. In Transactions & Plans, Recent Transactions occupies one column and a unified Planned Items card occupies two columns from `1280px`; below that breakpoint, both cards use separate full-width rows with Planned Items below Recent Transactions.
@@ -443,33 +449,40 @@ Rules:
 - Insights is a historical comparison workspace, not a second dashboard and
   not a category-management surface.
 - Do not repeat a page title below the contextual app bar. Organize the workspace
-  as peer Dashboard-style cards with accessible internal section headings in this
-  order: Monthly result, Spending composition, Income and spending consistency,
-  Unusual months, Category Spending Trends, Drivers of change, and Year-over-year
-  patterns. Retain a visually hidden `Insights` level-one heading for document
-  structure.
+  into three groups using the same section labels, dividers, and spacing as Dashboard.
+  **Cash flow** contains Monthly result. **Spending habits** contains Income and
+  spending consistency, Spending composition, and Category Spending Trends.
+  **Changes over time** contains Drivers of change, Unusual months, and
+  Year-over-year patterns. Keep the card headings inside their cards and retain
+  a visually hidden `Insights` level-one heading for document structure.
 - Place the Shared history period control in the Monthly result card header, followed by one
   compact, full-width line chart comparing monthly income and expenses. Keep the
   chart near 200px tall, show the result in its tooltip, and use an open, muted
   point plus `In progress` treatment for the current account-local month.
 - Integrate Typical monthly result, Break-even gap, and Month outcomes as a
-  compact footer inside the same card instead of separate metric cards.
+  compact footer inside the same card instead of separate metric cards. Tint
+  the typical result cell with the third chart color and use the existing
+  sign colors on its amount.
 - The 3, 6, or 12-month History Period applies to Monthly result, Spending
   composition, Income and spending consistency, Unusual months, and Category
   Spending Trends. Keep the shared period picker in Monthly result. Keep card legends and totals where applicable. Drivers and Year-over-year retain their independent comparison controls and ranges.
-- Follow Monthly result with a full-width Spending composition card that remains
+- Use a full-width Spending composition card that remains
   visible without a category selection. Show the completed period's total
   expenses and every category with activity as a ranked horizontal-bar list.
   Keep category totals and percentage shares visible, mark archived categories,
   and use one neutral accent treatment rather than semantic success or warning
   colors.
-- Follow composition with Income and spending consistency, then Unusual months.
-  Consistency uses two responsive nested panels for Income and Spending, each
+- Income and spending consistency uses two responsive nested panels for Income and Spending, each
   showing a neutral variation badge, typical monthly amount, observed range,
-  and middle-50% range, followed by compact negative-result context counts. Do
-  not use success, warning, or destructive treatments for variation levels.
+  and middle-50% range, followed by compact negative-result context counts.
+  Accent the typical amounts with the first chart color for income and the
+  second for spending. Tint the negative-result context panel with the third
+  chart color. Keep variation levels neutral.
   Unusual-month findings remain grouped by completed month with neutral labels,
-  actual and typical amounts, and restrained Transactions links.
+  actual and typical amounts, and restrained Transactions links. Use a light
+  primary tint on month headers. Use the third chart color, mixed with
+  foreground for contrast, for a monthly-result finding's actual amount.
+  Use primary text for other actual amounts.
 - Place the Expense category control in the Category Spending Trends card header
   above its inset chart, metrics, and monthly history panels. It affects only the category trend, Typical month, This month,
   Compared with typical, and Monthly history. Category selection remains
@@ -481,12 +494,15 @@ Rules:
   windows. Keep the selector labels visually hidden while retaining accessible
   names. Present the previous and recent date ranges, their average monthly
   expenses, and the signed average monthly change as a compact summary. Use a
+  light primary tint for the recent period and match the signed change to the
+  corresponding chart color when expenses moved. Use a
   zero-centered horizontal visualization for category changes between the two
   monthly averages. Distinguish increases from decreases with restrained
   chart-series colors rather than semantic success or destructive treatments.
 - End with a full-width Year-over-year patterns card. Show the
   two trailing-year ranges, then three responsive panels for annual Income,
-  Spending, and Result totals and changes. Present every changed category with
+  Spending, and Result totals and changes. Emphasize the recent totals with
+  the first, second, and third chart colors respectively. Present every changed category with
   a neutral zero-centered change bar, previous-to-recent annual totals, and
   outline Archived or Partial history badges where applicable. Percentage
   unavailability is neutral context, not a warning state.

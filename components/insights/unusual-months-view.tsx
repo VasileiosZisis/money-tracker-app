@@ -79,8 +79,8 @@ export function UnusualMonthsView({
                 key={month.month}
                 className="overflow-hidden rounded-xl border border-border/70 bg-background/55"
               >
-                <div className="border-b border-border/70 px-4 py-3">
-                  <h3 className="text-sm font-semibold text-foreground">
+                <div className="border-b border-border/70 bg-primary/5 px-4 py-3">
+                  <h3 className="text-sm font-semibold text-primary">
                     {formatMonthLabel(month.month)}
                   </h3>
                 </div>
@@ -114,7 +114,12 @@ export function UnusualMonthsView({
                           </div>
                           <p className="mt-1 text-sm text-muted-foreground">
                             Actual{" "}
-                            <span className="font-mono font-medium text-foreground">
+                            <span className={cn(
+                              "font-mono font-semibold",
+                              isMonthlyResult
+                                ? "text-[color:color-mix(in_srgb,var(--chart-3)_90%,var(--foreground))]"
+                                : "text-primary",
+                            )}>
                               {(isMonthlyResult ? displaySignedMoney(display, observation.actual) : formatter.format(observation.actual))}
                             </span>{" "}
                             · Typical{" "}

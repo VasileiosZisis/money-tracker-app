@@ -4,6 +4,7 @@ import { Card, CardHeader, CardContent, WorkspaceCardHeader } from "@/components
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatMonthLabel } from "@/lib/dates/month";
 import type { SpendingChangeInsight } from "@/lib/insights/spending-history";
+import { cn } from "@/lib/utils";
 import { SpendingChangeDriversView } from "./spending-change-drivers-view";
 import { displayFormatter, displaySignedMoney, type MoneyPresentation } from "./display-money";
 const formatCompletedMonthRange = (start: string, end: string) => `${formatMonthLabel(start)} – ${formatMonthLabel(end)}`;
@@ -63,14 +64,14 @@ export function SpendingChangeCard({ spendingChange, display, bars, controls, he
                       Previous period monthly average
                     </p>
                   </div>
-                  <div className="grid gap-1 border-t border-border/70 p-3 sm:border-l sm:border-t-0">
+                  <div className="grid gap-1 border-t border-border/70 bg-primary/5 p-3 sm:border-l sm:border-t-0">
                     <p className="text-sm font-medium text-muted-foreground">
                       {formatCompletedMonthRange(
                         spendingChange.recentStartMonth,
                         spendingChange.recentEndMonth,
                       )}
                     </p>
-                    <p className="font-mono text-xl font-semibold text-foreground">
+                    <p className="font-mono text-xl font-semibold text-primary">
                       {formatter.format(
                         Number(spendingChange.recentMonthlyAverage),
                       )}
@@ -83,7 +84,14 @@ export function SpendingChangeCard({ spendingChange, display, bars, controls, he
                     <p className="text-sm font-medium text-muted-foreground">
                       Average monthly change
                     </p>
-                    <p className="font-mono text-xl font-semibold text-foreground">
+                    <p className={cn(
+                      "wrap-anywhere font-mono text-xl font-bold",
+                      isPositive(spendingChange.averageMonthlyChange)
+                        ? "text-chart-1"
+                        : isNegative(spendingChange.averageMonthlyChange)
+                          ? "text-chart-2"
+                          : "text-foreground",
+                    )}>
                       {displaySignedMoney(
                         display,
                         spendingChange.averageMonthlyChange,

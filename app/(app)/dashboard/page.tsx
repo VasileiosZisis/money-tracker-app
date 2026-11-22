@@ -1,3 +1,4 @@
+import { WorkspaceCardGroup } from '@/components/app-shell/workspace-card-group'
 import { PlannedSummaryRow } from "@/components/dashboard/planned-summary-row";
 import { PlannedHandleForm, PlannedLinkForm } from "@/components/dashboard/planned-handling-forms";
 import { MonthControl } from "@/components/ui/month-control";
@@ -568,311 +569,298 @@ export default async function DashboardPage ({
   const plannedIncomeSummary = data.plannedIncomeSummary
 
   return (
-    <div className='flex flex-col gap-5'>
+    <div className='flex flex-col gap-7'>
       <ToastFeedback error={errorMessage} success={successMessage} />
 
-      <div className='grid items-start gap-4 md:grid-cols-2'>
-        <div className='min-w-0'>
-          <TotalBalanceSection
-            currency={data.currency}
-            month={selectedMonth}
-            data={dashboardData.totalBalance}
-            adjustmentState={requestedBalanceAdjustment}
-            createAdjustmentAction={createBalanceAdjustmentAction}
-            updateAdjustmentAction={updateBalanceAdjustmentAction}
-            deleteAdjustmentAction={deleteBalanceAdjustmentAction}
-          />
+      <WorkspaceCardGroup id="dashboard-overview-group" title="Overview">
+        <div className='grid items-start gap-4 md:grid-cols-2'>
+          <div className='min-w-0'>
+            <TotalBalanceSection
+              currency={data.currency}
+              month={selectedMonth}
+              data={dashboardData.totalBalance}
+              adjustmentState={requestedBalanceAdjustment}
+              createAdjustmentAction={createBalanceAdjustmentAction}
+              updateAdjustmentAction={updateBalanceAdjustmentAction}
+              deleteAdjustmentAction={deleteBalanceAdjustmentAction}
+            />
+          </div>
+
+          <section
+            aria-labelledby='monthly-snapshot-heading'
+            className='flex min-w-0 flex-col gap-4'
+          >
+            <Card>
+              <WorkspaceCardHeader id="monthly-snapshot-heading" title="Monthly Snapshot" stackBelowXl>
+                <DashboardMonthFilter
+                  id='monthly-snapshot-month'
+                  selectedMonth={selectedMonth}
+                  balanceQuery={balanceQuery}
+                />
+              </WorkspaceCardHeader>
+              <CardContent className='p-4'>
+                <div className='flex flex-col gap-5'>
+                  <SummaryValues primary={{ label: 'Net left now', value: formatMoney(formatter, data.netLeft), tone: data.netLeft.lt(0) ? 'danger' : data.netLeft.gt(0) ? 'success' : 'default' }} secondary={[
+                    { label: 'Income total', value: formatMoney(formatter, data.incomeSum), tone: 'success' },
+                    { label: 'Expense total', value: formatMoney(formatter, data.expenseSum), tone: 'danger' },
+                    { label: 'Projected net left', value: formatMoney(formatter, data.forecast.projectedEndOfMonthNet), tone: data.forecast.projectedEndOfMonthNet.lt(0) ? 'danger' : data.forecast.projectedEndOfMonthNet.gt(0) ? 'success' : 'default' }
+                  ]} />
+
+                  <MonthCashflowChart
+                    currency={data.currency}
+                    data={data.chartSeries}
+                    yAxisMax={data.chartYAxisMax}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </section>
         </div>
 
         <section
-          aria-labelledby='monthly-snapshot-heading'
-          className='flex min-w-0 flex-col gap-4'
+          aria-labelledby='spending-by-category-heading'
+          className='flex flex-col gap-4'
         >
           <Card>
-            <WorkspaceCardHeader id="monthly-snapshot-heading" title="Monthly Snapshot" stackBelowXl>
+            <WorkspaceCardHeader id="spending-by-category-heading" title="Monthly Spendings" stackBelowXl>
               <DashboardMonthFilter
-                id='monthly-snapshot-month'
+                id='monthly-spendings-month'
                 selectedMonth={selectedMonth}
                 balanceQuery={balanceQuery}
               />
             </WorkspaceCardHeader>
             <CardContent className='p-4'>
-              <div className='flex flex-col gap-5'>
-                <SummaryValues primary={{ label: 'Net left now', value: formatMoney(formatter, data.netLeft), tone: data.netLeft.lt(0) ? 'danger' : data.netLeft.gt(0) ? 'success' : 'default' }} secondary={[
-                  { label: 'Income total', value: formatMoney(formatter, data.incomeSum), tone: 'success' },
-                  { label: 'Expense total', value: formatMoney(formatter, data.expenseSum), tone: 'danger' },
-                  { label: 'Projected net left', value: formatMoney(formatter, data.forecast.projectedEndOfMonthNet), tone: data.forecast.projectedEndOfMonthNet.lt(0) ? 'danger' : data.forecast.projectedEndOfMonthNet.gt(0) ? 'success' : 'default' }
-                ]} />
-
-                <MonthCashflowChart
+              {data.spendingByCategory.length > 0 ? (
+                <SpendingByCategoryChart
                   currency={data.currency}
-                  data={data.chartSeries}
-                  yAxisMax={data.chartYAxisMax}
+                  data={data.spendingByCategory}
                 />
-              </div>
+              ) : (
+                <EmptyState
+                  icon={ChartNoAxesCombined}
+                  title='No spending to break down'
+                  description='Add an expense transaction for this month to see category and subcategory spending here.'
+                />
+              )}
             </CardContent>
           </Card>
         </section>
-      </div>
+      </WorkspaceCardGroup>
 
-      <section
-        aria-labelledby='spending-by-category-heading'
-        className='flex flex-col gap-4'
-      >
-        <Card>
-          <WorkspaceCardHeader id="spending-by-category-heading" title="Monthly Spendings" stackBelowXl>
-            <DashboardMonthFilter
-              id='monthly-spendings-month'
-              selectedMonth={selectedMonth}
-              balanceQuery={balanceQuery}
-            />
-          </WorkspaceCardHeader>
-          <CardContent className='p-4'>
-            {data.spendingByCategory.length > 0 ? (
-              <SpendingByCategoryChart
-                currency={data.currency}
-                data={data.spendingByCategory}
-              />
-            ) : (
-              <EmptyState
-                icon={ChartNoAxesCombined}
-                title='No spending to break down'
-                description='Add an expense transaction for this month to see category and subcategory spending here.'
-              />
-            )}
-          </CardContent>
-        </Card>
-      </section>
-
-      <section
-        aria-labelledby='planning-forecast-heading'
-        className='flex flex-col gap-4'
-      >
-        <Card>
-          <WorkspaceCardHeader id="planning-forecast-heading" title="Planning & Forecast" />
-          <CardContent className='flex flex-col gap-4 pt-4'>
-            <div className='grid gap-4 min-[1280px]:grid-cols-2'>
-              <MetricCard inset
-                title='Forecast remaining spend'
-                value={formatMoney(formatter, data.forecast.forecastRemainingSpend)}
-                tone={
-                  data.forecast.forecastRemainingSpend.gt(0) ? 'warning' : 'default'
-                }
-                badgeLabel={
-                  data.forecast.monthContext.monthRelation === 'current'
-                    ? forecastConfidenceMeta.label
-                    : undefined
-                }
-                badgeVariant={forecastConfidenceMeta.badgeVariant}
-                badgePlacement='title'
-                icon={<TrendingDown className='size-5' />}
-              />
-              <MetricCard inset
-                title='Safe to spend'
-                value={formatMoney(formatter, data.forecast.safeToSpend)}
-                tone={forecastState.tone}
-                icon={
-                  forecastState.tone === 'danger' ? (
-                    <ShieldAlert className='size-5' />
-                  ) : (
-                    <ShieldCheck className='size-5' />
-                  )
-                }
-              />
-              <MetricCard inset
-                title='Daily safe spend'
-                value={formatDailyMoney(formatter, data.forecast.dailySafeSpend)}
-                tone={forecastState.tone}
-                badgeLabel={
-                  data.forecast.monthContext.monthRelation === 'past'
-                    ? 'Month complete'
-                    : undefined
-                }
-                badgeVariant='outline'
-                icon={<TimerReset className='size-5' />}
-              />
-              <MetricCard inset
-                title='Weekly safe spend'
-                value={formatMoney(formatter, data.forecast.weeklySafeSpend)}
-                tone={forecastState.tone}
-                badgeLabel={
-                  data.forecast.monthContext.monthRelation === 'past'
-                    ? 'Month complete'
-                    : data.forecast.weeklySafeSpendDays < 7
-                      ? 'Rest of month'
+      <WorkspaceCardGroup id="dashboard-outlook-group" title="Outlook">
+        <section
+          aria-labelledby='planning-forecast-heading'
+          className='flex flex-col gap-4'
+        >
+          <Card>
+            <WorkspaceCardHeader id="planning-forecast-heading" title="Planning & Forecast" />
+            <CardContent className='flex flex-col gap-4 pt-4'>
+              <div className='grid gap-4 min-[1280px]:grid-cols-2'>
+                <MetricCard inset
+                  title='Forecast remaining spend'
+                  value={formatMoney(formatter, data.forecast.forecastRemainingSpend)}
+                  tone={
+                    data.forecast.forecastRemainingSpend.gt(0) ? 'warning' : 'default'
+                  }
+                  badgeLabel={
+                    data.forecast.monthContext.monthRelation === 'current'
+                      ? forecastConfidenceMeta.label
                       : undefined
-                }
-                badgeVariant='outline'
-                badgePlacement='title'
-                icon={<CalendarRange className='size-5' />}
-              />
-              <MetricCard inset
-                title='Spending pace'
-                value={
-                  data.forecast.monthContext.monthRelation === 'future'
-                    ? 'Unavailable'
-                    : formatDailyMoney(
-                        formatter,
-                        data.forecast.spendingPace.currentDailyExpense
-                      )
-                }
-                tone={spendingPaceMeta.tone}
-                badgeLabel={spendingPaceMeta.label}
-                badgeVariant={spendingPaceMeta.badgeVariant}
-                badgePlacement='title'
-                icon={<Gauge className='size-5' />}
-              />
-              <MetricCard inset
-                title='Income realization'
-                value={incomeRealizationValue}
-                tone={incomeRealizationMeta.tone}
-                badgeLabel={incomeRealizationBadge}
-                badgeVariant={incomeRealizationMeta.badgeVariant}
-                badgePlacement='title'
-                icon={<CircleDollarSign className='size-5' />}
-              />
-            </div>
-
-            <NeedsAttentionSection inset items={data.attentionItems} />
-          </CardContent>
-        </Card>
-      </section>
-
-      <section
-        aria-labelledby='transactions-plans-heading'
-        className='flex flex-col gap-4'
-      >
-        <Card>
-          <WorkspaceCardHeader id="transactions-plans-heading" title="Transactions & Plans" />
-          <CardContent className='grid items-start gap-4 pt-4 min-[1280px]:grid-cols-3'>
-        <Card inset>
-          <WorkspaceCardHeader title="Recent transactions" level={3}>
-            <Link
-              href='/transactions'
-              className={cn(
-                buttonVariants({ variant: 'ghost', size: 'sm' }),
-                'rounded-xl px-0 text-primary hover:bg-transparent'
-              )}
-            >
-              View all
-              <ArrowRight />
-            </Link>
-          </WorkspaceCardHeader>
-          <CardContent className='grid gap-3 p-4'>
-            {data.recentTransactions.length === 0 ? (
-              <EmptyState
-                icon={FolderClock}
-                title='No transactions for this month'
-                description="Once you record income or expenses, they'll appear here in reverse chronological order."
-                action={
-                  <Link
-                    href='/transactions'
-                    className={buttonVariants({ size: 'sm' })}
-                  >
-                    <Plus />
-                    Add transaction
-                  </Link>
-                }
-              />
-            ) : (
-              data.recentTransactions.map(transaction => (
-                <FinancialListItem key={transaction.id}>
-                  <FinancialRow type={transaction.type} category={transaction.category.name} secondary={transaction.subcategory?.name} dateLabel={formatLocalDate(transaction.localDate)} amount={formatMoney(formatter, transaction.amount)} />
-                </FinancialListItem>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        <Card inset className='min-[1280px]:col-span-2'>
-          <WorkspaceCardHeader title="Planned items" level={3} className="border-b border-border/70 pb-4">
-            <Link
-              href='/planned'
-              className={cn(
-                buttonVariants({ variant: 'ghost', size: 'sm' }),
-                'rounded-xl px-0 text-primary hover:bg-transparent'
-              )}
-            >
-              View all
-              <ArrowRight />
-            </Link>
-          </WorkspaceCardHeader>
-          <CardContent className='grid p-0 min-[868px]:grid-cols-2'>
-            <section
-              aria-labelledby='planned-income-heading'
-              className='order-2 flex min-w-0 flex-col border-t border-border/70 min-[868px]:border-l min-[868px]:border-t-0'
-            >
-              <div className='p-4'>
-                <h4 id='planned-income-heading' className='text-base font-semibold tracking-tight'>Planned income</h4>
-                <div className='pt-1'>
-                  <Badge variant='outline' className='border-0 px-0 text-base'>
-                    Pending {formatMoney(formatter, plannedIncomeSummary.pendingTotal)}
-                  </Badge>
-                </div>
+                  }
+                  badgeVariant={forecastConfidenceMeta.badgeVariant}
+                  badgePlacement='title'
+                  icon={<TrendingDown className='size-5' />}
+                />
+                <MetricCard inset
+                  title='Safe to spend'
+                  value={formatMoney(formatter, data.forecast.safeToSpend)}
+                  tone={forecastState.tone}
+                  icon={
+                    forecastState.tone === 'danger' ? (
+                      <ShieldAlert className='size-5' />
+                    ) : (
+                      <ShieldCheck className='size-5' />
+                    )
+                  }
+                />
+                <MetricCard inset
+                  title='Daily safe spend'
+                  value={formatDailyMoney(formatter, data.forecast.dailySafeSpend)}
+                  tone={forecastState.tone}
+                  badgeLabel={
+                    data.forecast.monthContext.monthRelation === 'past'
+                      ? 'Month complete'
+                      : undefined
+                  }
+                  badgeVariant='outline'
+                  icon={<TimerReset className='size-5' />}
+                />
+                <MetricCard inset
+                  title='Weekly safe spend'
+                  value={formatMoney(formatter, data.forecast.weeklySafeSpend)}
+                  tone={forecastState.tone}
+                  badgeLabel={
+                    data.forecast.monthContext.monthRelation === 'past'
+                      ? 'Month complete'
+                      : data.forecast.weeklySafeSpendDays < 7
+                        ? 'Rest of month'
+                        : undefined
+                  }
+                  badgeVariant='outline'
+                  badgePlacement='title'
+                  icon={<CalendarRange className='size-5' />}
+                />
+                <MetricCard inset
+                  title='Spending pace'
+                  value={
+                    data.forecast.monthContext.monthRelation === 'future'
+                      ? 'Unavailable'
+                      : formatDailyMoney(
+                          formatter,
+                          data.forecast.spendingPace.currentDailyExpense
+                        )
+                  }
+                  tone={spendingPaceMeta.tone}
+                  badgeLabel={spendingPaceMeta.label}
+                  badgeVariant={spendingPaceMeta.badgeVariant}
+                  badgePlacement='title'
+                  icon={<Gauge className='size-5' />}
+                />
+                <MetricCard inset
+                  title='Income realization'
+                  value={incomeRealizationValue}
+                  tone={incomeRealizationMeta.tone}
+                  badgeLabel={incomeRealizationBadge}
+                  badgeVariant={incomeRealizationMeta.badgeVariant}
+                  badgePlacement='title'
+                  icon={<CircleDollarSign className='size-5' />}
+                />
               </div>
-              <div className='grid gap-4 p-3'>
-            {displayedPlannedIncomes.length === 0 ? (
-              <EmptyState
-                icon={TrendingUp}
-                title={
-                  hasActivePlannedIncomes
-                    ? 'All planned income handled'
-                    : 'No active planned income'
-                }
-                description={
-                  hasActivePlannedIncomes
-                    ? undefined
-                    : 'Add salary or other expected repeat income so projected month-end net can account for money that has not arrived yet.'
-                }
-                action={
-                  hasActivePlannedIncomes ? undefined : (
+
+              <NeedsAttentionSection inset items={data.attentionItems} />
+            </CardContent>
+          </Card>
+        </section>
+      </WorkspaceCardGroup>
+
+      <WorkspaceCardGroup id="dashboard-activity-group" title="Activity">
+        <section
+          aria-labelledby='transactions-plans-heading'
+          className='flex flex-col gap-4'
+        >
+          <Card>
+            <WorkspaceCardHeader id="transactions-plans-heading" title="Transactions & Plans" />
+            <CardContent className='grid items-start gap-4 pt-4 min-[1280px]:grid-cols-3'>
+          <Card inset>
+            <WorkspaceCardHeader title="Recent transactions" level={3}>
+              <Link
+                href='/transactions'
+                className={cn(
+                  buttonVariants({ variant: 'ghost', size: 'sm' }),
+                  'rounded-xl px-0 text-primary hover:bg-transparent'
+                )}
+              >
+                View all
+                <ArrowRight />
+              </Link>
+            </WorkspaceCardHeader>
+            <CardContent className='grid gap-3 p-4'>
+              {data.recentTransactions.length === 0 ? (
+                <EmptyState
+                  icon={FolderClock}
+                  title='No transactions for this month'
+                  description="Once you record income or expenses, they'll appear here in reverse chronological order."
+                  action={
                     <Link
-                      href='/planned?type=INCOME'
-                      className={cn(
-                        buttonVariants({ variant: 'outline', size: 'sm' }),
-                        'rounded-xl'
-                      )}
+                      href='/transactions'
+                      className={buttonVariants({ size: 'sm' })}
                     >
                       <Plus />
-                      Add planned income
+                      Add transaction
                     </Link>
-                  )
-                }
-              />
-            ) : (
-              displayedPlannedIncomes.map(plannedIncome => {
-                const statusMeta = getPlannedIncomeStatusMeta(plannedIncome.status)
-                const isHandled =
-                  plannedIncome.status === 'received' ||
-                  plannedIncome.status === 'skipped'
+                  }
+                />
+              ) : (
+                data.recentTransactions.map(transaction => (
+                  <FinancialListItem key={transaction.id}>
+                    <FinancialRow type={transaction.type} category={transaction.category.name} secondary={transaction.subcategory?.name} dateLabel={formatLocalDate(transaction.localDate)} amount={formatMoney(formatter, transaction.amount)} />
+                  </FinancialListItem>
+                ))
+              )}
+            </CardContent>
+          </Card>
 
-                return (
-                  <div
-                    key={plannedIncome.id}
-                    className='grid gap-3 rounded-xl border border-border/80 bg-background/60 p-3'
-                  >
-                    <PlannedSummaryRow type="INCOME" category={plannedIncome.category.name} subcategory={plannedIncome.subcategory?.name} name={plannedIncome.name} amount={formatMoney(formatter, plannedIncome.amount)} dateLabel={`Expected day ${plannedIncome.expectedDayOfMonth}`} statusLabel={statusMeta.label} statusVariant={statusMeta.variant} archived={plannedIncome.category.isArchived} handledLabel={plannedIncome.occurrence?.receivedAtLocalDate ? `Received ${formatLocalDate(plannedIncome.occurrence.receivedAtLocalDate)}` : undefined} paymentSource={plannedIncome.occurrence?.paymentSource} />
+          <Card inset className='min-[1280px]:col-span-2'>
+            <WorkspaceCardHeader title="Planned items" level={3} className="border-b border-border/70 pb-4">
+              <Link
+                href='/planned'
+                className={cn(
+                  buttonVariants({ variant: 'ghost', size: 'sm' }),
+                  'rounded-xl px-0 text-primary hover:bg-transparent'
+                )}
+              >
+                View all
+                <ArrowRight />
+              </Link>
+            </WorkspaceCardHeader>
+            <CardContent className='grid p-0 min-[868px]:grid-cols-2'>
+              <section
+                aria-labelledby='planned-income-heading'
+                className='order-2 flex min-w-0 flex-col border-t border-border/70 min-[868px]:border-l min-[868px]:border-t-0'
+              >
+                <div className='p-4'>
+                  <h4 id='planned-income-heading' className='text-base font-semibold tracking-tight'>Planned income</h4>
+                  <div className='pt-1'>
+                    <Badge variant='outline' className='border-0 px-0 text-base'>
+                      Pending {formatMoney(formatter, plannedIncomeSummary.pendingTotal)}
+                    </Badge>
+                  </div>
+                </div>
+                <div className='grid gap-4 p-3'>
+              {displayedPlannedIncomes.length === 0 ? (
+                <EmptyState
+                  icon={TrendingUp}
+                  title={
+                    hasActivePlannedIncomes
+                      ? 'All planned income handled'
+                      : 'No active planned income'
+                  }
+                  description={
+                    hasActivePlannedIncomes
+                      ? undefined
+                      : 'Add salary or other expected repeat income so projected month-end net can account for money that has not arrived yet.'
+                  }
+                  action={
+                    hasActivePlannedIncomes ? undefined : (
+                      <Link
+                        href='/planned?type=INCOME'
+                        className={cn(
+                          buttonVariants({ variant: 'outline', size: 'sm' }),
+                          'rounded-xl'
+                        )}
+                      >
+                        <Plus />
+                        Add planned income
+                      </Link>
+                    )
+                  }
+                />
+              ) : (
+                displayedPlannedIncomes.map(plannedIncome => {
+                  const statusMeta = getPlannedIncomeStatusMeta(plannedIncome.status)
+                  const isHandled =
+                    plannedIncome.status === 'received' ||
+                    plannedIncome.status === 'skipped'
 
-                    {isHandled ? (
-                      <form action={undoIncomeOccurrenceAction} className='flex justify-end'>
-                        <input
-                          type='hidden'
-                          name='plannedIncomeId'
-                          value={plannedIncome.id}
-                        />
-                        <input type='hidden' name='month' value={selectedMonth} />
-                        <button
-                          className={buttonVariants({ variant: 'outline', size: 'sm' })}
-                          type='submit'
-                        >
-                          <RotateCcw />
-                          Undo
-                        </button>
-                      </form>
-                    ) : (
-                      <div className='grid gap-3 border-t border-border/70'>
-                        <PlannedHandleForm id={plannedIncome.id} type="INCOME" amount={plannedIncome.amount.toString()} localDate={plannedIncome.defaultReceivedLocalDate} action={markIncomeReceivedAction} hiddenFields={<><input type="hidden" name="plannedIncomeId" value={plannedIncome.id} /><input type="hidden" name="month" value={selectedMonth} /></>} />
-                        <form action={skipIncomeAction} className='flex justify-start'>
+                  return (
+                    <div
+                      key={plannedIncome.id}
+                      className='grid gap-3 rounded-xl border border-border/80 bg-background/60 p-3'
+                    >
+                      <PlannedSummaryRow type="INCOME" category={plannedIncome.category.name} subcategory={plannedIncome.subcategory?.name} name={plannedIncome.name} amount={formatMoney(formatter, plannedIncome.amount)} dateLabel={`Expected day ${plannedIncome.expectedDayOfMonth}`} statusLabel={statusMeta.label} statusVariant={statusMeta.variant} archived={plannedIncome.category.isArchived} handledLabel={plannedIncome.occurrence?.receivedAtLocalDate ? `Received ${formatLocalDate(plannedIncome.occurrence.receivedAtLocalDate)}` : undefined} paymentSource={plannedIncome.occurrence?.paymentSource} />
+
+                      {isHandled ? (
+                        <form action={undoIncomeOccurrenceAction} className='flex justify-end'>
                           <input
                             type='hidden'
                             name='plannedIncomeId'
@@ -880,103 +868,103 @@ export default async function DashboardPage ({
                           />
                           <input type='hidden' name='month' value={selectedMonth} />
                           <button
-                            className={buttonVariants({
-                              variant: 'outline',
-                              size: 'sm'
-                            })}
+                            className={buttonVariants({ variant: 'outline', size: 'sm' })}
                             type='submit'
                           >
-                            <SkipForward />
-                            Skip this month
+                            <RotateCcw />
+                            Undo
                           </button>
                         </form>
-                        {plannedIncome.linkCandidates.length > 0 ? (
-                          <PlannedLinkForm id={plannedIncome.id} candidates={plannedIncome.linkCandidates.map(candidate => ({ id: candidate.id, label: getLinkCandidateLabel(formatter, candidate, plannedIncome) }))} action={linkExistingIncomeTransactionAction} className="grid gap-3 border-t border-border/70" hiddenFields={<><input type="hidden" name="plannedIncomeId" value={plannedIncome.id} /><input type="hidden" name="month" value={selectedMonth} /></>} />
-                        ) : null}
-                      </div>
-                    )}
-                  </div>
-                )
-              })
-              )}
-              </div>
-            </section>
-
-            <section
-              aria-labelledby='planned-bills-heading'
-              className='order-1 flex min-w-0 flex-col'
-            >
-              <div className='p-4'>
-                <h4 id='planned-bills-heading' className='text-base font-semibold tracking-tight'>Planned bills</h4>
-                <div className='pt-1'>
-                  <Badge variant='outline' className='border-0 px-0 text-base'>
-                    Reserved {formatMoney(formatter, displayedPlannedBillsTotal)}
-                  </Badge>
-                </div>
-              </div>
-              <div className='grid gap-4 p-3'>
-            {displayedPlannedBills.length === 0 ? (
-              <EmptyState
-                icon={CalendarClock}
-                title={
-                  hasActivePlannedBills
-                    ? 'All planned bills handled'
-                    : 'No active planned bills'
-                }
-                description={
-                  hasActivePlannedBills
-                    ? undefined
-                    : 'Add expected monthly bills to make the forecast more grounded.'
-                }
-                action={
-                  hasActivePlannedBills ? undefined : (
-                    <Link
-                      href='/planned?type=BILL'
-                      className={cn(
-                        buttonVariants({ variant: 'outline', size: 'sm' }),
-                        'rounded-xl'
+                      ) : (
+                        <div className='grid gap-3 border-t border-border/70'>
+                          <PlannedHandleForm id={plannedIncome.id} type="INCOME" amount={plannedIncome.amount.toString()} localDate={plannedIncome.defaultReceivedLocalDate} action={markIncomeReceivedAction} hiddenFields={<><input type="hidden" name="plannedIncomeId" value={plannedIncome.id} /><input type="hidden" name="month" value={selectedMonth} /></>} />
+                          <form action={skipIncomeAction} className='flex justify-start'>
+                            <input
+                              type='hidden'
+                              name='plannedIncomeId'
+                              value={plannedIncome.id}
+                            />
+                            <input type='hidden' name='month' value={selectedMonth} />
+                            <button
+                              className={buttonVariants({
+                                variant: 'outline',
+                                size: 'sm'
+                              })}
+                              type='submit'
+                            >
+                              <SkipForward />
+                              Skip this month
+                            </button>
+                          </form>
+                          {plannedIncome.linkCandidates.length > 0 ? (
+                            <PlannedLinkForm id={plannedIncome.id} candidates={plannedIncome.linkCandidates.map(candidate => ({ id: candidate.id, label: getLinkCandidateLabel(formatter, candidate, plannedIncome) }))} action={linkExistingIncomeTransactionAction} className="grid gap-3 border-t border-border/70" hiddenFields={<><input type="hidden" name="plannedIncomeId" value={plannedIncome.id} /><input type="hidden" name="month" value={selectedMonth} /></>} />
+                          ) : null}
+                        </div>
                       )}
-                    >
-                      <Plus />
-                      Add planned bill
-                    </Link>
+                    </div>
                   )
-                }
-              />
-            ) : (
-              displayedPlannedBills.map(plannedBill => {
-                const statusMeta = getPlannedBillStatusMeta(plannedBill.status)
-                const isHandled =
-                  plannedBill.status === 'paid' ||
-                  plannedBill.status === 'skipped'
+                })
+                )}
+                </div>
+              </section>
 
-                return (
-                  <div
-                    key={plannedBill.id}
-                    className='grid gap-3 rounded-xl border border-border/80 bg-background/60 p-3'
-                  >
-                    <PlannedSummaryRow type="EXPENSE" category={plannedBill.category.name} subcategory={plannedBill.subcategory?.name} name={plannedBill.name} amount={formatMoney(formatter, plannedBill.amount)} dateLabel={formatLocalDate(`${selectedMonth}-${String(plannedBill.dueDayOfMonth).padStart(2, '0')}`)} statusLabel={plannedBill.status !== 'upcoming' ? statusMeta.label : undefined} statusVariant={statusMeta.variant} archived={plannedBill.category.isArchived} handledLabel={plannedBill.occurrence?.paidAtLocalDate ? `Paid ${formatLocalDate(plannedBill.occurrence.paidAtLocalDate)}` : undefined} paymentSource={plannedBill.occurrence?.paymentSource} />
+              <section
+                aria-labelledby='planned-bills-heading'
+                className='order-1 flex min-w-0 flex-col'
+              >
+                <div className='p-4'>
+                  <h4 id='planned-bills-heading' className='text-base font-semibold tracking-tight'>Planned bills</h4>
+                  <div className='pt-1'>
+                    <Badge variant='outline' className='border-0 px-0 text-base'>
+                      Reserved {formatMoney(formatter, displayedPlannedBillsTotal)}
+                    </Badge>
+                  </div>
+                </div>
+                <div className='grid gap-4 p-3'>
+              {displayedPlannedBills.length === 0 ? (
+                <EmptyState
+                  icon={CalendarClock}
+                  title={
+                    hasActivePlannedBills
+                      ? 'All planned bills handled'
+                      : 'No active planned bills'
+                  }
+                  description={
+                    hasActivePlannedBills
+                      ? undefined
+                      : 'Add expected monthly bills to make the forecast more grounded.'
+                  }
+                  action={
+                    hasActivePlannedBills ? undefined : (
+                      <Link
+                        href='/planned?type=BILL'
+                        className={cn(
+                          buttonVariants({ variant: 'outline', size: 'sm' }),
+                          'rounded-xl'
+                        )}
+                      >
+                        <Plus />
+                        Add planned bill
+                      </Link>
+                    )
+                  }
+                />
+              ) : (
+                displayedPlannedBills.map(plannedBill => {
+                  const statusMeta = getPlannedBillStatusMeta(plannedBill.status)
+                  const isHandled =
+                    plannedBill.status === 'paid' ||
+                    plannedBill.status === 'skipped'
 
-                    {isHandled ? (
-                      <form action={undoOccurrenceAction} className='flex justify-end'>
-                        <input
-                          type='hidden'
-                          name='plannedBillId'
-                          value={plannedBill.id}
-                        />
-                        <input type='hidden' name='month' value={selectedMonth} />
-                        <button
-                          className={buttonVariants({ variant: 'outline', size: 'sm' })}
-                          type='submit'
-                        >
-                          <RotateCcw />
-                          Undo
-                        </button>
-                      </form>
-                    ) : (
-                      <div className='grid gap-3 border-t border-border/70'>
-                        <PlannedHandleForm id={plannedBill.id} type="EXPENSE" amount={plannedBill.amount.toString()} localDate={plannedBill.defaultPaymentLocalDate} action={markPaidAction} hiddenFields={<><input type="hidden" name="plannedBillId" value={plannedBill.id} /><input type="hidden" name="month" value={selectedMonth} /></>} />
-                        <form action={skipBillAction} className='flex justify-start'>
+                  return (
+                    <div
+                      key={plannedBill.id}
+                      className='grid gap-3 rounded-xl border border-border/80 bg-background/60 p-3'
+                    >
+                      <PlannedSummaryRow type="EXPENSE" category={plannedBill.category.name} subcategory={plannedBill.subcategory?.name} name={plannedBill.name} amount={formatMoney(formatter, plannedBill.amount)} dateLabel={formatLocalDate(`${selectedMonth}-${String(plannedBill.dueDayOfMonth).padStart(2, '0')}`)} statusLabel={plannedBill.status !== 'upcoming' ? statusMeta.label : undefined} statusVariant={statusMeta.variant} archived={plannedBill.category.isArchived} handledLabel={plannedBill.occurrence?.paidAtLocalDate ? `Paid ${formatLocalDate(plannedBill.occurrence.paidAtLocalDate)}` : undefined} paymentSource={plannedBill.occurrence?.paymentSource} />
+
+                      {isHandled ? (
+                        <form action={undoOccurrenceAction} className='flex justify-end'>
                           <input
                             type='hidden'
                             name='plannedBillId'
@@ -984,37 +972,56 @@ export default async function DashboardPage ({
                           />
                           <input type='hidden' name='month' value={selectedMonth} />
                           <button
-                            className={buttonVariants({
-                              variant: 'outline',
-                              size: 'sm'
-                            })}
+                            className={buttonVariants({ variant: 'outline', size: 'sm' })}
                             type='submit'
                           >
-                            <SkipForward />
-                            Skip this month
+                            <RotateCcw />
+                            Undo
                           </button>
                         </form>
-                        {plannedBill.linkCandidates.length > 0 ? (
-                          <PlannedLinkForm id={plannedBill.id} candidates={plannedBill.linkCandidates.map(candidate => ({ id: candidate.id, label: getLinkCandidateLabel(formatter, candidate, plannedBill) }))} action={linkExistingTransactionAction} className="grid gap-3 border-t border-border/70 pt-4" hiddenFields={<><input type="hidden" name="plannedBillId" value={plannedBill.id} /><input type="hidden" name="month" value={selectedMonth} /></>} />
-                        ) : (
-                          <p className='border-t border-border/70 text-sm leading-6 text-muted-foreground'>
-                            No unlinked expense transactions found for this month.
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )
-              })
-            )}
+                      ) : (
+                        <div className='grid gap-3 border-t border-border/70'>
+                          <PlannedHandleForm id={plannedBill.id} type="EXPENSE" amount={plannedBill.amount.toString()} localDate={plannedBill.defaultPaymentLocalDate} action={markPaidAction} hiddenFields={<><input type="hidden" name="plannedBillId" value={plannedBill.id} /><input type="hidden" name="month" value={selectedMonth} /></>} />
+                          <form action={skipBillAction} className='flex justify-start'>
+                            <input
+                              type='hidden'
+                              name='plannedBillId'
+                              value={plannedBill.id}
+                            />
+                            <input type='hidden' name='month' value={selectedMonth} />
+                            <button
+                              className={buttonVariants({
+                                variant: 'outline',
+                                size: 'sm'
+                              })}
+                              type='submit'
+                            >
+                              <SkipForward />
+                              Skip this month
+                            </button>
+                          </form>
+                          {plannedBill.linkCandidates.length > 0 ? (
+                            <PlannedLinkForm id={plannedBill.id} candidates={plannedBill.linkCandidates.map(candidate => ({ id: candidate.id, label: getLinkCandidateLabel(formatter, candidate, plannedBill) }))} action={linkExistingTransactionAction} className="grid gap-3 border-t border-border/70 pt-4" hiddenFields={<><input type="hidden" name="plannedBillId" value={plannedBill.id} /><input type="hidden" name="month" value={selectedMonth} /></>} />
+                          ) : (
+                            <p className='border-t border-border/70 text-sm leading-6 text-muted-foreground'>
+                              No unlinked expense transactions found for this month.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })
+              )}
 
-              </div>
-            </section>
-          </CardContent>
-        </Card>
-          </CardContent>
-        </Card>
-      </section>
+                </div>
+              </section>
+            </CardContent>
+          </Card>
+            </CardContent>
+          </Card>
+        </section>
+      </WorkspaceCardGroup>
     </div>
   )
 }

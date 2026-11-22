@@ -1,7 +1,7 @@
 name = "money_integrity"
 description = "Money Tracker domain auditor for financial math, dates, forecasting, planned items, and transaction integrity."
 
-model = "gpt-6.1-sol"
+model = "gpt-6.2-sol"
 model_reasoning_effort = "xhigh"
 sandbox_mode = "read-only"
 
