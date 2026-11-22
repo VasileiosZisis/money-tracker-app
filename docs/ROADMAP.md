@@ -1,4 +1,4 @@
-# Daily Decision Feature Ideas
+# CashContour Roadmap
 
 ## Purpose
 
@@ -6,7 +6,26 @@ The app goal is to help users understand their financial situation well enough t
 
 The current dashboard shows actual income, actual expenses, net left, safe to spend, daily and weekly safe spend, spending pace, forecast remaining spend, planned bills, planned income, and needs-attention signals.
 
-This document records the daily-decision improvements that guided the current dashboard and the next ideas that remain open.
+This document records the daily-decision improvements that guided the current
+dashboard, the ideas that remain open, and the planned authentication phases.
+
+## Selected Native Mobile Work
+
+The approved first mobile milestone is an internal iOS and Android build for
+existing Google accounts. Scope and implementation order live in the
+[active mobile plan](MOBILE_IMPLEMENTATION_PLAN.md).
+
+## Authentication Roadmap
+
+1. Google sign-in on native iOS and Android using existing CashContour accounts.
+2. Email magic links on web and mobile, with explicit linking to existing accounts.
+3. Sign in with Apple and secure linking that supports private relay addresses.
+4. Facebook Login as a potential future identity provider.
+
+The order after Google is a product preference. Resolve applicable App Store
+login requirements before public iOS submission and bring the required option
+forward if needed. Future providers require separate implementation scope.
+CashContour's planned methods are passwordless.
 
 ## Historical Issue
 

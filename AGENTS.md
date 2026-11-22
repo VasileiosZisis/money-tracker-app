@@ -13,8 +13,8 @@ Before making changes, read in this order:
 4. `docs/PRODUCT_SPEC.md` — current implemented product behavior and scope.
 5. `docs/ROADMAP.md` when selecting or discussing future product work.
 6. The relevant active plan under `docs/` when implementing selected feature work.
-   There is currently no active implementation plan; completed plans are kept
-   under `docs/archive/`.
+   `docs/MOBILE_IMPLEMENTATION_PLAN.md` is active for the approved iOS and Android
+   milestone. Completed plans are kept under `docs/archive/`.
 
 Use each document for its stated responsibility. If requirements conflict,
 critical safeguards and execution/review rules here win, followed by technical
@@ -57,16 +57,18 @@ add it during unrelated work.
 Do not implement without an explicit product decision: bank sync, multiple
 accounts/reconciliation, FX or multi-currency transactions, advanced recurrence,
 automatic/fuzzy matching, budgets/envelopes/rollovers, reserve or sinking funds,
-shared workspaces, billing/subscriptions/ads, native mobile apps, AI
-categorization/forecasting/assistant features, background jobs or notification
-delivery, investments/net worth, or subscription-cancellation workflows.
+shared workspaces, billing/subscriptions/ads, AI categorization, AI forecasting,
+AI assistant features, background jobs or notification delivery, investments/net
+worth, or subscription-cancellation workflows.
 Do not redesign the app shell, replace authentication, or refactor unrelated
 features as a side effect of a feature request.
 
 ## Implementation and documentation lookup
 
 - Keep the existing Next.js App Router, React, TypeScript, Tailwind, PostgreSQL,
-  Prisma, and NextAuth stack. Google OAuth remains the only sign-in provider.
+  Prisma, and NextAuth stack. Google remains the only sign-in provider for the
+  current web app and the first mobile milestone. Follow the active plan for
+  selected mobile work and treat future providers as separate milestones.
 - Check `package.json` and the lockfile for package versions; do not assume the
   project uses the latest framework or library API.
 - Prefer project docs for product and architecture, installed Vercel Next.js
@@ -90,13 +92,17 @@ features as a side effect of a feature request.
 
 ### Ownership and authentication
 
-- Derive identity from `session.user.id`; never trust a client-provided `userId`.
+- Derive web identity from `session.user.id`; never trust a client-provided
+  `userId`.
 - Scope every application read and mutation of user-owned data to that identity.
   User-record lookups use the authenticated user's ID. Verify ownership when
   reading, updating, deleting, or linking an entity by ID, including related entities.
 - Protect all entry points on the server. Proxy/layout redirects do not replace
   authentication, setup enforcement, validation, and ownership checks at server
   actions and route handlers.
+- For the planned mobile API, derive identity from a verified mobile session
+  linked to the same internal `User.id`. Apply setup, ownership, and validation
+  checks in the API boundary and shared server operations.
 - Preserve NextAuth adapter authentication behavior; do not interpret application
   query-scoping rules as requiring an existing session before OAuth can create one.
 - `proxy.ts` protects app and setup routes. `app/(app)/layout.tsx` redirects users

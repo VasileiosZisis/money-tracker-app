@@ -752,8 +752,24 @@ view of `/planned`; it is not a separate workspace.
 Export, and Theme. Its compact section links scroll to four sections rendered on
 the same page. Import and Export do not have standalone user-facing routes.
 
-All authenticated routes require login, completed setup, and a confirmed account
-time zone, except `/setup` during onboarding or the one-time time-zone update.
+Authenticated web routes require login, completed setup, and a confirmed
+account time zone, except `/setup` during onboarding or the one-time time-zone
+update.
+
+## Approved Native Mobile Milestone
+
+The [active implementation plan](MOBILE_IMPLEMENTATION_PLAN.md) defines a
+future internal iOS and Android build for existing CashContour users. Google
+sign-in opens the same account and financial records as the web app. Users
+finish incomplete setup through the existing web flow. The native app shows
+the current account month's actual income, expenses, and net, lists transactions
+with filters, records an online expense with a compatible category, and offers
+device sign-out. The recorded expense appears in the web app on a fresh read.
+
+Native registration, native onboarding, additional sign-in methods, and public
+store release are separate milestones. Forecasting, planned-item management,
+Insights, native editing/deletion, CSV, offline writes, and notifications are
+outside the first mobile milestone.
 
 ## Open Roadmap
 
@@ -779,7 +795,6 @@ Do not implement without an explicit product decision:
 - sinking funds or reserve-fund accounting
 - shared household or multi-user collaboration
 - paid plans, billing, or subscriptions
-- native mobile applications
 - AI categorization or AI forecasting
 - background jobs, reminders, or notification delivery
 - investment, net-worth, or subscription-cancellation workflows

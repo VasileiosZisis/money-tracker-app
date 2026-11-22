@@ -56,7 +56,12 @@ Locked stack:
 - Prisma ORM
 - NextAuth with Prisma adapter
 - Tailwind CSS
-- Web app first
+- The Next.js web app and shared backend stay at the repository root. The
+  approved native iOS and Android client will use React Native, Expo, and
+  TypeScript under `mobile/`, with isolated dependencies and tooling. Prefer
+  Expo Router, use SDK-compatible dependencies, and use EAS for device builds
+  and future distribution. Preserve the root web build and Vercel deployment.
+  See the [active mobile plan](MOBILE_IMPLEMENTATION_PLAN.md).
 
 Do not replace the stack unless explicitly requested.
 
@@ -66,7 +71,7 @@ Do not replace the stack unless explicitly requested.
 
 Locked decisions:
 
-- NextAuth Google OAuth only
+- The current web app uses Google OAuth through NextAuth with JWT cookie sessions.
 - NextAuth route handler at:
   - `app/api/auth/[...nextauth]/route.ts`
 - Sign-in page:
@@ -78,12 +83,14 @@ Locked decisions:
   server request so layouts, pages, and nested data loaders share one result.
   It must not use persistent or cross-request caching.
 
-Do not introduce:
-
-- email/password auth
-- magic links
-- alternative auth providers
-  unless explicitly requested later.
+The first mobile milestone uses Google and establishes independently revocable
+native sessions. Resolve a verified provider identity through the existing
+account relation to the stable internal `User.id`. Web cookie auth and mobile
+auth supply the same internal identity to shared server operations. Future
+verified methods require explicit, authenticated account linking. A matching
+email alone is insufficient to link or merge accounts. Password-based
+authentication is outside the product direction. See the
+[authentication roadmap](ROADMAP.md#authentication-roadmap).
 
 ---
 
@@ -608,6 +615,12 @@ Locked implementation pattern:
 
 - use server actions in `/actions/*` as the default for app mutations
 - route handlers in `app/api/*/route.ts` are allowed for interactive client-side workflows that need a server boundary, such as import preview/confirm
+- the approved mobile boundary is versioned JSON at `/api/v1/` using Next.js
+  Route Handlers. Extract shared server-only operations where needed and retain
+  the existing web action interfaces and financial behavior. Mobile writes use
+  server-side validation, ownership checks, and durable retry protection. Money
+  crosses the JSON boundary as decimal strings. Database access and financial
+  calculations stay on the backend.
 - validate all inputs on the server using Zod schemas in `/lib/validators/*`
 - all DB access must be server-side
 - no direct client DB access
@@ -629,7 +642,8 @@ This applies to:
 
 This is mandatory.
 
-- every query MUST be scoped by `userId = session.user.id`
+- every application query of user-owned data MUST be scoped by the trusted
+  internal user ID from the web session or a verified mobile session
 - never trust client-provided `userId`
 - if an entity is accessed by ID:
   - verify it belongs to the authenticated user before read/update/delete
@@ -865,9 +879,9 @@ Current assumptions:
   dependent code. Author migrations on disposable development databases, not the
   shared preview database. Code rollback does not roll back database migrations.
 - Scope database URLs and NextAuth secrets separately for Production and
-  Preview/Development. Preserve production credentials. Google OAuth stays the
-  only provider; register each stable testing-branch callback on the existing
-  client. Leave `NEXTAUTH_URL` unset on Vercel and preserve preview protection.
+  Preview/Development. Preserve production credentials. Register each stable
+  testing-branch Google callback on the existing web client. Leave
+  `NEXTAUTH_URL` unset on Vercel and preserve preview protection.
 - Register `https://www.cashcontour.com/api/auth/callback/google` on the existing
   Google OAuth client, preserving localhost and stable preview registrations.
   Google consent-screen name, homepage, and authorized domain are external
