@@ -3,7 +3,10 @@
     "name": "CashContour Dev",
     "slug": "cashcontour-dev",
     "version": "0.1.0",
-    "platforms": ["ios", "android"],
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "icon": "./assets/icon.png",
     "scheme": "cashcontour-dev",
     "userInterfaceStyle": "automatic",
@@ -13,6 +16,25 @@
     "android": {
       "package": "com.cashcontour.dev"
     },
-    "plugins": ["expo-router", "./plugins/without-network-inspector.js"]
+    "plugins": [
+      "expo-router",
+      "./plugins/without-network-inspector.js"
+    ],
+    "extra": {
+      "googleProof": {
+        "webClientId": {},
+        "iosClientId": {},
+        "verifierOrigin": {}
+      },
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "40a0347e-defe-47f7-8d75-03f511b8aa2e"
+      }
+    },
+    "owner": "goneaway"
   }
 }
