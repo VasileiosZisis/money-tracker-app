@@ -6,7 +6,10 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "environment": "development"
+      "environment": "development",
+      "env": {
+        "EX_DEV_CLIENT_NETWORK_INSPECTOR": "false"
+      }
     }
   }
 }

@@ -1,14 +1,17 @@
 import { Inter_400Regular } from "@expo-google-fonts/inter/400Regular";
 import { Inter_600SemiBold } from "@expo-google-fonts/inter/600SemiBold";
+import { isRunningInExpoGo } from "expo";
 import { useFonts } from "expo-font";
 import { Image, ScrollView, StyleSheet, Text, useColorScheme, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { GoogleSignInProof } from "@/components/google-sign-in-proof";
 import { colors } from "@/theme/colors";
 
 export default function WelcomeScreen() {
   const palette = colors[useColorScheme() === "dark" ? "dark" : "light"];
   const [fontsLoaded] = useFonts({ Inter_400Regular, Inter_600SemiBold });
+  const showGoogleProof = __DEV__ && !isRunningInExpoGo();
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: palette.background }]}>
@@ -38,6 +41,7 @@ export default function WelcomeScreen() {
           >
             This is the mobile development version.
           </Text>
+          {showGoogleProof && <GoogleSignInProof palette={palette} />}
         </View>
       </ScrollView>
     </SafeAreaView>

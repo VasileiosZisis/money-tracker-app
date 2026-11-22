@@ -15,6 +15,7 @@ npm-debug.log*
 
 # Local configuration and signing material
 .env*
+!/.env.example
 credentials.json
 google-services.json
 GoogleService-Info.plist

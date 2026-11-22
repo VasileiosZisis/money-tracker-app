@@ -1,8 +1,9 @@
 # CashContour Mobile Implementation Plan
 
 **Status** — Approved architecture and active implementation plan. Task 4A
-establishes the [native app foundation](../mobile/README.md). The native Google
-verification and mobile API are pending.
+establishes the [native app foundation](../mobile/README.md). Task 4B prepares
+the [Google sign-in device proof](../mobile/README.md#native-google-sign-in-proof).
+Signed-device verification and the mobile API are pending.
 
 ## Architecture And Scope
 
@@ -58,6 +59,7 @@ mobile/
   src/theme/                  CashContour semantic colors and typography
   tests/                      native unit and component tests
   app.json                    Expo configuration and development identifiers
+  app.config.js               optional development OAuth and verifier configuration
   eas.json                    build profiles
   package.json                isolated scripts and SDK-matched dependencies
   package-lock.json           mobile lockfile
@@ -114,10 +116,11 @@ separate web flow. [Expo Google authentication](https://docs.expo.dev/guides/goo
 In tag `v2.3.1`, the explicit sign-in flow passes the configured nonce to Android
 Credential Manager and to iOS GoogleSignIn's interactive API. The iOS silent
 restore path can return a cached token and is unsuitable for a fresh exchange.
-The tag establishes SDK plumbing. Select and pin a version only after proving
-that a fresh server nonce reaches the signed ID token unchanged on both devices,
-including after cancellation and a second attempt. Allow one interactive attempt
-at a time so per-attempt nonce configuration stays paired with its challenge.
+Task 4B pins this version for the development proof. Adopt it for mobile
+authentication only after proving that a fresh server nonce reaches the signed
+ID token unchanged on both devices, including after cancellation and a second
+attempt. Allow one interactive attempt at a time so per-attempt nonce
+configuration stays paired with its challenge.
 If the chosen combination cannot prove that binding, verify the documented
 nonce-capable Universal Sign-In option and its licensing or use the browser
 handoff. Keep nonce validation mandatory for the native token exchange.
@@ -469,7 +472,9 @@ and monetization. Public store distribution is separate from this milestone.
 ### 2. Isolate The Expo Project And Verify Google On Devices
 
 Task 4A establishes the isolated Expo SDK 58 foundation and welcome screen.
-Task 4B covers native Google verification on signed development builds.
+Task 4B adds the development-only native Google proof and its configuration.
+The proof requires dedicated OAuth clients and an external non-production
+verifier. Signed-device verification starts on Android and must also pass on iOS.
 
 - **Objective and dependency** — Prove the selected Expo, React Native, and
   native Google SDK combination with non-production credentials. Requires
