@@ -141,18 +141,23 @@ configuration is missing. [EAS environments](https://docs.expo.dev/eas/environme
 
 ### Create a signed Android development build
 
-1. Confirm the development package identifier and which existing signing
-   credential to use. Use an approved EAS project and the existing development
-   keystore for this package. If you need to link a project or obtain a new
-   signing key, authorize those actions separately before proceeding.
-2. In the approved EAS configuration, inspect the Android credential for this
-   app and register its SHA-1 on the Android OAuth client. For a local build,
-   use the local signing certificate's SHA-1. For an app installed through
-   Google Play later, use the **Play App Signing** certificate fingerprint.
-   The upload key fingerprint applies to artifacts signed directly with that
-   key. Check the APK itself with
-   `apksigner verify --print-certs cashcontour-dev.apk` if there is any doubt.
-3. After signing and a cloud build are authorized, run the following from
+1. Keep `com.cashcontour.dev` as the development package. Confirm the Expo
+   project owner and project ID. After linking is approved, link the existing
+   project from `mobile/` with `npx eas-cli@latest init --id <project-id>` and
+   check it with `npx eas-cli@latest project:info`. Project creation needs
+   separate approval if there is no existing project.
+2. Confirm the signing certificate for the development APK. Inspect the
+   existing Android keystore in EAS credentials, or obtain the SHA-1 with
+   `keytool -list -v -keystore <path-to-development-keystore> -alias <alias>`.
+   Obtain separate approval if a new credential is required. Register the
+   package and this SHA-1 on the Android OAuth client. A later Play-installed
+   build uses the **Play App Signing** certificate fingerprint.
+3. Set up the development Web OAuth client and test users in
+   [Google Cloud](#google-cloud-setup). Configure their verified subjects,
+   audience, and allowed presenters in the
+   [standalone verifier](../tools/google-proof-verifier/README.md). Set the
+   verifier's HTTPS origin and the Web client ID in `mobile/.env.local`.
+4. After signing and a cloud build are authorized, run the following from
    `mobile/` in the linked project. The internal development profile produces
    an installable Android APK.
 
@@ -160,13 +165,20 @@ configuration is missing. [EAS environments](https://docs.expo.dev/eas/environme
    npx eas-cli@latest build --platform android --profile development
    ```
 
-4. Install the APK using the internal build link, or use
+5. Run `apksigner verify --print-certs cashcontour-dev.apk` on the downloaded APK
+   and compare its signer's SHA-1 with the Android OAuth client registration.
+   Install the APK using the internal build link, or use
    `adb install cashcontour-dev.apk` on an enrolled USB-debuggable phone. Confirm
    that Google Play Services is current and that a dedicated test Google
    account is available. Start Metro from `mobile/` with
    `npm start -- --dev-client`. Open the QR code in the installed CashContour
    development client, then tap **Test Google sign-in**. Expo Go can still show
    the welcome screen.
+6. Record whether the build compiles, the native Nitro module loads, and the
+   verifier accepts a fresh sign-in using the locked Expo SDK 58.0.26,
+   React Native 0.88.1, Nitro Google Sign-In 2.3.1, and Nitro Modules 0.37.2.
+   Repeat after cancelling and check that the next attempt uses a new
+   challenge. This is the device compatibility gate for the pinned versions.
 
 A native config plugin disables Expo's development Network Inspector on both
 platforms so request bodies are excluded from Metro network capture. The
@@ -195,9 +207,9 @@ mode, and confirm that the Google callback returns to the app.
 
 ### Verify a signed nonce
 
-This proof uses a separately provisioned verifier on the approved test origin.
-It has no CashContour server route or session integration. The verifier must
-accept the following HTTPS requests and send `Cache-Control: no-store`.
+Run the [standalone verifier](../tools/google-proof-verifier/README.md) behind
+the approved test HTTPS origin. It exposes these endpoints independently of
+CashContour's server routes and sends `Cache-Control: no-store`.
 
 | Request | Successful response |
 | --- | --- |

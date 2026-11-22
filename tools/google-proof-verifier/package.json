@@ -1,0 +1,16 @@
+{
+  "name": "cashcontour-google-proof-verifier",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test verifier.test.mjs"
+  },
+  "dependencies": {
+    "google-auth-library": "11.3.4"
+  }
+}

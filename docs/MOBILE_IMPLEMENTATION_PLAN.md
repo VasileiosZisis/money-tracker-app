@@ -3,7 +3,8 @@
 **Status** — Approved architecture and active implementation plan. Task 4A
 establishes the [native app foundation](../mobile/README.md). Task 4B prepares
 the [Google sign-in device proof](../mobile/README.md#native-google-sign-in-proof).
-Signed-device verification and the mobile API are pending.
+Task 4B.1 adds the [standalone proof verifier](../tools/google-proof-verifier/README.md).
+Verifier deployment, signed-device verification, and the mobile API are pending.
 
 ## Architecture And Scope
 
@@ -48,6 +49,7 @@ lib/server/                   shared operations by domain
 lib/auth/                     web auth and separate native session code
 lib/validators/               authoritative server validation
 prisma/                       existing schema and future additive migrations
+tools/google-proof-verifier/  isolated single-instance verifier for device tests
 mobile/
   src/app/                    Expo Router root, sign-in, setup handoff, app routes
     (app)/                    snapshot, transactions, add expense, account
@@ -473,8 +475,10 @@ and monetization. Public store distribution is separate from this milestone.
 
 Task 4A establishes the isolated Expo SDK 58 foundation and welcome screen.
 Task 4B adds the development-only native Google proof and its configuration.
-The proof requires dedicated OAuth clients and an external non-production
-verifier. Signed-device verification starts on Android and must also pass on iOS.
+The proof requires dedicated OAuth clients and the standalone non-production
+verifier deployed behind a restricted HTTPS origin. Its in-memory challenge
+store is for one test instance. Signed-device verification starts on Android
+and must also pass on iOS.
 
 - **Objective and dependency** — Prove the selected Expo, React Native, and
   native Google SDK combination with non-production credentials. Requires
