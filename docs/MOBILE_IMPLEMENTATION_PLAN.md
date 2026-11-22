@@ -1,7 +1,8 @@
 # CashContour Mobile Implementation Plan
 
-**Status** — Approved architecture and active implementation plan. The native
-app and mobile API are planned work.
+**Status** — Approved architecture and active implementation plan. Task 4A
+establishes the [native app foundation](../mobile/README.md). The native Google
+verification and mobile API are pending.
 
 ## Architecture And Scope
 
@@ -56,7 +57,7 @@ mobile/
   src/query/                  query client and account-scoped query keys
   src/theme/                  CashContour semantic colors and typography
   tests/                      native unit and component tests
-  app.config.ts               environment-specific app IDs and public configuration
+  app.json                    Expo configuration and development identifiers
   eas.json                    build profiles
   package.json                isolated scripts and SDK-matched dependencies
   package-lock.json           mobile lockfile
@@ -467,6 +468,9 @@ and monetization. Public store distribution is separate from this milestone.
 
 ### 2. Isolate The Expo Project And Verify Google On Devices
 
+Task 4A establishes the isolated Expo SDK 58 foundation and welcome screen.
+Task 4B covers native Google verification on signed development builds.
+
 - **Objective and dependency** — Prove the selected Expo, React Native, and
   native Google SDK combination with non-production credentials. Requires
   approved development identifiers, signing access, and a test origin or
@@ -658,7 +662,7 @@ and monetization. Public store distribution is separate from this milestone.
 
 | Gate | Recommendation and evidence required |
 | --- | --- |
-| Expo and Google SDK | Pin compatible versions only after the signed iOS and Android builds return the expected audience, presenter if present, nonce, and subject. Verify the correct app IDs, callback scheme, signing credentials, and Google consent settings. |
+| Expo and Google SDK | Task 4A locks the SDK 58 foundation. Confirm compatibility and select the Google SDK after signed iOS and Android builds return the expected audience, presenter if present, nonce, and subject. Verify the correct app IDs, callback scheme, signing credentials, and Google consent settings. |
 | Device API origin | Select the private HTTPS test origin and confirm browser setup and phone API requests reach the same non-production data target. The repository does not establish current external access configuration. |
 | Session and idempotency operations | Review the proposed lifetimes, receipt retention, distributed rate constraints, cleanup, redacted diagnostics, and revocation procedure. Exercise lost-response and interrupted-app recovery on devices. |
 | Public release and identity expansion | Confirm the iOS equivalent login option, Google Play and Apple privacy and deletion obligations, and approved linking/recovery policy before public submission. Keep those decisions separate from the internal pilot. |

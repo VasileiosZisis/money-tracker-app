@@ -1,0 +1,27 @@
+# Dependencies and local output
+/node_modules/
+/.expo/
+/android/
+/ios/
+/dist/
+/coverage/
+/.kotlin/
+/expo-env.d.ts
+*.tsbuildinfo
+*.apk
+*.aab
+*.ipa
+npm-debug.log*
+
+# Local configuration and signing material
+.env*
+credentials.json
+google-services.json
+GoogleService-Info.plist
+*.jks
+*.keystore
+*.mobileprovision
+*.p8
+*.p12
+*.pem
+*.key

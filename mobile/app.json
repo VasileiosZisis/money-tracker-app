@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "CashContour Dev",
+    "slug": "cashcontour-dev",
+    "version": "0.1.0",
+    "platforms": ["ios", "android"],
+    "icon": "./assets/icon.png",
+    "scheme": "cashcontour-dev",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "com.cashcontour.dev"
+    },
+    "android": {
+      "package": "com.cashcontour.dev"
+    },
+    "plugins": ["expo-router"]
+  }
+}
