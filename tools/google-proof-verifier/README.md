@@ -24,13 +24,92 @@ provides the variables, or with `node --env-file=.env.local server.mjs`.
 | --- | --- |
 | `GOOGLE_PROOF_AUDIENCE` | Required. The dedicated development **Web application** OAuth client ID. It must match `EXPO_PUBLIC_GOOGLE_PROOF_WEB_CLIENT_ID` on the phone. |
 | `GOOGLE_PROOF_ALLOWED_PRESENTERS` | Required. Comma-separated, exact development OAuth client IDs allowed as `azp` when the claim is present. Include the dedicated Web ID and the approved platform clients used for the proof. |
-| `GOOGLE_PROOF_ALLOWED_SUBJECTS` | Required. Comma-separated, exact Google OIDC `sub` values for the dedicated test accounts. Use their verified subjects from an approved Google OIDC enrollment flow, such as a controlled local sign-in with the development Web client. Transfer only the verified subject directly into the server environment. Keep this list out of Git, the Expo bundle, and logs. |
+| `GOOGLE_PROOF_ALLOWED_SUBJECTS` | Required when running the verifier. Comma-separated, exact Google OIDC `sub` values for the dedicated test accounts. The [local enrollment utility](#enroll-a-test-account-on-windows) can populate it. Keep this list out of Git, the Expo bundle, and logs. |
 | `GOOGLE_PROOF_PORT` | Optional. Loopback HTTP port, default `8787`. |
 
 Google's library uses its public signing keys for this verification. The service
 requires no OAuth client secret, service account key, or database credentials.
 The tests use fixtures and mock Google's verifier. [Google backend verification](https://developers.google.com/identity/sign-in/web/backend-auth) ·
 [Google OIDC claims](https://developers.google.com/identity/openid-connect/openid-connect)
+
+## Enroll a test account on Windows
+
+In the dedicated development project, open **Google Auth Platform → Clients**
+and edit the **Web application** client used as `GOOGLE_PROOF_AUDIENCE`. Add
+this exact entry to **Authorized redirect URIs** and save it.
+
+```text
+http://127.0.0.1:8788/google-proof/enrollment/callback
+```
+
+If the project's audience is **External** and its publishing status is
+**Testing**, add the dedicated Google account to **Test users**. Use the Web
+client's own client secret for the local code exchange.
+[Google Web server OAuth setup](https://developers.google.com/identity/protocols/oauth2/web-server) ·
+[Google OIDC reference](https://developers.google.com/identity/openid-connect/reference)
+
+From the repository root, use an interactive Windows PowerShell terminal with
+Node.js 22.13 or newer. Install from the existing lockfile first if dependencies
+are missing, then prepare the verifier's own local environment file.
+
+```powershell
+Set-Location .\tools\google-proof-verifier
+if (-not (Test-Path -LiteralPath .\node_modules\google-auth-library\package.json)) {
+  npm ci --ignore-scripts
+  if ($LASTEXITCODE -ne 0) { throw 'Verifier dependency installation failed.' }
+}
+if (-not (Test-Path -LiteralPath .\.env.local)) {
+  Copy-Item -LiteralPath .\.env.example -Destination .\.env.local
+}
+notepad .\.env.local
+```
+
+Set `GOOGLE_PROOF_AUDIENCE` to the dedicated Web client ID. Set
+`GOOGLE_PROOF_ALLOWED_PRESENTERS` to a comma-separated list of the same Web ID
+and the approved native client IDs. Leave `GOOGLE_PROOF_ALLOWED_SUBJECTS`
+empty for the first enrollment or keep its existing entries. Save and close
+the editor. Keep the verifier configuration separate from `mobile/.env.local`.
+
+When ready to start the local callback and Google sign-in, run the following in
+the same terminal. The masked prompt keeps the Web client secret out of
+PowerShell command history. The temporary environment variable is removed on
+exit, and the utility removes its copy from the environment before launching
+the browser.
+
+```powershell
+$secret = Read-Host 'Development Web OAuth client secret' -AsSecureString
+try {
+  $env:GOOGLE_PROOF_ENROLLMENT_CLIENT_SECRET = [System.Net.NetworkCredential]::new('', $secret).Password
+  node .\enroll.mjs
+} finally {
+  Remove-Item Env:GOOGLE_PROOF_ENROLLMENT_CLIENT_SECRET -ErrorAction SilentlyContinue
+  $secret.Dispose()
+  Remove-Variable secret
+}
+```
+
+1. In the terminal, enter the intended test account's email. In the browser,
+   select that Google account. The callback accepts one state-matched form
+   POST on loopback. The code exchange uses S256 PKCE and requests online
+   access with only `openid email`.
+2. Return to the terminal. The utility verifies the ID token and checks the
+   signed nonce, audience, issuer, expiry, Web presenter when present, and
+   verified email. Type `ENROLL` only after confirming this is the dedicated
+   test account.
+3. The utility appends the verified `sub` to
+   `GOOGLE_PROOF_ALLOWED_SUBJECTS` in the ignored verifier `.env.local`.
+   It preserves existing entries, skips duplicates, and leaves the subject
+   out of terminal and browser output. Use a separate run for each test
+   account.
+
+Use `Ctrl+C` to cancel if you close the browser tab. The callback stops after
+one accepted result, cancellation, or a five-minute timeout. Keep the secret
+out of local env files, mobile configuration, EAS, and Git. After enrollment,
+the verifier itself uses only Google's public signing keys.
+
+Enrollment serializes allowlist updates. If an interrupted process leaves
+`.env.local.enrollment-lock` behind, confirm that no enrollment is running
+before removing the lock and trying again.
 
 ## Dedicated HTTPS origin
 

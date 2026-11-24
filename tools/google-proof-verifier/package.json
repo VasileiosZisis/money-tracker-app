@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node server.mjs",
-    "test": "node --test verifier.test.mjs"
+    "test": "node --test verifier.test.mjs enrollment.test.mjs"
   },
   "dependencies": {
     "google-auth-library": "11.3.4"
