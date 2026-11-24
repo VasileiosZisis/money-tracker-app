@@ -247,6 +247,10 @@ fallbacks to real-account authorization. See the synthetic demo boundary in
   authorization. A request to edit code alone does not authorize these commands.
 - Run authorized commands once; do not repeatedly retry checks without explicit
   authorization. Do not start long-running processes unless explicitly requested.
+- Before every EAS cloud build, inspect a fresh EAS archive from the exact
+  checkout and profile and run the archive safety checker. Proceed only if it
+  passes and the build inputs stay the same. Git ignore status alone does not
+  establish upload safety. Follow the [mobile archive procedure](mobile/README.md#inspect-the-eas-upload-archive).
 - Do not create scripts that spawn dev servers and poll HTTP endpoints. Do not
   run wait-for-server loops or page health-check polling.
 - Make small, reviewable edits. Preserve existing uncommitted work and do not

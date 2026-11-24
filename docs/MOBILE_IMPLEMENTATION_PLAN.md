@@ -6,6 +6,7 @@ the [Google sign-in device proof](../mobile/README.md#native-google-sign-in-proo
 Task 4B.1 adds the [standalone proof verifier](../tools/google-proof-verifier/README.md).
 Task 4B.2 adds [local test-account enrollment](../tools/google-proof-verifier/README.md#enroll-a-test-account-on-windows).
 Task 4B.3 prepares the [private Caddy and Tailscale Serve route](../tools/google-proof-verifier/README.md#dedicated-https-origin).
+Task 4B.4A requires a [fresh EAS archive safety check](../mobile/README.md#inspect-the-eas-upload-archive) before cloud builds.
 Verifier deployment, signed-device verification, and the mobile API are pending.
 
 ## Architecture And Scope
@@ -640,8 +641,9 @@ and must also pass on iOS.
   `developmentClient: true`, `distribution: internal`, a test API origin,
   and development app/package IDs. Register iOS test devices for ad hoc
   provisioning and distribute an internal Android APK. Test release-style
-  internal builds separately if adding a preview profile. Verify the EAS
-  upload exclusions so the root checkout's secrets never enter the archive.
+  internal builds separately if adding a preview profile. Inspect a fresh
+  archive and pass the [archive safety check](../mobile/README.md#inspect-the-eas-upload-archive)
+  before every EAS cloud build.
   Keep signing credentials under their existing secure management and reserve
   a store profile for separately authorized distribution. [EAS profiles](https://docs.expo.dev/build/eas-json/) · [Internal distribution](https://docs.expo.dev/build/internal-distribution/) · [EAS upload exclusions](https://docs.expo.dev/build-reference/easignore/)
 - **Non-production API.** Prefer a stable, trusted HTTPS origin reachable

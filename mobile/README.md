@@ -87,9 +87,47 @@ to use the cloud development profile.
 Keep local overrides in `mobile/.env.local`. Use `EXPO_PUBLIC_*` only for
 values safe to ship in the client. Keep Google client secrets, database
 credentials, signing keys, and private tokens out of the client and Git.
-Inspect the EAS upload file list before the first authorized build because Expo
-can archive files from the enclosing Git checkout. [Expo environment variables](https://docs.expo.dev/guides/environment-variables/) ·
-[EAS upload exclusions](https://docs.expo.dev/build-reference/easignore/)
+[Expo environment variables](https://docs.expo.dev/guides/environment-variables/)
+
+### Inspect the EAS upload archive
+
+Before every EAS cloud build, inspect an archive produced from the same checkout,
+platform, and profile the build will use. The repository-root
+[.easignore](../.easignore) overrides Git ignore rules for EAS. It limits the
+upload to this standalone Expo package and excludes local inputs and generated
+files. Git ignore status alone does not establish archive safety.
+[Expo upload exclusions](https://docs.expo.dev/build-reference/easignore/) ·
+[Expo project upload process](https://docs.expo.dev/build-reference/project-upload/)
+
+From the repository root in PowerShell, use Node 22.13 or newer and an existing
+EAS login. The output directory is created under the OS temporary directory.
+The archive-stage command creates a local copy for inspection.
+
+~~~powershell
+Set-Location .\mobile
+$easVersion = npm view eas-cli@latest version --silent
+if ($LASTEXITCODE -ne 0 -or $easVersion -notmatch '^\d+\.\d+\.\d+$') { throw "Could not resolve the EAS CLI version." }
+$easCli = "eas-cli@$easVersion"
+$archive = Join-Path ([IO.Path]::GetTempPath()) ("cashcontour-eas-archive-" + [Guid]::NewGuid().ToString("N"))
+npx $easCli build:inspect --platform android --stage archive --profile development --output $archive
+if ($LASTEXITCODE -ne 0) { throw "EAS archive inspection failed." }
+node ..\tools\check-eas-archive.mjs $archive
+if ($LASTEXITCODE -ne 0) { throw "EAS archive safety check failed. Do not upload." }
+~~~
+
+The checker requires the app sources, assets, dependency manifests, lockfile,
+and build configuration. It fails on unexpected paths, links, files that differ
+from the checkout, known local secret values, and recognizable signing or
+credential data. Review changes to its file list when adding a new build input.
+Stop if inspection fails, and rerun from a fresh directory after any changes.
+After inspection, remove only the generated directory at the exact
+`$archive` path under the OS temporary directory. Keep the resolved
+`$easCli` value for the eventual build so packaging uses the same CLI version.
+
+The development profile uses EAS-managed signing credentials. Keep any exported
+backup in an encrypted, access-restricted location outside the entire Git
+repository, for example under `%LOCALAPPDATA%\CashContour\Signing` on an encrypted
+Windows drive. Store its password separately in a password manager.
 
 ## Native Google sign-in proof
 
@@ -157,13 +195,19 @@ configuration is missing. [EAS environments](https://docs.expo.dev/eas/environme
    audience, and allowed presenters in the
    [standalone verifier](../tools/google-proof-verifier/README.md). Set the
    verifier's HTTPS origin and the Web client ID in `mobile/.env.local`.
-4. After signing and a cloud build are authorized, run the following from
-   `mobile/` in the linked project. The internal development profile produces
-   an installable Android APK.
+4. After the [fresh archive check](#inspect-the-eas-upload-archive) passes,
+   confirm the remote signing certificate and available build quota. Once the
+   cloud build is authorized, run the following from `mobile/` in the linked project.
+   EAS normally sends fingerprint sources separately from the project archive.
+   For this proof build, skip that upload so the local verifier settings stay
+   out of fingerprint metadata. The build still uses the configured EAS
+   development environment and produces an installable Android APK.
+   [EAS fingerprint behavior](https://github.com/expo/eas-cli/blob/main/packages/eas-cli/src/build/build.ts#L853-L875)
 
-   ```sh
-   npx eas-cli@latest build --platform android --profile development
-   ```
+   ~~~powershell
+   $env:EAS_SKIP_AUTO_FINGERPRINT = "1"
+   npx $easCli build --platform android --profile development
+   ~~~
 
 5. Run `apksigner verify --print-certs cashcontour-dev.apk` on the downloaded APK
    and compare its signer's SHA-1 with the Android OAuth client registration.

@@ -6,6 +6,7 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "credentialsSource": "remote",
       "environment": "development",
       "env": {
         "EX_DEV_CLIENT_NETWORK_INSPECTOR": "false"
