@@ -1,0 +1,61 @@
+{
+	admin off
+	auto_https off
+	persist_config off
+
+	# Discard runtime logs, including proxy errors that can carry request metadata.
+	log {
+		output discard
+	}
+
+	servers {
+		max_header_size 8KiB
+		timeouts {
+			read_header 5s
+			read_body 10s
+			write 20s
+			idle 15s
+		}
+	}
+}
+
+http://:8789 {
+	bind 127.0.0.1
+	header >Cache-Control no-store
+
+	# Compare the original request target so query strings and path variants fail.
+	@proof {
+		method POST
+		expression `{http.request.orig_uri} in ["/google-proof/challenge", "/google-proof/verify"]`
+		not {
+			header Tailscale-Funnel-Request *
+		}
+	}
+
+	handle @proof {
+		request_body {
+			max_size 12288
+		}
+
+		reverse_proxy 127.0.0.1:8787 {
+			header_up -Authorization
+			header_up -Proxy-Authorization
+			header_up -Cookie
+			header_up -Tailscale-*
+
+			transport http {
+				dial_timeout 2s
+				response_header_timeout 10s
+			}
+		}
+	}
+
+	handle {
+		respond "Proof route unavailable." 404
+	}
+
+	handle_errors {
+		header >Cache-Control no-store
+		respond "Proof proxy request failed." {err.status_code}
+	}
+}

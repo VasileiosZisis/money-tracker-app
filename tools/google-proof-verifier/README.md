@@ -113,26 +113,194 @@ before removing the lock and trying again.
 
 ## Dedicated HTTPS origin
 
-1. Run one Node process on an approved non-production host. Put a TLS reverse
-   proxy on the same host in front of `127.0.0.1:8787` or the configured
-   loopback port. Use a dedicated hostname and a certificate trusted by the
-   test phones. Allow outbound HTTPS to Google's public signing-key endpoint and
-   keep the host clock synchronized.
-2. Restrict the HTTPS listener to enrolled devices on a private tester network
-   or VPN, or to an approved tester egress IP allowlist. Only forward the two
-   exact POST paths below. Keep the loopback port private and configure the
-   proxy's request body limit to at most 12 KiB. Serve the endpoints directly
-   over HTTPS without redirects or a browser login page in the request path.
-3. Exclude request and response bodies, headers, and query strings from proxy,
-   application, tracing, and error reporting logs for these routes. Keep the
-   verifier process and its environment separate from production and avoid
-   proxy caching. Give the phones only the approved HTTPS origin and their
-   public OAuth client IDs via [the Expo configuration](../../mobile/README.md#google-cloud-setup).
+For Windows and enrolled test devices on the private tailnet, use this chain:
+
+```text
+Android → Tailscale Serve HTTPS :443 → Caddy HTTP 127.0.0.1:8789
+        → verifier HTTP 127.0.0.1:8787
+```
+
+The development [Caddyfile](Caddyfile) binds IPv4 loopback, disables the admin
+endpoint and automatic HTTPS, and forwards only the two exact POST targets.
+Unknown paths, methods, query strings, and Funnel-marked requests received by
+Caddy get a generic `404`. Tailscale Serve can discard malformed query
+parameters before forwarding, so the exact request-target check applies at
+Caddy's ingress. The proxy limits uploads to 12288 bytes and bounds header
+size, client timeouts, and upstream wait times. It discards Caddy runtime logs and leaves access logging
+off. It strips cookies, authorization, and Tailscale identity headers before
+forwarding. Proxied responses, route rejections, and Caddy handler errors
+carry `Cache-Control: no-store`. Keep HTTP tracing and request captures off.
+The verifier must remain on port `8787` for this configuration. Allow it to
+fetch Google's public signing keys over HTTPS and keep the host clock synced.
+[Caddy global options](https://caddyserver.com/docs/caddyfile/options) ·
+[Request body limits](https://caddyserver.com/docs/caddyfile/directives/request_body) ·
+[Caddy error handling](https://caddyserver.com/docs/caddyfile/directives/handle_errors) ·
+[Tailscale Serve proxy source](https://github.com/tailscale/tailscale/blob/v1.104.7/ipn/ipnlocal/serve.go)
 
 The challenge store and rate counters live in process memory. Restarting the
 service drops challenges and resets counters, so testers should start over if
 the service restarts. Keep exactly one replica and one Node process. Multiple
 workers or replicas would have separate challenge state and separate limits.
+
+### Check tailnet access
+
+In Administrator PowerShell, inspect the existing state before activating
+Serve. If `tailscale` is unavailable on PATH, run
+`& "$env:ProgramFiles\Tailscale\tailscale.exe"` with the same arguments.
+
+```powershell
+tailscale serve status
+tailscale funnel status
+```
+
+Confirm the node's HTTPS port `443` is free of existing Serve or TCP mappings
+and that Funnel is inactive on this node. The Caddy Funnel marker check is an
+additional safeguard. If either status check fails, have the
+tailnet owner resolve it before starting the proof. Existing services should
+stay in place until their owner approves a change.
+
+In **Access controls** in the Tailscale admin console, review effective
+permissions to the Windows host on `tcp:443`. Allow that connection from the
+approved test devices using their Tailscale IPs or device-specific selectors.
+Review every matching grant and ACL, including defaults and wildcards,
+group or owner-wide access, and any device shares. Grants are additive, so a
+narrow rule still leaves broader matching permissions in effect. Use the
+policy editor's tests or preview to check an approved device can connect
+and an unapproved device is denied. Have the tailnet owner make any needed
+policy edits before activation. [Grants and matching](https://tailscale.com/docs/features/access-control/grants/grants-explained) ·
+[Device selectors](https://tailscale.com/docs/reference/targets-and-selectors) ·
+[Policy tests](https://tailscale.com/docs/reference/syntax/policy-file#tests)
+
+### Validate and launch on Windows
+
+From the repository root in PowerShell, validate with a current Caddy 2 release.
+Validation loads and provisions the configuration without starting the proxy.
+
+```powershell
+Set-Location .\tools\google-proof-verifier
+caddy validate --config .\Caddyfile --adapter caddyfile
+```
+
+Once startup is approved, run Caddy in the foreground from the same directory:
+
+```powershell
+caddy run --config .\Caddyfile --adapter caddyfile
+```
+
+Use the full executable path with PowerShell's `&` operator for either Caddy
+command if `caddy.exe` was installed outside PATH. The proxy is quiet because
+its runtime logs are discarded. Keep the verifier and Caddy
+running in separate terminals. Then open a separate **Administrator
+PowerShell** terminal and run Serve in the foreground:
+
+```powershell
+tailscale serve --https=443 http://127.0.0.1:8789
+```
+
+Copy the `https://…ts.net` origin printed under **Available within your
+tailnet**. In another terminal, run `tailscale serve status` and
+`tailscale funnel status` again. Confirm the HTTPS root maps to
+`http://127.0.0.1:8789`, is marked tailnet-only, and has no Funnel exposure.
+Set the verified origin alone in `EXPO_PUBLIC_GOOGLE_PROOF_VERIFIER_ORIGIN` in
+the ignored `mobile/.env.local`, with no endpoint suffix or query string.
+[Caddy command line](https://caddyserver.com/docs/command-line) ·
+[Tailscale Serve CLI](https://tailscale.com/docs/reference/tailscale-cli/serve) ·
+[Tailscale Funnel status](https://tailscale.com/docs/reference/tailscale-cli/funnel#get-the-status)
+
+### Check connectivity with fictional requests
+
+After integration testing is approved, use a separate **PowerShell 7**
+terminal. The probes below print only an HTTP status and a cache-control
+check. Finish the local probes before sending requests through Serve.
+
+```powershell
+$listeners = @(Get-NetTCPConnection -State Listen -LocalPort 8789 -ErrorAction SilentlyContinue)
+$listeners | Select-Object LocalAddress, LocalPort, OwningProcess
+if ($listeners.Count -ne 1 -or $listeners[0].LocalAddress -ne '127.0.0.1') {
+  throw 'Expected exactly one listener on 127.0.0.1:8789.'
+}
+
+function Test-ProofProxy {
+  param([string]$Name, [string]$Uri, [string]$Method, [int]$ExpectedStatus, [string]$Body, [hashtable]$Headers)
+  $options = @{
+    Uri = $Uri
+    Method = $Method
+    NoProxy = $true
+    TimeoutSec = 25
+    MaximumRedirection = 0
+    SkipHttpErrorCheck = $true
+    ErrorAction = 'Stop'
+  }
+  if ($PSBoundParameters.ContainsKey('Body')) {
+    $options.Body = $Body
+    $options.ContentType = 'application/json'
+  }
+  if ($Headers) { $options.Headers = $Headers }
+  try {
+    $reply = Invoke-WebRequest @options
+  } catch {
+    throw "Probe '$Name' failed to obtain an HTTP response."
+  }
+  $status = [int]$reply.StatusCode
+  $noStore = ($reply.Headers['Cache-Control'] -join ',') -match '(^|,)\s*no-store\s*(,|$)'
+  [pscustomobject]@{ Probe = $Name; Status = $status; NoStore = $noStore }
+  if ($status -ne $ExpectedStatus -or -not $noStore) {
+    throw "Probe '$Name' returned an unexpected status or cache policy."
+  }
+}
+
+$localProofProxy = 'http://127.0.0.1:8789'
+Test-ProofProxy Challenge "$localProofProxy/google-proof/challenge" POST 200 '{}'
+Test-ProofProxy VerifyFixture "$localProofProxy/google-proof/verify" POST 401 '{"challengeId":"fictional-challenge-id","idToken":"abc.def.ghi"}'
+Test-ProofProxy UnknownPath "$localProofProxy/other" POST 404 '{}'
+Test-ProofProxy WrongMethod "$localProofProxy/google-proof/challenge" GET 404
+Test-ProofProxy QueryString "$localProofProxy/google-proof/challenge?probe=fixture" POST 404 '{}'
+Test-ProofProxy TrailingSlash "$localProofProxy/google-proof/challenge/" POST 404 '{}'
+Test-ProofProxy FunnelMarker "$localProofProxy/google-proof/challenge" POST 404 '{}' @{ 'Tailscale-Funnel-Request' = '?1' }
+$atLimit = '{}' + (' ' * 12286)
+Test-ProofProxy ExactLimit "$localProofProxy/google-proof/challenge" POST 200 $atLimit
+Test-ProofProxy OverLimit "$localProofProxy/google-proof/challenge" POST 413 ($atLimit + ' ')
+```
+
+The limit probes send a declared content length. The Caddy body reader also
+caps requests streamed without one. During an approved failure test with the
+verifier stopped and Caddy still running, the same challenge probe should
+return `502` with `NoStore` true. Bring the verifier back before continuing.
+
+To check the private HTTPS route from PowerShell on an approved device, use
+the same probe function and the origin reported by Serve:
+
+```powershell
+$tailnetProofOrigin = (Read-Host 'Private Serve HTTPS origin').TrimEnd('/')
+if ($tailnetProofOrigin -notmatch '^https://[a-z0-9.-]+\.ts\.net$') {
+  throw 'Enter only the HTTPS origin reported by Serve.'
+}
+Test-ProofProxy TailnetChallenge "$tailnetProofOrigin/google-proof/challenge" POST 200 '{}'
+Test-ProofProxy TailnetQuery "$tailnetProofOrigin/google-proof/challenge?probe=fixture" POST 404 '{}'
+```
+
+On the enrolled Android phone, keep Tailscale connected and open the HTTPS
+origin with `/google-proof/challenge` appended in Chrome. The browser sends a
+GET, so the expected result is **Proof route unavailable.** over trusted
+HTTPS. A certificate warning or connection error is a failed reachability
+check. This is the phone's TLS and reachability check. The signed development
+app will exercise the Android POST flow in the later device verification.
+
+### Stop the proof proxy
+
+Press **Ctrl+C** in the Serve terminal first. Confirm with
+`tailscale serve status` and `tailscale funnel status` that this mapping is
+gone. If it remains and the status confirms it is this proof mapping, remove
+it from Administrator PowerShell:
+
+```powershell
+tailscale serve --https=443 http://127.0.0.1:8789 off
+```
+
+Then press **Ctrl+C** in the Caddy terminal. Run the status commands again to
+check the proof mapping is gone. Before requesting an Android build, confirm
+the allowlist and private HTTPS checks pass and retain the
+[signed Android build checklist](../../mobile/README.md#create-a-signed-android-development-build).
 
 ## HTTP contract
 

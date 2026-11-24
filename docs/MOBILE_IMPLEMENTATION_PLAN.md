@@ -5,6 +5,7 @@ establishes the [native app foundation](../mobile/README.md). Task 4B prepares
 the [Google sign-in device proof](../mobile/README.md#native-google-sign-in-proof).
 Task 4B.1 adds the [standalone proof verifier](../tools/google-proof-verifier/README.md).
 Task 4B.2 adds [local test-account enrollment](../tools/google-proof-verifier/README.md#enroll-a-test-account-on-windows).
+Task 4B.3 prepares the [private Caddy and Tailscale Serve route](../tools/google-proof-verifier/README.md#dedicated-https-origin).
 Verifier deployment, signed-device verification, and the mobile API are pending.
 
 ## Architecture And Scope
