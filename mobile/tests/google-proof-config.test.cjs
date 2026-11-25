@@ -89,7 +89,7 @@ test("Expo disables request body inspection in both native development builds", 
   const plugin = config.plugins.find((name) => name === "./plugins/without-network-inspector.js");
   assert.ok(plugin);
 
-  const projectRoot = path.resolve(__dirname, "..");
+  const projectRoot = path.dirname(require.resolve("../app.json"));
   const configured = withStaticPlugin(config, { plugin, projectRoot });
   const result = await compileModsAsync(configured, {
     projectRoot,

@@ -8,10 +8,10 @@ Task 4B.2 adds [local test-account enrollment](../tools/google-proof-verifier/RE
 Task 4B.3 prepares the [private Caddy and Tailscale Serve route](../tools/google-proof-verifier/README.md#dedicated-https-origin).
 Task 4B.4A requires a [fresh EAS archive safety check](../mobile/README.md#inspect-the-eas-upload-archive) before cloud builds.
 Task 4B.5 records the [successful signed Android device proof](../mobile/README.md#signed-android-verification).
-Android is the primary MVP development and verification platform. Android
-authentication closure is pending mobile lint. The shared mobile API is the
-next implementation phase. Signed physical iOS verification is deferred to
-the iOS release path.
+Task 4B.6 closes Android authentication verification after all required
+automated checks passed. Android is the primary MVP development and
+verification platform. The shared mobile API is the next implementation phase.
+Signed physical iOS verification is deferred to the iOS release path.
 
 ## Architecture And Scope
 
@@ -37,8 +37,8 @@ locked safeguards live in the [Product Spec](PRODUCT_SPEC.md) and
 
 ### Milestone Order
 
-1. Close Android authentication verification after the signed-device proof
-   and the outstanding automated check pass.
+1. **Complete.** Close Android authentication verification after the
+   signed-device proof, 14 automated proof tests, mobile lint, and typecheck pass.
 2. Implement the shared mobile authentication backend and account/setup gate,
    then the shared financial read and write APIs.
 3. Deliver the shared app's dashboard, transactions, and expense flow and
@@ -512,10 +512,9 @@ The APK signer matched the development OAuth registration. The verifier
 accepted a fresh sign-in, and the device recovered from cancellation with a
 successful new attempt. The tested stack was Expo SDK 58.0.26, React 19.3.0,
 React Native 0.88.1, Nitro Google Sign-In 2.3.1, and Nitro Modules 0.37.2.
-The proof regression tests and mobile typecheck passed. Android closure awaits
-the mobile lint check, which flagged a pre-existing `__dirname` reference in
-the proof configuration test. **Signed iOS verification is deferred and
-required before iOS release.**
+**Android authentication verification is complete.** In Task 4B.6, all 14 proof
+regression tests, mobile lint, and mobile typecheck passed.
+**Signed iOS verification is deferred and required before iOS release.**
 
 - **Objective and dependency** — Prove the selected Expo, React Native, and
   native Google SDK combination with non-production credentials. Requires
@@ -713,7 +712,6 @@ required before iOS release.**
 
 | Gate | Recommendation and evidence required |
 | --- | --- |
-| Android proof closure | The signed device proof passed with Nitro Google Sign-In. The remaining mobile lint check must pass before the Android authentication gate closes. |
 | Signed iOS verification | The same library is provisional on iOS. When device and signing access are available, confirm the bundle ID, OAuth callback, signed nonce, verifier acceptance, and device acceptance journey before iOS release. |
 | Device API origin | Select the private HTTPS test origin and confirm browser setup and phone API requests reach the same non-production data target. The repository does not establish current external access configuration. |
 | Session and idempotency operations | Review the proposed lifetimes, receipt retention, distributed rate constraints, cleanup, redacted diagnostics, and revocation procedure. Exercise lost-response and interrupted-app recovery on devices. |

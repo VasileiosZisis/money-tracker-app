@@ -6,9 +6,9 @@ variables. A signed development build can exercise native Google sign-in
 against a dedicated test verifier.
 
 Android is the primary MVP development and verification platform for the
-shared React Native and Expo app. Android authentication closes after the
-remaining automated check passes. The shared mobile authentication backend
-and financial APIs follow the Android verification schedule in the
+shared React Native and Expo app. Android authentication verification is
+complete. The shared mobile authentication backend and financial APIs follow
+the Android verification schedule in the
 [mobile implementation plan](../docs/MOBILE_IMPLEMENTATION_PLAN.md#milestone-order).
 
 ## Versions and layout
@@ -264,9 +264,8 @@ signed proof on both successful attempts.
   Nitro Google Sign-In 2.3.1, and Nitro Modules 0.37.2. The signed APK was built
   from `4cea040` and loaded the Android proof configuration fix (`4887d58`)
   through Metro.
-- **Automated checks** — All 14 proof tests and mobile typecheck passed. The
-  existing `__dirname` lint error in `tests/google-proof-config.test.cjs`
-  still blocks formal Android closure.
+- **Automated checks** — All 14 proof tests, mobile lint, and mobile typecheck
+  passed in Task 4B.6, closing Android authentication verification.
 
 ### Prepare for an iPhone test
 
