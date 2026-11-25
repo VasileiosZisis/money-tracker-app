@@ -140,8 +140,9 @@ The proof pins `react-native-nitro-google-signin@2.3.1` and its native peer
 and iOS Google Sign-In with a supplied nonce in the explicit sign-in flow.
 Its Expo plugin supports Google Cloud configuration without Firebase files.
 The locked stack meets the published npm peer ranges. The upstream compatibility
-matrix bundled with Nitro Google Sign-In lists React Native through 0.87, so
-the React Native 0.88.1 native build and device behavior need confirmation.
+matrix bundled with Nitro Google Sign-In lists React Native through 0.87.
+The [signed Android proof](#signed-android-verification) passed on 0.88.1.
+Signed iOS verification is pending.
 
 The maintained public `@react-native-google-signin/google-signin` package uses
 the legacy Android SDK. Its licensed Universal Sign-In edition offers Android
@@ -241,6 +242,25 @@ before installing pods and rebuilding the client.
 
 [EAS internal distribution](https://docs.expo.dev/build/internal-distribution/) ·
 [Android APK signer](https://developer.android.com/tools/apksigner)
+
+### Signed Android verification
+
+On 2026-11-25, a physical Android device passed fresh Google sign-in, cancellation,
+and a fresh sign-in after cancellation. The standalone verifier accepted the
+signed proof on both successful attempts.
+
+- **Signing variant** — Internal EAS `development` APK for `com.cashcontour.dev`
+  with the EAS-managed development certificate. The verified signer matched the
+  development Android OAuth registration.
+- **Tested dependencies** — Expo SDK 58.0.26, React 19.3.0, React Native 0.88.1,
+  Nitro Google Sign-In 2.3.1, and Nitro Modules 0.37.2. The signed APK was built
+  from `4cea040` and loaded the Android proof configuration fix (`4887d58`)
+  through Metro.
+- **Automated checks** — All 14 proof tests and mobile typecheck passed. The
+  existing `__dirname` lint error in `tests/google-proof-config.test.cjs`
+  still blocks formal Android closure.
+
+Signed iOS verification remains pending.
 
 ### Prepare for an iPhone test
 

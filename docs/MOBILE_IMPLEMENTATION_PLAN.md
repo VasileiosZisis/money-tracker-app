@@ -7,7 +7,9 @@ Task 4B.1 adds the [standalone proof verifier](../tools/google-proof-verifier/RE
 Task 4B.2 adds [local test-account enrollment](../tools/google-proof-verifier/README.md#enroll-a-test-account-on-windows).
 Task 4B.3 prepares the [private Caddy and Tailscale Serve route](../tools/google-proof-verifier/README.md#dedicated-https-origin).
 Task 4B.4A requires a [fresh EAS archive safety check](../mobile/README.md#inspect-the-eas-upload-archive) before cloud builds.
-Verifier deployment, signed-device verification, and the mobile API are pending.
+Task 4B.5 records the [successful signed Android device proof](../mobile/README.md#signed-android-verification).
+Android closure is pending mobile lint. Signed iOS verification and the mobile
+API remain pending.
 
 ## Architecture And Scope
 
@@ -480,8 +482,17 @@ Task 4A establishes the isolated Expo SDK 58 foundation and welcome screen.
 Task 4B adds the development-only native Google proof and its configuration.
 The proof requires dedicated OAuth clients and the standalone non-production
 verifier deployed behind a restricted HTTPS origin. Its in-memory challenge
-store is for one test instance. Signed-device verification starts on Android
-and must also pass on iOS.
+store is for one test instance.
+
+**Android device proof passed on 2026-11-25.** An internal EAS development APK
+for `com.cashcontour.dev` used the EAS-managed development signing certificate.
+The APK signer matched the development OAuth registration. The verifier
+accepted a fresh sign-in, and the device recovered from cancellation with a
+successful new attempt. The tested stack was Expo SDK 58.0.26, React 19.3.0,
+React Native 0.88.1, Nitro Google Sign-In 2.3.1, and Nitro Modules 0.37.2.
+The proof regression tests and mobile typecheck passed. Android closure awaits
+the mobile lint check, which flagged a pre-existing `__dirname` reference in
+the proof configuration test. **Signed iOS verification is pending.**
 
 - **Objective and dependency** — Prove the selected Expo, React Native, and
   native Google SDK combination with non-production credentials. Requires
@@ -675,7 +686,7 @@ and must also pass on iOS.
 
 | Gate | Recommendation and evidence required |
 | --- | --- |
-| Expo and Google SDK | Task 4A locks the SDK 58 foundation. Confirm compatibility and select the Google SDK after signed iOS and Android builds return the expected audience, presenter if present, nonce, and subject. Verify the correct app IDs, callback scheme, signing credentials, and Google consent settings. |
+| Expo and Google SDK | The development proof passed on a signed Android APK. Mobile lint remains an Android closure gate. Confirm signed iOS behavior, including the callback scheme and verifier acceptance, before selecting the Google SDK for the milestone. |
 | Device API origin | Select the private HTTPS test origin and confirm browser setup and phone API requests reach the same non-production data target. The repository does not establish current external access configuration. |
 | Session and idempotency operations | Review the proposed lifetimes, receipt retention, distributed rate constraints, cleanup, redacted diagnostics, and revocation procedure. Exercise lost-response and interrupted-app recovery on devices. |
 | Public release and identity expansion | Confirm the iOS equivalent login option, Google Play and Apple privacy and deletion obligations, and approved linking/recovery policy before public submission. Keep those decisions separate from the internal pilot. |
