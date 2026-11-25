@@ -7,6 +7,19 @@ export type GoogleProofConfig = {
   verifierOrigin: string;
 };
 
+export function readGoogleProofConfig(settings: unknown, platform: string): GoogleProofConfig | null {
+  if (!settings || typeof settings !== "object") return null;
+  const { webClientId, iosClientId, verifierOrigin } = settings as Partial<Record<keyof GoogleProofConfig, unknown>>;
+  if (typeof webClientId !== "string" || !webClientId || typeof verifierOrigin !== "string" || !verifierOrigin) {
+    return null;
+  }
+  if (platform === "android") return { webClientId, iosClientId: null, verifierOrigin };
+  if (platform === "ios" && typeof iosClientId === "string" && iosClientId) {
+    return { webClientId, iosClientId, verifierOrigin };
+  }
+  return null;
+}
+
 type ProofDependencies = {
   fetch: typeof fetch;
   requestGoogleIdToken: typeof requestGoogleIdToken;
@@ -56,6 +69,9 @@ export async function runGoogleProof(
   }
 
   const result = await requestGoogleIdToken(config, challenge.nonce);
+  if (result.status === "google-error") {
+    return { status: result.status, step: result.step, code: result.code };
+  }
   if (result.status !== "token") return result.status;
 
   const verification = await postJson(fetch, config.verifierOrigin + "/google-proof/verify", {

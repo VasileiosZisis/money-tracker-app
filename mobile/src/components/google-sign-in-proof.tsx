@@ -3,8 +3,8 @@ import { fetch } from "expo/fetch";
 import { useRef, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
-import { runGoogleProof, type GoogleProofConfig } from "@/auth/google-proof";
-import { requestGoogleIdToken } from "@/auth/google-sign-in";
+import { readGoogleProofConfig, runGoogleProof } from "@/auth/google-proof";
+import { requestGoogleIdToken, type GoogleSignInFailure } from "@/auth/google-sign-in";
 import { colors } from "@/theme/colors";
 
 const feedback = {
@@ -15,30 +15,30 @@ const feedback = {
   "no-credential": "Google did not return an ID token. Check the test account on this device.",
   "native-unavailable": "Install a development build that includes native Google sign-in.",
   "play-services-unavailable": "Google Play Services is unavailable. Check for an update on this device.",
-  "google-error": "Google sign-in could not finish. Check the development OAuth configuration.",
+  "google-error": "Google sign-in could not finish.",
   "cleanup-error": "The native Google session could not be cleared. Restart or clear the development app before trying again.",
   "challenge-error": "The test verifier did not issue a valid challenge. Check its configuration and network access.",
   "verification-error": "The test verifier did not accept this attempt. Check its redacted diagnostics.",
 };
 
 export function GoogleSignInProof({ palette }: { palette: (typeof colors)[keyof typeof colors] }) {
-  const [status, setStatus] = useState<keyof typeof feedback>("idle");
+  const [outcome, setOutcome] = useState<keyof typeof feedback | GoogleSignInFailure>("idle");
+  const status = typeof outcome === "string" ? outcome : outcome.status;
+  const message = typeof outcome === "string"
+    ? feedback[status]
+    : feedback[status] + " Diagnostic: " + outcome.step + " / " + outcome.code + ".";
   const running = useRef(false);
-  const settings = Constants.expoConfig?.extra?.googleProof as Partial<GoogleProofConfig> | undefined;
-  const { webClientId, iosClientId, verifierOrigin } = settings ?? {};
-  const config = webClientId && verifierOrigin && (Platform.OS === "android" || iosClientId)
-    ? { webClientId, iosClientId: iosClientId ?? null, verifierOrigin }
-    : null;
+  const config = readGoogleProofConfig(Constants.expoConfig?.extra?.googleProof, Platform.OS);
   const disabled = !config || status === "running" || status === "cleanup-error";
 
   async function handlePress() {
     if (!config || disabled || running.current) return;
     running.current = true;
-    setStatus("running");
+    setOutcome("running");
     try {
-      setStatus(await runGoogleProof(config, { fetch, requestGoogleIdToken }));
+      setOutcome(await runGoogleProof(config, { fetch, requestGoogleIdToken }));
     } catch {
-      setStatus("google-error");
+      setOutcome({ status: "google-error", step: "proof", code: "UNKNOWN" });
     } finally {
       running.current = false;
     }
@@ -58,7 +58,7 @@ export function GoogleSignInProof({ palette }: { palette: (typeof colors)[keyof 
         </Text>
       </Pressable>
       <Text accessibilityLiveRegion="polite" style={[styles.feedback, { color: palette.mutedForeground }]}>
-        {config ? feedback[status] : "Set up the development OAuth clients and HTTPS test verifier to run this proof."}
+        {config ? message : "Set up the development OAuth clients and HTTPS test verifier to run this proof."}
       </Text>
     </View>
   );

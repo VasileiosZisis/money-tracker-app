@@ -124,10 +124,14 @@ After inspection, remove only the generated directory at the exact
 `$archive` path under the OS temporary directory. Keep the resolved
 `$easCli` value for the eventual build so packaging uses the same CLI version.
 
-The development profile uses EAS-managed signing credentials. Keep any exported
-backup in an encrypted, access-restricted location outside the entire Git
-repository, for example under `%LOCALAPPDATA%\CashContour\Signing` on an encrypted
-Windows drive. Store its password separately in a password manager.
+The development profile uses EAS-managed signing credentials. Keep exported
+backups in an access-restricted directory outside the entire Git repository.
+Use either a BitLocker-protected volume or an AES-256 encrypted 7-Zip archive.
+Store the password separately in a password manager and enter it at the
+local prompt. For an archive, check that the keystore entry uses AES-256 and
+compare its decrypted bytes with the original in memory before removing the
+original. Any removal requires explicit approval.
+[7-Zip encryption](https://www.7-zip.org/7z.html)
 
 ## Native Google sign-in proof
 
@@ -284,6 +288,10 @@ outcomes only. [Google ID token verification](https://developers.google.com/iden
 - If Android reports cancellation after account selection without dismissal,
   check the package name, actual APK signer SHA-1, and Web client ID. Credential
   Manager can report OAuth misconfiguration as cancellation.
+- If the development screen reports a Google error, record only its diagnostic
+  step and code. The diagnostic helps distinguish the Play Services check,
+  native configuration, and the credential request. It omits provider messages
+  and credentials.
 - The proof library may cache Google credentials during the provider flow.
   The app calls the SDK's local sign-out after successful sign-in, keeps the ID
   token in memory for the verifier request, and displays only a fixed result.
