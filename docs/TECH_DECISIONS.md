@@ -92,6 +92,21 @@ email alone is insufficient to link or merge accounts. Password-based
 authentication is outside the product direction. See the
 [authentication roadmap](ROADMAP.md#authentication-roadmap).
 
+Android is the primary mobile MVP development and verification platform.
+Close Android authentication verification after its signed-device proof and
+required automated checks pass. Proceed with shared session management and
+financial APIs on the Android verification path. Keep platform-specific
+sign-in, OAuth configuration, and callbacks at the client boundary. The
+shared mobile exchange verifies a fresh server-issued nonce in the ID token.
+Shared server operations enforce the same account ownership, data isolation,
+and financial integrity requirements across transports.
+
+Nitro Google Sign-In is verified on the signed Android development variant
+and provisional on iOS. Preserve the iOS client implementation and
+configuration. Physical signed iOS verification is deferred and required
+before an iOS release. Resolve applicable public App Store login requirements
+as a separate release decision. See the [active mobile plan](MOBILE_IMPLEMENTATION_PLAN.md).
+
 ---
 
 ## Route protection + setup enforcement

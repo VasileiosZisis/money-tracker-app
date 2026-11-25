@@ -11,13 +11,22 @@ dashboard, the ideas that remain open, and the planned authentication phases.
 
 ## Selected Native Mobile Work
 
-The approved first mobile milestone is an internal iOS and Android build for
-existing Google accounts. Scope and implementation order live in the
+The first mobile milestone is an internal Android MVP for existing CashContour
+users, built on the shared React Native and Expo app for Android and iOS.
+Close Android authentication verification after its remaining automated checks
+pass. Implement shared mobile sessions and financial APIs, then verify the
+end-to-end MVP on Android. Scope and detailed order live in the
 [active mobile plan](MOBILE_IMPLEMENTATION_PLAN.md).
+
+Physical signed iOS verification is deferred until a test iPhone and Apple
+Developer Program access are available. It remains required before an iOS
+release. Keep the iOS authentication implementation and configuration in
+the shared app.
 
 ## Authentication Roadmap
 
-1. Google sign-in on native iOS and Android using existing CashContour accounts.
+1. Google sign-in with existing CashContour accounts, with Android verified
+   first and signed iOS verification deferred to the iOS release path.
 2. Email magic links on web and mobile, with explicit linking to existing accounts.
 3. Sign in with Apple and secure linking that supports private relay addresses.
 4. Facebook Login as a potential future identity provider.

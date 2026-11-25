@@ -5,6 +5,12 @@ dark appearance. The welcome screen runs without a backend or local environment
 variables. A signed development build can exercise native Google sign-in
 against a dedicated test verifier.
 
+Android is the primary MVP development and verification platform for the
+shared React Native and Expo app. Android authentication closes after the
+remaining automated check passes. The shared mobile authentication backend
+and financial APIs follow the Android verification schedule in the
+[mobile implementation plan](../docs/MOBILE_IMPLEMENTATION_PLAN.md#milestone-order).
+
 ## Versions and layout
 
 - Expo SDK 58 with Expo Router 58, React Native 0.88.1, and React 19.3.0.
@@ -42,7 +48,8 @@ describe the launch targets.
 
 With the welcome screen open, switch the system appearance between light and
 dark, check the title and text at a large system text size, and check that content
-clears the notch and system bars on both platforms.
+clears the notch and system bars. Use Android for MVP device checks. Repeat
+those checks on iOS before its release.
 
 ## Local checks
 
@@ -141,14 +148,15 @@ and iOS Google Sign-In with a supplied nonce in the explicit sign-in flow.
 Its Expo plugin supports Google Cloud configuration without Firebase files.
 The locked stack meets the published npm peer ranges. The upstream compatibility
 matrix bundled with Nitro Google Sign-In lists React Native through 0.87.
-The [signed Android proof](#signed-android-verification) passed on 0.88.1.
-Signed iOS verification is pending.
+The [signed Android proof](#signed-android-verification) verified Nitro on
+React Native 0.88.1 for the EAS development APK. The library remains
+provisional on iOS.
 
 The maintained public `@react-native-google-signin/google-signin` package uses
 the legacy Android SDK. Its licensed Universal Sign-In edition offers Android
 Credential Manager and custom nonce support and remains an alternative if the
-Nitro device proof fails. Keep the native auth choice provisional until both
-signed builds pass. [Expo comparison](https://docs.expo.dev/guides/google-authentication/) ·
+signed iOS proof fails. Any alternative must preserve signed nonce verification.
+[Expo comparison](https://docs.expo.dev/guides/google-authentication/) ·
 [Nitro setup and releases](https://github.com/react-native-nitro-google-sign-in/google-signin) ·
 [Universal Sign-In nonce support](https://react-native-google-signin.github.io/docs/security)
 
@@ -260,9 +268,13 @@ signed proof on both successful attempts.
   existing `__dirname` lint error in `tests/google-proof-config.test.cjs`
   still blocks formal Android closure.
 
-Signed iOS verification remains pending.
-
 ### Prepare for an iPhone test
+
+Physical signed iOS verification is deferred until a test iPhone and Apple
+Developer Program access are available. It remains mandatory before an iOS
+release. Keep the existing iOS sign-in and OAuth configuration support in the
+shared app. The public App Store login choice is a separate open release
+decision. [Mobile release gates](../docs/MOBILE_IMPLEMENTATION_PLAN.md#open-decisions-and-verification-gates)
 
 Use an Apple development team with signing access and register the iPhone for
 development or EAS internal provisioning. The signed app must use the approved

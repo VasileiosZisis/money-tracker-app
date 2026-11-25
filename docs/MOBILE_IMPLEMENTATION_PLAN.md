@@ -8,8 +8,10 @@ Task 4B.2 adds [local test-account enrollment](../tools/google-proof-verifier/RE
 Task 4B.3 prepares the [private Caddy and Tailscale Serve route](../tools/google-proof-verifier/README.md#dedicated-https-origin).
 Task 4B.4A requires a [fresh EAS archive safety check](../mobile/README.md#inspect-the-eas-upload-archive) before cloud builds.
 Task 4B.5 records the [successful signed Android device proof](../mobile/README.md#signed-android-verification).
-Android closure is pending mobile lint. Signed iOS verification and the mobile
-API remain pending.
+Android is the primary MVP development and verification platform. Android
+authentication closure is pending mobile lint. The shared mobile API is the
+next implementation phase. Signed physical iOS verification is deferred to
+the iOS release path.
 
 ## Architecture And Scope
 
@@ -32,6 +34,26 @@ authentication package, signed build behavior, Google Console settings, and
 device test origin require verification during implementation. Product scope and
 locked safeguards live in the [Product Spec](PRODUCT_SPEC.md) and
 [Tech Decisions](TECH_DECISIONS.md).
+
+### Milestone Order
+
+1. Close Android authentication verification after the signed-device proof
+   and the outstanding automated check pass.
+2. Implement the shared mobile authentication backend and account/setup gate,
+   then the shared financial read and write APIs.
+3. Deliver the shared app's dashboard, transactions, and expense flow and
+   verify the internal MVP on Android.
+4. When a physical iPhone and Apple Developer Program access are available,
+   complete signed iOS authentication verification and repeat the device
+   acceptance journey before an iOS release. Resolve public App Store login
+   requirements separately before submission.
+
+Keep the existing iOS sign-in implementation, OAuth client configuration,
+and callback support. Isolate platform-specific authentication at the client
+boundary. Shared session management and financial APIs apply the same
+verification, setup, ownership, data isolation, and financial rules on each
+platform. Shared implementation proceeds on the Android verification schedule
+while physical iOS testing is deferred. Signed iOS verification gates iOS release.
 
 ### Existing Code And Extraction Boundaries
 
@@ -119,18 +141,17 @@ handoff code for a mobile session through HTTPS. Browser auth adds cross-app
 return handling and handoff state. Account provisioning still goes through the
 separate web flow. [Expo Google authentication](https://docs.expo.dev/guides/google-authentication/) · [OAuth for Native Apps](https://www.rfc-editor.org/rfc/rfc8252)
 
-**Source-verified candidate** — Expo lists `react-native-nitro-google-signin`.
-In tag `v2.3.1`, the explicit sign-in flow passes the configured nonce to Android
-Credential Manager and to iOS GoogleSignIn's interactive API. The iOS silent
-restore path can return a cached token and is unsuitable for a fresh exchange.
-Task 4B pins this version for the development proof. Adopt it for mobile
-authentication only after proving that a fresh server nonce reaches the signed
-ID token unchanged on both devices, including after cancellation and a second
-attempt. Allow one interactive attempt at a time so per-attempt nonce
-configuration stays paired with its challenge.
-If the chosen combination cannot prove that binding, verify the documented
-nonce-capable Universal Sign-In option and its licensing or use the browser
-handoff. Keep nonce validation mandatory for the native token exchange.
+**Verified on Android, provisional on iOS** — Task 4B pins
+`react-native-nitro-google-signin@2.3.1`. The signed Android development
+build proved that a fresh server nonce reaches the signed ID token, including
+after cancellation and a second attempt. The tagged source passes the
+configured nonce to iOS GoogleSignIn's interactive API. The silent restore
+path can return a cached token and is unsuitable for a fresh exchange.
+Verify nonce binding on a signed physical iPhone before iOS release.
+Allow one interactive attempt at a time so each nonce stays paired with its
+challenge. If the iOS combination cannot prove that binding, verify the
+documented nonce-capable Universal Sign-In option and its licensing or use
+the browser handoff. Keep nonce validation mandatory on every exchange.
 [Tagged iOS source](https://github.com/react-native-nitro-google-sign-in/google-signin/blob/v2.3.1/ios/HybridNitroGoogleSignin.swift#L212) · [Tagged Android source](https://github.com/react-native-nitro-google-sign-in/google-signin/blob/v2.3.1/android/src/main/java/com/nitrogooglesignin/GoogleSignInController.kt#L318) · [Universal Sign-In nonce support](https://react-native-google-signin.github.io/docs/security)
 
 - **iOS.** Register the intended bundle ID and iOS OAuth client, configure its
@@ -221,15 +242,13 @@ association. Future Apple and Facebook flows use provider subjects. Bring
 the compliant iOS option forward if App Review requires it. Password-based
 registration, storage, reset, and sign-in are excluded. [Authentication roadmap](ROADMAP.md#authentication-roadmap)
 
-The internal milestone uses EAS development builds on registered iOS devices
-and Android test devices. Public iOS release is gated by App Review Guideline
-4.8. A Google login for CashContour's primary account appears to require an
-equivalent login option that preserves email privacy, limits collection, and
-meets the guideline's advertising-consent condition. Evaluate the email privacy
-criterion separately from whether a login method is passwordless. Plan to add
-Sign in with Apple before public iOS submission unless another equivalent option
-satisfies review or a documented exception applies. External TestFlight has its
-own review and distribution path. For public releases, validate privacy policy,
+The internal MVP uses an EAS development build on Android. Signed iOS device
+verification is a separate release gate. Before public iOS submission,
+resolve App Review Guideline 4.8 for CashContour's primary account login.
+Evaluate Sign in with Apple, an equivalent login that meets the guideline's
+privacy and consent conditions, and any documented exception. The public login
+choice remains open. External TestFlight has its own review and distribution
+path. For public releases, validate privacy policy,
 data disclosures, and reviewer access. Reassess account deletion if either app
 offers account creation or links users into a signup flow. Apple requires
 in-app initiation when the app supports account creation. Google Play requires
@@ -424,10 +443,13 @@ effective when the limiter or database is unavailable.
 
 ## First Milestone Acceptance
 
-1. Install internal development builds on one signed iOS device and one
-   signed Android device. Existing fictional-data web accounts can sign in
-   on either device and resolve to the same internal user. A canceled Google
-   attempt is recoverable. Invalid proof fails without account information.
+Verify this journey on Android for the internal MVP. Repeat physical device
+acceptance on a signed iPhone before iOS release.
+
+1. Install the internal signed Android development build. Existing
+   fictional-data web accounts can sign in and resolve to the same internal
+   user as on the web. A canceled Google attempt is recoverable. Invalid
+   proof fails without account information.
 2. An unknown Google subject creates no user, account, or mobile session.
    Incomplete setup and legacy unconfirmed time zones open the existing web
    setup flow. Financial reads and writes are gated until setup completes.
@@ -492,7 +514,8 @@ successful new attempt. The tested stack was Expo SDK 58.0.26, React 19.3.0,
 React Native 0.88.1, Nitro Google Sign-In 2.3.1, and Nitro Modules 0.37.2.
 The proof regression tests and mobile typecheck passed. Android closure awaits
 the mobile lint check, which flagged a pre-existing `__dirname` reference in
-the proof configuration test. **Signed iOS verification is pending.**
+the proof configuration test. **Signed iOS verification is deferred and
+required before iOS release.**
 
 - **Objective and dependency** — Prove the selected Expo, React Native, and
   native Google SDK combination with non-production credentials. Requires
@@ -505,20 +528,20 @@ the proof configuration test. **Signed iOS verification is pending.**
 - **Invariants** — Use fictional-data test accounts, dedicated non-production
   configuration, and SDK-compatible native modules. Keep the root dependency
   tree, Vercel root, and web OAuth registrations stable.
-- **Tests and acceptance** — Install exact signed builds on both platforms.
-  Verify expected issuer, audience, subject resolution, and signed nonce on
-  a fresh sign-in. Exercise cancellation, reuse of an old challenge, and a
-  new sign-in after cancellation. Record tested versions, app IDs, signing
-  variants, and the chosen integration or fallback. Web checks must remain
-  isolated from the mobile project.
+- **Tests and acceptance** — Verify expected issuer, audience, subject
+  resolution, and signed nonce on the exact signed Android development
+  build. Exercise cancellation, reuse of an old challenge, and a new sign-in
+  after cancellation. Apply these criteria to the signed physical iOS proof
+  before iOS release. Record tested versions, app IDs, signing variants, and
+  the chosen integration or fallback. Keep web checks isolated from mobile.
 - **Risk** — Platform client IDs, signing fingerprints, callback schemes, nonce
   behavior, or Play Services can differ between development and store builds.
   Capture the verification evidence for each build type before distributing it.
 
 ### 3. Implement The Mobile Session Store And Auth Endpoints
 
-- **Objective and dependency** — Add Google identity exchange and device
-  credentials after the preferences seam and native auth proof.
+- **Objective and dependency** — Add shared Google identity exchange and
+  device credentials after the preferences seam and Android proof closure.
 - **Files and required behavior** — Add additive migrations, validators under
   `lib/validators/`, mobile services under `lib/auth/`, and
   `app/api/v1/auth/` handlers. Implement challenge, exchange, refresh,
@@ -551,8 +574,9 @@ the proof configuration test. **Signed iOS verification is pending.**
   the previous account's data immediately.
 - **Tests and acceptance** — Cover cold start, rejected or failed refresh,
   refresh/logout race, late response on account switch, legacy time zone,
-  completing web setup, and wrong or unknown Google account. Both devices
-  reach the expected route and recover from temporary connectivity losses.
+  completing web setup, and wrong or unknown Google account. Verify routing
+  and recovery from temporary connectivity losses on Android for the MVP
+  and on signed iOS before its release.
 - **Risk** — A delayed refresh, cached profile, or app link can bypass UI
   gating if treated as authorization. Validate state again on each API call.
 
@@ -607,7 +631,8 @@ the proof configuration test. **Signed iOS verification is pending.**
 - **Tests and acceptance** — Cover loading, empty, error/retry, pull-to-refresh,
   pagination, type and category filters, local-midnight refetch, large and
   signed money display, and switching accounts. Check readability, touch
-  controls, and screen-reader labels on both platforms.
+  controls, and screen-reader labels on Android for the MVP. Repeat those
+  device checks on iOS before its release.
 - **Risk** — Query keys that omit filters or account scope can display stale
   rows. Device locale/presentation code can accidentally alter dates or
   precision.
@@ -624,9 +649,10 @@ the proof configuration test. **Signed iOS verification is pending.**
   exact amount strings. Preserve key reuse for online retries. Prevent
   duplicate taps, automatic offline replay, and stale post-sign-out UI.
 - **Tests and acceptance** — Execute the first milestone acceptance journey
-  on both platforms with fictional records. Include zero active expense
-  categories, a bad subcategory response, an interrupted save, and a visible
-  web read with the same expense ID. Test logout and web regressions again.
+  on Android with fictional records and repeat it before iOS release. Include
+  zero active expense categories, a bad subcategory response, an interrupted
+  save, and a visible web read with the same expense ID. Test logout and web
+  regressions again.
 - **Risk** — A save can succeed while the follow-up refetch fails. Show the
   save result and offer a data refresh without resubmitting the expense.
 
@@ -650,9 +676,10 @@ the proof configuration test. **Signed iOS verification is pending.**
   the small signed-device exercise with dedicated test accounts.
 - **Devices and EAS.** Put EAS profiles under `mobile/`. For the pilot use
   `developmentClient: true`, `distribution: internal`, a test API origin,
-  and development app/package IDs. Register iOS test devices for ad hoc
-  provisioning and distribute an internal Android APK. Test release-style
-  internal builds separately if adding a preview profile. Inspect a fresh
+  and development app/package IDs. Distribute an internal Android APK for
+  the MVP. Register an iPhone for ad hoc provisioning when signed iOS
+  verification resumes. Test release-style internal builds separately if
+  adding a preview profile. Inspect a fresh
   archive and pass the [archive safety check](../mobile/README.md#inspect-the-eas-upload-archive)
   before every EAS cloud build.
   Keep signing credentials under their existing secure management and reserve
@@ -686,7 +713,8 @@ the proof configuration test. **Signed iOS verification is pending.**
 
 | Gate | Recommendation and evidence required |
 | --- | --- |
-| Expo and Google SDK | The development proof passed on a signed Android APK. Mobile lint remains an Android closure gate. Confirm signed iOS behavior, including the callback scheme and verifier acceptance, before selecting the Google SDK for the milestone. |
+| Android proof closure | The signed device proof passed with Nitro Google Sign-In. The remaining mobile lint check must pass before the Android authentication gate closes. |
+| Signed iOS verification | The same library is provisional on iOS. When device and signing access are available, confirm the bundle ID, OAuth callback, signed nonce, verifier acceptance, and device acceptance journey before iOS release. |
 | Device API origin | Select the private HTTPS test origin and confirm browser setup and phone API requests reach the same non-production data target. The repository does not establish current external access configuration. |
 | Session and idempotency operations | Review the proposed lifetimes, receipt retention, distributed rate constraints, cleanup, redacted diagnostics, and revocation procedure. Exercise lost-response and interrupted-app recovery on devices. |
 | Public release and identity expansion | Confirm the iOS equivalent login option, Google Play and Apple privacy and deletion obligations, and approved linking/recovery policy before public submission. Keep those decisions separate from the internal pilot. |
