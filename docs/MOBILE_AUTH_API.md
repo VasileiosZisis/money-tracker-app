@@ -91,11 +91,11 @@ finishes before Google work starts. The installed Prisma client races the
 adapter's transaction startup against `maxWait`. Its late rollback calls
 the adapter method that releases the connection without issuing SQL
 `ROLLBACK`. A late acquisition can therefore return an open transaction
-to the shared pool. Keep the API disabled pending a reviewed acquisition
-and cleanup fix. Task 5E must verify that a saturated pool and late
-transaction startup cannot leave a connection queued or return it with an
-open transaction, and measure statement cancellation, lock timeouts and
-connection release. An ambiguous refresh commit
+to the shared pool. The [Task 5D.3A investigation](MOBILE_DATABASE_TRANSACTION_SAFETY.md)
+documents the installed defect, web exposure, and a proposed Task 5D.3B
+fix and fault test suite. Keep the API disabled pending a reviewed fix and
+verification. Task 5E must confirm connection and transaction safety in
+the intended deployment. An ambiguous refresh commit
 produces a service failure without returning a token pair or retrying
 automatically. The future native client must preserve the lost-response
 recovery policy, which can require fresh Google sign-in.
@@ -181,8 +181,7 @@ and session storage need separate controls and monitoring.
 The [offline route tests](../lib/api/v1/mobile-auth.test.ts) exercise the
 actual handlers, bearer guard, Google verification with synthetic signing
 keys, and transaction-bound limiter against a database double. Root lint
-and all 308 regression tests passed in the authorized run. Root typecheck
-reported `TS2345` in the logout handler. The logout result type now uses
-separate discriminants for success and invalid credentials, with no runtime
-change. Verification of that correction is pending. PostgreSQL and
-deployment behavior still require the live verification above.
+and all 308 regression tests passed before the type-only logout correction.
+The product owner confirmed that `npm run typecheck` passed with the
+correction in `66a665e`. PostgreSQL and deployment behavior still require
+the live verification above.
