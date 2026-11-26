@@ -144,6 +144,22 @@ model MobileRefreshCredential {
   @@index([sessionId])
 }
 
+model MobileRateLimitBucket {
+  policy          String
+  bucketKey       Bytes
+  windowStartedAt DateTime @db.Timestamptz(3)
+  expiresAt       DateTime @db.Timestamptz(3)
+  admittedCount   Int
+
+  @@id([policy, bucketKey])
+  @@index([expiresAt, policy, bucketKey])
+}
+
+model MobileRateLimitCapacity {
+  id          Int @id
+  bucketCount Int
+}
+
 model Category {
   id           String          @id @default(cuid())
   userId       String

@@ -19,8 +19,10 @@ Task 5B.1 closes the
 after root typecheck, lint, and all 238 regression tests passed.
 Task 5C adds the [internal session lifecycle services](MOBILE_SESSION_FOUNDATION.md#task-5c-service-interfaces).
 The schema was validated and the client generated locally. Migration and
-concurrency verification remain pending on disposable PostgreSQL. Tasks 5D
-and 5E cover public API security and backend integration.
+concurrency verification remain pending on disposable PostgreSQL. The
+product owner confirmed the final Task 5C typecheck passed on `4da6112`.
+Task 5D.1 adds the [distributed rate-limiting foundation](MOBILE_RATE_LIMITS.md).
+Tasks 5D.2 and 5E cover HTTP security integration and backend verification.
 Signed physical iOS verification remains mandatory before iOS release.
 
 ## Architecture And Scope
@@ -441,12 +443,10 @@ creating a replacement. Never automatically dispatch a pending write.
 | `500` / `503` | `INTERNAL_ERROR` or `TEMPORARILY_UNAVAILABLE`. Keep details in redacted server diagnostics and show a retry action for recoverable failures. |
 
 Bound JSON sizes before parsing, with a proposed 16 KiB limit on these small
-bodies and `413 REQUEST_TOO_LARGE` above it. Rate limit challenge/exchange per
-trusted source and exchange attempts per challenge. Rate limit refresh by
-source and session and writes by authenticated account. Use an enforcement
-mechanism shared across instances. Start with testable limits, for example
-10 challenges per minute per source and five exchange attempts per challenge.
-Tune thresholds with pilot traffic and validate shared-network behavior.
+bodies and `413 REQUEST_TOO_LARGE` above it. Apply the
+[shared pilot rate-limit policies](MOBILE_RATE_LIMITS.md#pilot-policies),
+including the full challenge-lifetime budget. Tune thresholds with pilot
+traffic and validate shared-network behavior.
 Authentication and validation failures map to their own errors. Provider
 outages and database failures return service errors. Keep access checks
 effective when the limiter or database is unavailable.
@@ -554,9 +554,10 @@ Task 5B implements Google identity verification and existing-account lookup.
 Task 5B.1 verified the reviewed implementation offline. The
 [mobile session foundation](MOBILE_SESSION_FOUNDATION.md#task-5b1-verification)
 records the results, pending integration checks, and separate security triage.
-Task 5C implements internal atomic lifecycle services. The remaining work is
-Task 5D (versioned endpoints and API security) and Task 5E (backend
-integration and security verification).
+Task 5C implements internal atomic lifecycle services. Task 5D.1 implements
+the [durable limiter and trusted source module](MOBILE_RATE_LIMITS.md).
+Task 5D.2 will wire the limiter and lifecycle services into versioned HTTP
+endpoints. Task 5E covers PostgreSQL integration and security verification.
 
 - **Objective and dependency** — Add shared Google identity exchange and
   device credentials after the preferences seam and Android proof closure.

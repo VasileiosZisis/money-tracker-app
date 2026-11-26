@@ -188,8 +188,9 @@ The migration remains unapplied.
 
 Root lint and all 261 regression tests passed, including 23 offline
 lifecycle tests. The authorized typecheck flagged the grouped account
-lookup result type. The outcome types were corrected after that run, and
-verification of the corrected source awaits separately authorized checks.
+lookup result type. After the correction, the product owner confirmed that
+`npm run typecheck` passed on reviewed commit
+`4da611232d70f81638f1670234787b42bb2af227`.
 
 | Internal operation | Successful result and rejection behavior |
 | --- | --- |
@@ -340,13 +341,14 @@ Google signatures with offline certificate fixtures for lifecycle testing.
   separate.
 - **Revocation operations** — Approve and exercise operator authorization,
   redacted audit, and incident handling before exposing any operator action.
-- **5D** — Add strict versioned JSON schemas and request-body limits before
-  parsing. Configure trusted request-source identification and distributed
-  rate limits across instances, including bucket expiry, bounded storage and
-  cleanup, and failure behavior. Keep errors generic, responses uncached,
-  and diagnostics redacted. Add bearer authentication and account setup
-  enforcement before financial data access. Expose public auth endpoints
-  only once their security controls are in place.
+- **5D.1** — The [durable rate limiter](MOBILE_RATE_LIMITS.md) defines trusted
+  source extraction, bounded storage and cleanup, and the refresh replay
+  integration order. The additive migration remains unapplied.
+- **5D.2** — Add strict versioned JSON schemas and request-body limits before
+  parsing. Wire the trusted source and limiter into the HTTP boundary. Keep
+  errors generic, responses uncached, and diagnostics redacted. Add bearer
+  authentication and account setup enforcement before financial data access.
+  Expose public auth endpoints only once their security controls are in place.
 - **5E** — Verify the migration, transaction and API behavior on a separately
   authorized disposable PostgreSQL target. Confirm a non-production HTTPS
   origin and approved deployment access for enrolled devices while preserving
