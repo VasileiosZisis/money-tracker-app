@@ -7,7 +7,7 @@ import { digestMobileNonce } from "./credentials";
 import { readMobileGoogleConfig } from "./google-config";
 
 const googleIssuers = ["accounts.google.com", "https://accounts.google.com"];
-const maxTokenLength = 16 * 1024;
+export const maxMobileGoogleIdTokenLength = 16 * 1024;
 const maxFutureExpirySeconds = 24 * 60 * 60;
 const allowedIssuedAtSkewSeconds = 5 * 60;
 const digestByteLength = 32;
@@ -125,7 +125,7 @@ export async function verifyMobileGoogleProof(
   }
   const expectedDigest = Buffer.from(expectedNonceDigest);
 
-  if (typeof idToken !== "string" || idToken.length > maxTokenLength) return { status: "invalid_proof" };
+  if (typeof idToken !== "string" || idToken.length > maxMobileGoogleIdTokenLength) return { status: "invalid_proof" };
   const token = readCompactToken(idToken);
   // The unsigned payload can only cause early rejection. Authority comes from the library's verified ticket.
   if (!token || !readIdentityClaims(token.payload, audience, allowedPresenters, Date.now())) {

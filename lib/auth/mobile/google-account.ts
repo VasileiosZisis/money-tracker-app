@@ -7,7 +7,9 @@ import { isVerifiedMobileGoogleProof, type VerifiedMobileGoogleProof } from "./g
 
 type GoogleAccountLookup =
   | { status: "linked"; userId: string }
-  | { status: "account_not_linked" | "database_unavailable" | "invalid_proof" };
+  | { status: "account_not_linked" }
+  | { status: "database_unavailable" }
+  | { status: "invalid_proof" };
 
 export async function findMobileGoogleAccount(
   proof: VerifiedMobileGoogleProof,

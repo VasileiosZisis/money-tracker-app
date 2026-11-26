@@ -32,7 +32,7 @@ function decodeOpaqueValue(prefix: string, value: unknown): Buffer | null {
     : null;
 }
 
-function digest(purpose: MobileTokenPurpose | "nonce", bytes: Buffer): Buffer {
+function digest(purpose: MobileTokenPurpose | "nonce", bytes: Buffer): Buffer<ArrayBuffer> {
   return createHash("sha256")
     .update(`cashcontour:mobile:v1:${purpose}\0`, "utf8")
     .update(bytes)
@@ -43,7 +43,7 @@ export function createMobileToken(purpose: MobileTokenPurpose): string {
   return createOpaqueValue(tokenPrefixes[purpose]);
 }
 
-export function digestMobileToken(purpose: MobileTokenPurpose, value: unknown): Buffer | null {
+export function digestMobileToken(purpose: MobileTokenPurpose, value: unknown): Buffer<ArrayBuffer> | null {
   const bytes = decodeOpaqueValue(tokenPrefixes[purpose], value);
   return bytes === null ? null : digest(purpose, bytes);
 }
@@ -60,7 +60,7 @@ export function createMobileNonce(): string {
   return randomBytes(randomByteLength).toString("hex");
 }
 
-export function digestMobileNonce(value: unknown): Buffer | null {
+export function digestMobileNonce(value: unknown): Buffer<ArrayBuffer> | null {
   if (typeof value !== "string" || value.length !== randomByteLength * 2 || /[^0-9a-f]/.test(value)) {
     return null;
   }

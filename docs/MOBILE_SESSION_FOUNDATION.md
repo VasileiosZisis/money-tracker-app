@@ -5,13 +5,12 @@ Task 5A adds the [Prisma models](../prisma/schema.prisma), an
 and server-only [credential](../lib/auth/mobile/credentials.ts) and
 [expiry](../lib/auth/mobile/expiry.ts) primitives. The migration is unexecuted
 and requires verification against a separately authorized disposable
-PostgreSQL target. The transaction rules below specify future services and
-endpoints. See the [active mobile plan](MOBILE_IMPLEMENTATION_PLAN.md).
+PostgreSQL target. See the [active mobile plan](MOBILE_IMPLEMENTATION_PLAN.md).
 
 Task 5B adds server-only Google proof verification and existing-account
-lookup. Its verification tests use synthetic keys and a controlled offline
-transport. Actual OAuth configuration, Prisma client generation from the
-Task 5A schema, and live Google and PostgreSQL integration await verification.
+lookup. [Task 5B.1](#task-5b1-verification) closes its offline verification gate.
+Task 5C implements the [internal lifecycle services](#task-5c-service-interfaces).
+Public endpoints and live integration verification remain pending.
 
 ## Identity and storage
 
@@ -158,7 +157,85 @@ the library's default request and response logging interceptors. Diagnostics
 and outcome objects omit raw exceptions, tokens, subjects, nonces, and
 digests. The successful proof stays internal.
 
-## Transaction and locking rules for Task 5C
+### Task 5B.1 verification
+
+The independently reviewed commit `5aa68443ef50945b02e04e5961e2e4881ade9629`
+on `mobile-dev` passed root `npm run typecheck`, `npm run lint`, and `npm test`
+(238 of 238). The tests exercised Google's actual RSA signature verification
+using synthetic keys and an offline certificate transport.
+
+- **Google integration** — The actual mobile OAuth audience and allowed
+  presenters await confirmation. Live Google verification and certificate
+  retrieval remain unverified.
+- **Persistence at Task 5B.1** — Prisma client generation from the Task 5A
+  schema was still unverified. Task 5C validated and generated the client
+  offline. PostgreSQL migration and concurrency verification are pending.
+- **Deployment** — The Vercel project's actual Node.js runtime remains
+  unconfirmed.
+- **Dependency security** — The Task 5B audit reported 47 findings on
+  existing package entries and none on the new entries. The findings
+  require separate security triage.
+- **iOS release** — Signed physical iOS verification remains mandatory.
+
+### Task 5C service interfaces
+
+The [session services](../lib/auth/mobile/session-service.ts) and
+[cleanup service](../lib/auth/mobile/cleanup-service.ts) run on the server.
+The installed Prisma 7.5.0 CLI validated the schema and generated
+`MobileAuthChallenge`, `MobileSession`, and `MobileRefreshCredential`
+using a temporary config and fictional loopback URL. The config was removed.
+The migration remains unapplied.
+
+Root lint and all 261 regression tests passed, including 23 offline
+lifecycle tests. The authorized typecheck flagged the grouped account
+lookup result type. The outcome types were corrected after that run, and
+verification of the corrected source awaits separately authorized checks.
+
+| Internal operation | Successful result and rejection behavior |
+| --- | --- |
+| `issueMobileAuthChallenge()` | Returns the challenge ID, nonce and expiry after the digest row commits. |
+| `exchangeMobileGoogleProof({ challengeId, idToken })` | Verifies Google proof outside the transaction, then consumes the locked challenge with either an initial token pair or a committed `account_not_linked` outcome. Rejected proof and nonce mismatches leave an unused challenge available. |
+| `authenticateMobileAccess(accessToken)` | Uses one fresh SQL statement to check the current digest, both expiries, revocation and the associated user. Returns only `userId` and `sessionId` on success. |
+| `rotateMobileRefresh(refreshToken)` | Atomically consumes the current credential, inserts its successor, and replaces access. A recognized predecessor presented again revokes only its session before returning `credential_reused`. |
+| `logoutMobileSession(refreshToken)` | Revokes the session for a recognized current or rotated credential. A well-formed unknown credential or terminal session returns the same idempotent success. A malformed credential is distinguishable for API validation. |
+| `revokeMobileSessionById(sessionId)` | Revokes one live session under the same parent lock and returns `no_change` for an absent or terminal session. This is a persistence operation for trusted callers. |
+| `cleanupExpiredMobileAuthRecords()` | Returns committed deletion counts. One invocation locks at most 50 expired challenges and 20 absolutely expired sessions in deadline/ID order, and deletes at most 200 refresh rows across those parents. A parent is deleted only when its history is empty. |
+
+Session mutations use Read Committed interactive transactions with a
+two-second acquisition limit, five-second transaction limit, 1.5-second
+PostgreSQL lock timeout and three-second statement timeout. Final checks and
+writes use the same PostgreSQL wall-clock sample after the locks. Access
+authentication uses one wall-clock sample in its own statement. Tagged Prisma
+queries bind values separately from SQL.
+
+Transaction or commit failures return `database_unavailable`. A changed
+account mapping uses the same retryable service result. Operations never
+return secrets on failure, and there is no automatic retry of an ambiguous
+transaction. A caller that reuses a consumed refresh credential after a lost
+response can be required to sign in again. Task 5D should serialize
+`credential_reused` and other refresh rejections as the same generic
+`401 UNAUTHENTICATED`, and handle database failures as
+`503 TEMPORARILY_UNAVAILABLE`. Application credentials and nonces are
+returned only after successful persistence. Raw database exceptions,
+Google proofs, SQL parameters and credential digests are excluded from
+service diagnostics.
+
+Cleanup holds the selected parent locks until the child and empty-parent
+deletes finish. It rechecks expiry after selection. A future caller can
+invoke a single batch through an authorized maintenance operation or under
+a bounded opportunistic rate limit. Keep it separate from token transactions
+and independent of auth success. This task introduces no scheduler.
+
+Before exposing an operator action, require an authenticated operator with
+explicit revocation permission and resolve the target session through a
+trusted lookup. Record a redacted incident reference, operator reference,
+time, and committed outcome in a restricted audit trail. Exclude credentials,
+digests, Google claims and raw database errors. After suspected credential
+exposure, confirm revocation through the authorized process and direct the
+affected device to fresh Google sign-in. This operational procedure remains
+unimplemented and untested.
+
+## Task 5C transaction and locking rules
 
 Use short PostgreSQL Read Committed transactions. Perform Google verification
 outside the transaction. Take the challenge row lock before final consumption.
@@ -191,8 +268,11 @@ service error.
 ### Transitions and future regression matrix
 
 These cases require separately authorized integration tests with independent
-connections and controlled lock barriers on disposable PostgreSQL. Unit tests
-exercise credential parsing, hashing, and time arithmetic only.
+connections and controlled lock barriers on disposable PostgreSQL. The
+[offline lifecycle suite](../lib/auth/mobile/session-lifecycle.test.ts)
+checks service outcomes, bound SQL values, statement order, and simulated
+rollback and commit errors. PostgreSQL locking, isolation and rollback still
+require live integration verification.
 
 | Transition | Preconditions, ordering, and committed outcome | Rejection and future coverage |
 | --- | --- | --- |
@@ -215,15 +295,51 @@ old web reads and writes, Google cookie sign-in and setup, and confirm
 existing records survive. Use synthetic inputs for verification failure
 cases and perform signed-device checks separately.
 
+### Task 5E PostgreSQL integration procedure
+
+Use only a disposable PostgreSQL target with independently acquired
+connections, separate synthetic users and at least two sessions per user.
+Apply the actual migration after separate authorization and verify the
+partial unique index, both cascades and the timestamp checks. Use synthetic
+Google signatures with offline certificate fixtures for lifecycle testing.
+
+1. Hold the challenge, account, user or session row from one connection
+   while invoking the service through another. Have a separate observer use
+   `pg_blocking_pids` to confirm the waiter reached the expected lock before
+   releasing the holder. Keep success barriers within the configured lock
+   timeout. Use a separate case that exceeds the timeout and confirms a
+   redacted service failure and no partial transition.
+2. Race two exchanges for one challenge, including an unknown-account
+   exchange. Verify exactly one commits consumption. Hold each relevant lock
+   across a challenge or proof expiry boundary and verify rejection after
+   the lock releases. Exercise user deletion and account unlink or remap
+   between lookup and pinning.
+3. Race two rotations with the same predecessor. Observe the second
+   transaction reread consumed history and commit revocation, then query
+   the successor from a fresh connection and verify it fails. Run both
+   orderings for refresh against logout, administrative revocation and user
+   deletion. Repeat logout with a rotated credential whose individual
+   expiry has passed. Verify the other sessions remain usable.
+4. Cause a write failure after challenge or refresh consumption and verify
+   rollback from an independent connection. Exercise a duplicate digest and
+   the partial unique index. Simulate a lost refresh response by discarding
+   the successful pair, then submitting its predecessor. For connection loss
+   at commit, assert the service returns no credentials, and inspect the
+   final state separately to determine whether the commit happened.
+5. Hold one expired parent or challenge lock during cleanup to exercise
+   `SKIP LOCKED`. Run two cleanup invocations on separate connections with
+   over-limit fixtures and large histories. Verify each invocation respects
+   all three limits, parents with remaining history persist, and active or
+   revoked pre-deadline sessions retain replay and logout evidence.
+
 ## Deferred security and operations
 
 - **Google deployment configuration** — Confirm the per-environment dedicated
   audience, exact allowed presenters, and actual Node.js runtime before
   non-production integration. Keep the isolated verifier's configuration
   separate.
-- **5C** — Implement the PostgreSQL lifecycle and bounded cleanup using the
-  transaction rules above. Define an administrative revocation procedure
-  with operator authorization, redacted audit, and incident handling.
+- **Revocation operations** — Approve and exercise operator authorization,
+  redacted audit, and incident handling before exposing any operator action.
 - **5D** — Add strict versioned JSON schemas and request-body limits before
   parsing. Configure trusted request-source identification and distributed
   rate limits across instances, including bucket expiry, bounded storage and

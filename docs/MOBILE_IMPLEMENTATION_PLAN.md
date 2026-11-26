@@ -14,9 +14,14 @@ verification platform. Task 5A adds the
 [mobile session foundation](MOBILE_SESSION_FOUNDATION.md) in source. Its
 migration awaits verification on a disposable PostgreSQL target. Task 5B adds
 [Google proof verification and existing-account resolution](MOBILE_SESSION_FOUNDATION.md#google-identity-verification).
-Dedicated mobile OAuth settings and live integration await verification.
-Tasks 5C–5E cover lifecycle services, API security, and integration.
-Signed physical iOS verification is deferred to the iOS release path.
+Task 5B.1 closes the
+[offline verification gate](MOBILE_SESSION_FOUNDATION.md#task-5b1-verification)
+after root typecheck, lint, and all 238 regression tests passed.
+Task 5C adds the [internal session lifecycle services](MOBILE_SESSION_FOUNDATION.md#task-5c-service-interfaces).
+The schema was validated and the client generated locally. Migration and
+concurrency verification remain pending on disposable PostgreSQL. Tasks 5D
+and 5E cover public API security and backend integration.
+Signed physical iOS verification remains mandatory before iOS release.
 
 ## Architecture And Scope
 
@@ -546,10 +551,12 @@ regression tests, mobile lint, and mobile typecheck passed.
 
 Task 5A defines persistence, credential primitives, and transaction rules.
 Task 5B implements Google identity verification and existing-account lookup.
-The [mobile session foundation](MOBILE_SESSION_FOUNDATION.md) records both.
-The remaining work is Task 5C (atomic lifecycle services), Task 5D
-(versioned endpoints and API security), and Task 5E (backend integration and
-security verification).
+Task 5B.1 verified the reviewed implementation offline. The
+[mobile session foundation](MOBILE_SESSION_FOUNDATION.md#task-5b1-verification)
+records the results, pending integration checks, and separate security triage.
+Task 5C implements internal atomic lifecycle services. The remaining work is
+Task 5D (versioned endpoints and API security) and Task 5E (backend
+integration and security verification).
 
 - **Objective and dependency** — Add shared Google identity exchange and
   device credentials after the preferences seam and Android proof closure.
