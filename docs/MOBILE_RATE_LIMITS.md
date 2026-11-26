@@ -3,8 +3,9 @@
 Task 5D.1 implements the server-only [admission and cleanup service](../lib/auth/mobile/rate-limit.ts),
 [trusted request source](../lib/auth/mobile/request-source.ts), and
 [key derivation](../lib/auth/mobile/rate-limit-keys.ts). It uses the existing
-PostgreSQL database and Prisma transaction settings. HTTP wiring belongs to
-Task 5D.2. The [additive migration](../prisma/migrations/20261126130000_add_mobile_rate_limits/migration.sql)
+PostgreSQL database and Prisma transaction settings. Task 5D.2 wires these
+controls into the [disabled-by-default API](MOBILE_AUTH_API.md). The
+[additive migration](../prisma/migrations/20261126130000_add_mobile_rate_limits/migration.sql)
 remains unapplied. Cross-instance enforcement and the deployed source
 boundary await Task 5E verification.
 
@@ -134,10 +135,12 @@ Approve an invocation strategy for both cleanup services before enabling
 the authentication API.
 [PostgreSQL locking clauses](https://www.postgresql.org/docs/current/sql-select.html#SQL-FOR-UPDATE-SHARE)
 
-Both services use the existing Read Committed wrapper with two-second
-acquisition, five-second transaction, 1.5-second lock and three-second
-statement limits. SQL parameters are bound. A failed or ambiguous commit
-returns `database_unavailable` without automatic retry or authorization.
+Both services use the existing Read Committed wrapper configured with a
+two-second Prisma startup wait, five-second transaction timeout, 1.5-second
+lock timeout and three-second statement timeout. See the
+[installed adapter startup limitation](MOBILE_AUTH_API.md#ordering-and-database-limits).
+SQL parameters are bound. A failed or ambiguous commit returns
+`database_unavailable` without automatic retry or authorization.
 
 | Result | Future HTTP behavior |
 | --- | --- |
@@ -165,12 +168,15 @@ credentials, SQL parameters and raw errors private.
    before any session rotation budget check, including when that budget is
    exhausted. Source-level rejection occurs before this work.
 3. For a live current credential, apply the stable session budget inside
-   the same transaction before issuing successors. Reuse the limiter's
-   transaction-bound implementation in Task 5D.2. Keep the lock order
+   the same transaction before issuing successors. The transaction-bound
+   helper reuses the admission algorithm. Keep the lock order
    `session → existing bucket` or `session → capacity → bucket`. Limiter
    cleanup and source admission take no session locks. Resample the
    database wall clock after limiter waits and recheck session and refresh
-   expiry before rotating. Limiter failures issue no successor credentials.
+   expiry before rotating. If expiry passed during admission, the admitted
+   attempt commits and the refresh credential stays unconsumed. Limiter
+   failures issue no successor credentials. A later write failure rolls
+   back the session admission with the rotation.
 4. Commit the logout source budget before invoking logout. Derive any
    future account-write key from authenticated internal identity.
 

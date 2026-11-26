@@ -24,8 +24,10 @@ product owner confirmed the final Task 5C typecheck passed on `4da6112`.
 Task 5D.1 adds the [distributed rate-limiting foundation](MOBILE_RATE_LIMITS.md).
 Task 5D.1.1 closes its [offline verification](MOBILE_RATE_LIMITS.md#task-5d11-verification)
 after all 278 regression tests, root lint, and root typecheck passed.
-Task 5D.2 can proceed with HTTP security integration. Task 5E covers live
-PostgreSQL and deployment verification.
+Task 5D.2 implements the [disabled-by-default authentication API](MOBILE_AUTH_API.md).
+Task 5E covers live PostgreSQL and deployment verification. Keep the API
+disabled pending the documented Prisma acquisition and cleanup fix, the
+final typecheck, and the remaining enablement gates.
 Signed physical iOS verification remains mandatory before iOS release.
 
 ## Architecture And Scope
@@ -559,9 +561,10 @@ Task 5B.1 verified the reviewed implementation offline. The
 records the results, pending integration checks, and separate security triage.
 Task 5C implements internal atomic lifecycle services. Task 5D.1 implements
 the [durable limiter and trusted source module](MOBILE_RATE_LIMITS.md).
-Task 5D.1.1 verified it offline. Task 5D.2 will wire the limiter and lifecycle
-services into versioned HTTP endpoints. Task 5E covers PostgreSQL integration
-and security verification.
+Task 5D.1.1 verified it offline. Task 5D.2 wires the limiter and lifecycle
+services into [versioned HTTP endpoints](MOBILE_AUTH_API.md) and adds the
+reusable bearer guard. Task 5E covers PostgreSQL integration and security
+verification. Keep the API disabled until its operational gates are met.
 
 - **Objective and dependency** — Add shared Google identity exchange and
   device credentials after the preferences seam and Android proof closure.

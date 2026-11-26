@@ -43,7 +43,7 @@ mock.timers.enable({ apis: ["Date"], now: initialTime });
 mock.method(globalThis, "fetch", async (url: RequestInfo | URL) => {
   assert.equal(url.toString(), "https://www.googleapis.com/oauth2/v1/certs");
   fake.trace.push("google.keys");
-  assert.equal(fake.trace.includes("tx.begin"), false, "Google must be called before the exchange transaction");
+  assert.equal(fake.inTransaction, false, "Google must be called outside any transaction");
   return failGoogleKeys
     ? Response.json({}, { status: 503 })
     : Response.json({ [kid]: pem }, { headers: { "cache-control": "max-age=0" } });
@@ -54,6 +54,7 @@ beforeEach(() => {
   failGoogleKeys = false;
   process.env.MOBILE_GOOGLE_AUDIENCE = audience;
   process.env.MOBILE_GOOGLE_ALLOWED_PRESENTERS = presenter;
+  process.env.MOBILE_RATE_LIMIT_KEY_SECRET = Buffer.alloc(32, 61).toString("base64url");
   fake.state.users.add(userId);
   fake.state.accounts.set(googleSubject, userId);
 });
@@ -147,7 +148,8 @@ test("missing, expired and consumed challenges cannot proceed to Google or a tra
   }
   assert.deepEqual(await exchangeMobileGoogleProof({ challengeId: "bad", idToken: signGoogleProof() }), { status: "invalid_proof" });
   assert.deepEqual(await exchangeMobileGoogleProof({ challengeId: seedChallenge(), idToken: "x".repeat(16 * 1024 + 1) }), { status: "invalid_proof" });
-  assert.deepEqual(fake.trace, ["challenge.read", "challenge.read", "challenge.read"]);
+  const read = ["tx.begin", "tx.settings", "tx.settings", "challenge.read", "tx.beforeCommit", "tx.commit", "tx.afterCommit"];
+  assert.deepEqual(fake.trace, [...read, ...read, ...read]);
 });
 
 test("invalid Google signatures and nonces leave a live challenge available", async () => {
@@ -155,7 +157,7 @@ test("invalid Google signatures and nonces leave a live challenge available", as
   assert.deepEqual(await exchangeMobileGoogleProof({ challengeId, idToken: signGoogleProof({}, false) }), { status: "invalid_proof" });
   assert.deepEqual(await exchangeMobileGoogleProof({ challengeId, idToken: signGoogleProof({ nonce: "cd".repeat(32) }) }), { status: "invalid_nonce" });
   assertNoExchangeWrites(challengeId);
-  assert.equal(fake.trace.includes("tx.begin"), false);
+  assert.equal(fake.trace.includes("challenge.lock"), false);
 });
 
 test("Google configuration, certificate failures and database outages are distinct from invalid proofs", async () => {
@@ -176,7 +178,8 @@ test("linked exchange pins the exact account and creates only digests and one se
   const result = await exchangeMobileGoogleProof({ challengeId, idToken: signGoogleProof() });
   assert.ok(result.status === "authenticated", `Unexpected result: ${result.status}`);
   assert.deepEqual(fake.trace, [
-    "challenge.read", "google.keys", "tx.begin", "tx.settings", "tx.settings", "challenge.lock", "account.read",
+    "tx.begin", "tx.settings", "tx.settings", "challenge.read", "tx.beforeCommit", "tx.commit", "tx.afterCommit",
+    "google.keys", "tx.begin", "tx.settings", "tx.settings", "challenge.lock", "account.read",
     "user.lock", "account.lock", "clock", "challenge.consume", "session.create", "refresh.create",
     "tx.beforeCommit", "tx.commit", "tx.afterCommit",
   ]);
@@ -290,8 +293,9 @@ test("access authentication is a fresh lookup returning only the trusted user an
   assert.deepEqual(await authenticateMobileAccess(refreshToken), { status: "invalid_credential" });
   assert.deepEqual(await authenticateMobileAccess(createMobileChallengeId()), { status: "invalid_credential" });
   assert.deepEqual(await authenticateMobileAccess("unrelated cookie"), { status: "invalid_credential" });
-  assert.deepEqual(fake.trace, ["access.read", "access.read"]);
-  assert.deepEqual(fake.sql[0].values, [tokenDigest("access", accessToken)]);
+  const read = ["tx.begin", "tx.settings", "tx.settings", "access.read", "tx.beforeCommit", "tx.commit", "tx.afterCommit"];
+  assert.deepEqual(fake.trace, [...read, ...read]);
+  assert.deepEqual(fake.sql.find(({ step }) => step === "access.read")?.values, [tokenDigest("access", accessToken)]);
 });
 
 test("access fails at both expiry boundaries, after revocation, after deletion and on database failure", async () => {
@@ -323,6 +327,7 @@ test("refresh rotates the pair, caps both expiries and leaves the original absol
   assert.deepEqual(fake.state.refresh.get(old.refreshDigestKey)?.consumedAt, expiry(0));
   assert.deepEqual(fake.trace, [
     "tx.begin", "tx.settings", "tx.settings", "refresh.candidate", "session.lock", "refresh.reread", "clock",
+    "rate.bucket.lock", "rate.capacity.lock", "rate.bucket.lock", "clock", "rate.bucket.create", "rate.capacity.update", "clock",
     "refresh.consume", "refresh.create", "session.rotate", "tx.beforeCommit", "tx.commit", "tx.afterCommit",
   ]);
   assert.deepEqual(await authenticateMobileAccess(old.accessToken), { status: "invalid_credential" });

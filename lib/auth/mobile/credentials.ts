@@ -48,6 +48,10 @@ export function digestMobileToken(purpose: MobileTokenPurpose, value: unknown): 
   return bytes === null ? null : digest(purpose, bytes);
 }
 
+export function isMobileToken(purpose: MobileTokenPurpose, value: unknown): value is string {
+  return decodeOpaqueValue(tokenPrefixes[purpose], value) !== null;
+}
+
 export function createMobileChallengeId(): string {
   return createOpaqueValue(challengePrefix);
 }

@@ -202,12 +202,13 @@ lookup result type. After the correction, the product owner confirmed that
 | `revokeMobileSessionById(sessionId)` | Revokes one live session under the same parent lock and returns `no_change` for an absent or terminal session. This is a persistence operation for trusted callers. |
 | `cleanupExpiredMobileAuthRecords()` | Returns committed deletion counts. One invocation locks at most 50 expired challenges and 20 absolutely expired sessions in deadline/ID order, and deletes at most 200 refresh rows across those parents. A parent is deleted only when its history is empty. |
 
-Session mutations use Read Committed interactive transactions with a
-two-second acquisition limit, five-second transaction limit, 1.5-second
-PostgreSQL lock timeout and three-second statement timeout. Final checks and
-writes use the same PostgreSQL wall-clock sample after the locks. Access
-authentication uses one wall-clock sample in its own statement. Tagged Prisma
-queries bind values separately from SQL.
+Session mutations use Read Committed interactive transactions configured with
+a two-second Prisma startup wait, a five-second transaction timeout, a
+1.5-second PostgreSQL lock timeout and a three-second statement timeout.
+The [installed adapter startup limitation](MOBILE_AUTH_API.md#ordering-and-database-limits)
+blocks enablement. Final checks and writes use the same PostgreSQL wall-clock
+sample after the locks. Access authentication uses one wall-clock sample
+in its own statement. Tagged Prisma queries bind values separately from SQL.
 
 Transaction or commit failures return `database_unavailable`. A changed
 account mapping uses the same retryable service result. Operations never
@@ -345,14 +346,14 @@ Google signatures with offline certificate fixtures for lifecycle testing.
   source extraction, bounded storage and cleanup, and the refresh replay
   integration order. Task 5D.1.1 closed offline verification with 278 passing
   regressions, lint, and typecheck. Both mobile migrations remain unapplied.
-- **5D.2** — Add strict versioned JSON schemas and request-body limits before
-  parsing. Wire the trusted source and limiter into the HTTP boundary. Apply
-  session rotation admission inside the refresh transaction, after the
-  replay revocation decision. Obtain approval for how authentication-record
-  and rate-limit cleanup will run before enabling the API. Keep
-  errors generic, responses uncached, and diagnostics redacted. Add bearer
-  authentication and account setup enforcement before financial data access.
-  Expose public auth endpoints only once their security controls are in place.
+- **5D.2** — The [mobile authentication API](MOBILE_AUTH_API.md) implements
+  strict bounded JSON, the trusted source and budgets, and a reusable bearer
+  guard. Refresh checks replay revocation before admitting a session
+  rotation inside the same transaction. The preliminary challenge and
+  bearer lookups use the transaction wrapper's PostgreSQL statement limits.
+  Before enablement, resolve the adapter startup issue, approve maintenance
+  for both cleanup services, and verify the database and deployment boundary.
+  Account setup enforcement remains with the account milestone.
 - **5E** — Verify the migration, transaction and API behavior on a separately
   authorized disposable PostgreSQL target, including limiter locking,
   capacity accounting and cross-instance enforcement. Verify actual Vercel

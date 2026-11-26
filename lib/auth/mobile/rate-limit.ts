@@ -25,12 +25,12 @@ const policies = {
 } as const;
 
 type PolicyName = keyof typeof policies;
-type SourcePolicy = {
+export type MobileSourceRateLimitPolicy = {
   [P in PolicyName]: (typeof policies)[P]["scope"] extends "source" ? P : never;
 }[PolicyName];
 
 export type MobileRateLimitInput =
-  | { policy: SourcePolicy; source: TrustedMobileRequestSource }
+  | { policy: MobileSourceRateLimitPolicy; source: TrustedMobileRequestSource }
   | { policy: "exchange_challenge"; challengeId: string }
   // These IDs come from authenticated server state, including the locked session for refresh.
   | { policy: "refresh_session"; sessionId: string }
@@ -174,18 +174,35 @@ async function admitInTransaction(
   return { status: "allowed" };
 }
 
-export async function admitMobileRateLimit(input: MobileRateLimitInput): Promise<MobileRateLimitResult> {
-  if (!Object.hasOwn(policies, input.policy)) return { status: "scope_unavailable" };
+function prepareAdmission(input: MobileRateLimitInput) {
+  if (!Object.hasOwn(policies, input.policy)) return { status: "scope_unavailable" } as const;
   const { scope } = policies[input.policy];
   const value = readScopeIdentity(input);
-  if (value === undefined) return { status: scope === "source" ? "source_unavailable" : "scope_unavailable" };
+  if (value === undefined) return { status: scope === "source" ? "source_unavailable" : "scope_unavailable" } as const;
 
   const secret = readMobileRateLimitSecret();
-  if (!secret) return { status: "configuration_error" };
+  if (!secret) return { status: "configuration_error" } as const;
   const identity = { policy: input.policy, bucketKey: deriveMobileRateLimitKey(secret, input.policy, scope, value) };
   const challengeId = input.policy === "exchange_challenge" ? input.challengeId : null;
 
-  return runMobileTransaction((tx) => admitInTransaction(tx, identity, challengeId));
+  return { status: "prepared", identity, challengeId } as const;
+}
+
+export async function admitMobileRateLimit(input: MobileRateLimitInput): Promise<MobileRateLimitResult> {
+  const admission = prepareAdmission(input);
+  if (admission.status !== "prepared") return admission;
+  return runMobileTransaction((tx) => admitInTransaction(tx, admission.identity, admission.challengeId));
+}
+
+// The refresh transaction holds the trusted session row lock. Database errors must
+// propagate to that transaction so its admission and credential writes roll back together.
+export async function admitMobileRefreshSession(
+  tx: Prisma.TransactionClient,
+  sessionId: string,
+): Promise<MobileRateLimitResult> {
+  const admission = prepareAdmission({ policy: "refresh_session", sessionId });
+  if (admission.status !== "prepared") return admission;
+  return admitInTransaction(tx, admission.identity, admission.challengeId);
 }
 
 export function cleanupExpiredMobileRateLimits(): Promise<MobileRateLimitCleanupResult> {

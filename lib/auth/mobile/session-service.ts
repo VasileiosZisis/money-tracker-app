@@ -3,7 +3,6 @@ import "server-only";
 import { timingSafeEqual } from "node:crypto";
 
 import type { Prisma } from "@/generated/prisma/client";
-import { db } from "@/lib/db";
 
 import {
   createMobileChallengeId,
@@ -18,12 +17,12 @@ import { findMobileGoogleAccount } from "./google-account";
 import { maxMobileGoogleIdTokenLength, verifyMobileGoogleProof, type MobileGoogleVerification } from "./google-verification";
 import {
   mobileDatabaseClock,
-  readMobileDatabase,
   readMobileDatabaseTime,
   requireSingleMobileWrite,
   runMobileTransaction,
   type MobileDatabaseFailure,
 } from "./lifecycle-store";
+import { admitMobileRefreshSession, type MobileRateLimitResult } from "./rate-limit";
 
 type MobileTokens = {
   accessToken: string;
@@ -51,10 +50,11 @@ export type MobileAccessResult =
 export type MobileRefreshResult =
   | { status: "rotated"; tokens: MobileTokens }
   | { status: "invalid_credential" | "credential_reused" }
-  | MobileDatabaseFailure;
+  | Exclude<MobileRateLimitResult, { status: "allowed" }>;
 
 export type MobileLogoutResult =
-  | { status: "logged_out" | "malformed_credential" }
+  | { status: "logged_out" }
+  | { status: "malformed_credential" }
   | MobileDatabaseFailure;
 
 export type MobileRevocationResult =
@@ -117,7 +117,7 @@ export async function exchangeMobileGoogleProof({
     typeof idToken !== "string" || !idToken || idToken.length > maxMobileGoogleIdTokenLength
   ) return { status: "invalid_proof" };
 
-  const preliminary = await readMobileDatabase(() => db.$queryRaw<{ nonceDigest: Uint8Array }[]>`
+  const preliminary = await runMobileTransaction((tx) => tx.$queryRaw<{ nonceDigest: Uint8Array }[]>`
     SELECT "nonceDigest" FROM "MobileAuthChallenge"
     WHERE "id" = ${challengeId}
       AND "consumedAt" IS NULL AND "expiresAt" > ${mobileDatabaseClock}
@@ -126,7 +126,7 @@ export async function exchangeMobileGoogleProof({
   const [candidate] = preliminary;
   if (!candidate) return { status: "invalid_proof" };
 
-  // Google certificate retrieval and signature verification happen before taking any locks.
+  // The preliminary read has committed before any Google work or exchange locks.
   let verification: MobileGoogleVerification;
   try {
     verification = await verifyMobileGoogleProof(idToken, candidate.nonceDigest);
@@ -182,8 +182,8 @@ export async function authenticateMobileAccess(accessToken: unknown): Promise<Mo
   const digest = digestMobileToken("access", accessToken);
   if (!digest) return { status: "invalid_credential" };
 
-  return readMobileDatabase<MobileAccessResult>(async () => {
-    const [identity] = await db.$queryRaw<{ userId: string; sessionId: string }[]>`
+  return runMobileTransaction<MobileAccessResult>(async (tx) => {
+    const [identity] = await tx.$queryRaw<{ userId: string; sessionId: string }[]>`
       WITH auth_time AS MATERIALIZED (SELECT ${mobileDatabaseClock} AS "now")
       SELECT u."id" AS "userId", s."id" AS "sessionId"
       FROM "MobileSession" s
@@ -249,13 +249,22 @@ export async function rotateMobileRefresh(refreshToken: unknown): Promise<Mobile
     }
     if (isMobileExpiryReached(credential.expiresAt, now)) return { status: "invalid_credential" };
 
-    const { tokens, accessTokenDigest, refreshTokenDigest } = createSessionCredentials(now, session.absoluteExpiresAt);
+    const admission = await admitMobileRefreshSession(tx, session.id);
+    if (admission.status !== "allowed") return admission;
+
+    const rotationTime = await readMobileDatabaseTime(tx);
+    if (!isLiveSession(session, rotationTime) || isMobileExpiryReached(credential.expiresAt, rotationTime)) {
+      // Commit the admitted attempt. The credential stays unconsumed when a limiter wait crossed expiry.
+      return { status: "invalid_credential" };
+    }
+
+    const { tokens, accessTokenDigest, refreshTokenDigest } = createSessionCredentials(rotationTime, session.absoluteExpiresAt);
     requireSingleMobileWrite(await tx.mobileRefreshCredential.updateMany({
       where: { tokenDigest, sessionId: session.id, consumedAt: null },
-      data: { consumedAt: now },
+      data: { consumedAt: rotationTime },
     }));
     await tx.mobileRefreshCredential.create({
-      data: { sessionId: session.id, tokenDigest: refreshTokenDigest, issuedAt: now, expiresAt: tokens.refreshExpiresAt },
+      data: { sessionId: session.id, tokenDigest: refreshTokenDigest, issuedAt: rotationTime, expiresAt: tokens.refreshExpiresAt },
       select: { sessionId: true },
     });
     requireSingleMobileWrite(await tx.mobileSession.updateMany({

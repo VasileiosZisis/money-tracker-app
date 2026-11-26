@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 
-import { Prisma, type MobileAuthChallenge, type MobileRefreshCredential, type MobileSession } from "@/generated/prisma/client";
+import { Prisma, type MobileAuthChallenge, type MobileRateLimitBucket, type MobileRefreshCredential, type MobileSession } from "@/generated/prisma/client";
 
 type MemoryDatabase = {
   users: Set<string>;
@@ -8,6 +8,8 @@ type MemoryDatabase = {
   challenges: Map<string, MobileAuthChallenge>;
   sessions: Map<string, MobileSession>;
   refresh: Map<string, MobileRefreshCredential>;
+  buckets: Map<string, MobileRateLimitBucket>;
+  bucketCount: number;
   nextSession: number;
 };
 
@@ -19,6 +21,7 @@ export const fake = {
   sql: [] as { step: string; statement: string; values: readonly unknown[] }[],
   failAt: "",
   zeroAt: "",
+  inTransaction: false,
   onStep: undefined as ((step: string, state: MemoryDatabase) => void) | undefined,
 };
 
@@ -29,18 +32,24 @@ function emptyDatabase(): MemoryDatabase {
     challenges: new Map(),
     sessions: new Map(),
     refresh: new Map(),
+    buckets: new Map(),
+    bucketCount: 0,
     nextSession: 1,
   };
 }
 
 export function resetLifecycleTestDatabase() {
   Object.assign(fake, {
-    state: emptyDatabase(), now: initialTime, trace: [], sql: [], failAt: "", zeroAt: "", onStep: undefined,
+    state: emptyDatabase(), now: initialTime, trace: [], sql: [], failAt: "", zeroAt: "", inTransaction: false, onStep: undefined,
   });
 }
 
 export function digestKey(value: Uint8Array): string {
   return Buffer.from(value).toString("hex");
+}
+
+export function rateBucketKey(policy: string, bytes: Uint8Array): string {
+  return `${policy}:${digestKey(bytes)}`;
 }
 
 function record(step: string, state: MemoryDatabase) {
@@ -78,7 +87,7 @@ function makeClient(state: MemoryDatabase, inTransaction: boolean) {
         return [{ now: new Date(fake.now) }];
       }
       if (query.includes("JOIN \"User\"")) {
-        assert.equal(inTransaction, false);
+        assert.ok(inTransaction);
         recordSql("access.read", state, sql);
         assert.match(query, /WITH auth_time AS MATERIALIZED .*clock_timestamp\(\)/);
         assert.match(query, /"accessTokenDigest" = \$1 AND s\."revokedAt" IS NULL/);
@@ -88,6 +97,21 @@ function makeClient(state: MemoryDatabase, inTransaction: boolean) {
           state.users.has(row.userId) && row.revokedAt === null &&
           row.accessExpiresAt.getTime() > fake.now && row.absoluteExpiresAt.getTime() > fake.now);
         return session ? [{ sessionId: session.id, userId: session.userId }] : [];
+      }
+      if (query.includes('FROM "MobileRateLimitBucket"')) {
+        assert.ok(inTransaction);
+        recordSql("rate.bucket.lock", state, sql);
+        assert.match(query, /"policy" = \$1 AND "bucketKey" = \$2 FOR UPDATE$/);
+        assert.ok(second instanceof Uint8Array);
+        const row = state.buckets.get(rateBucketKey(String(first), second));
+        return row ? [{ windowStartedAt: row.windowStartedAt, expiresAt: row.expiresAt, admittedCount: row.admittedCount }] : [];
+      }
+      if (query.includes('FROM "MobileRateLimitCapacity"')) {
+        assert.ok(inTransaction);
+        recordSql("rate.capacity.lock", state, sql);
+        assert.match(query, /"id" = \$1 FOR UPDATE$/);
+        assert.equal(first, 1);
+        return [{ bucketCount: state.bucketCount }];
       }
       if (query.endsWith("FOR UPDATE SKIP LOCKED")) {
         assert.ok(inTransaction);
@@ -107,7 +131,14 @@ function makeClient(state: MemoryDatabase, inTransaction: boolean) {
           const row = state.challenges.get(String(first));
           return row ? [{ nonceDigest: row.nonceDigest, expiresAt: row.expiresAt, consumedAt: row.consumedAt }] : [];
         }
-        assert.equal(inTransaction, false);
+        assert.ok(inTransaction);
+        if (query.startsWith('SELECT "createdAt" AS "windowStartedAt"')) {
+          recordSql("rate.challenge.read", state, sql);
+          assert.match(query, /"id" = \$1 AND "consumedAt" IS NULL AND "expiresAt" > date_trunc/);
+          const row = state.challenges.get(String(first));
+          return row?.consumedAt === null && row.expiresAt.getTime() > fake.now
+            ? [{ windowStartedAt: row.createdAt, expiresAt: row.expiresAt }] : [];
+        }
         recordSql("challenge.read", state, sql);
         assert.match(query, /^SELECT "nonceDigest" FROM "MobileAuthChallenge" WHERE "id" = \$1/);
         assert.match(query, /"consumedAt" IS NULL AND "expiresAt" > date_trunc\('milliseconds', clock_timestamp\(\)\)/);
@@ -159,6 +190,39 @@ function makeClient(state: MemoryDatabase, inTransaction: boolean) {
         assert.equal(provider, "google");
         const userId = state.accounts.get(providerAccountId);
         return userId ? { userId } : null;
+      },
+    },
+    mobileRateLimitBucket: {
+      async create({ data }: { data: MobileRateLimitBucket }) {
+        assert.ok(inTransaction);
+        record("rate.bucket.create", state);
+        const key = rateBucketKey(data.policy, data.bucketKey);
+        assert.equal(state.buckets.has(key), false);
+        state.buckets.set(key, data);
+        return { policy: data.policy };
+      },
+      async updateMany({ where, data }: {
+        where: Pick<MobileRateLimitBucket, "policy" | "bucketKey">;
+        data: Pick<MobileRateLimitBucket, "admittedCount" | "expiresAt" | "windowStartedAt"> |
+          { admittedCount: { increment: number } };
+      }) {
+        assert.ok(inTransaction);
+        record("rate.bucket.update", state);
+        const row = state.buckets.get(rateBucketKey(where.policy, where.bucketKey));
+        if (!row) return { count: 0 };
+        if ("expiresAt" in data) Object.assign(row, data);
+        else row.admittedCount += data.admittedCount.increment;
+        return { count: 1 };
+      },
+    },
+    mobileRateLimitCapacity: {
+      async updateMany({ where, data }: { where: { id: number; bucketCount: number }; data: { bucketCount: number } }) {
+        assert.ok(inTransaction);
+        record("rate.capacity.update", state);
+        if (where.id !== 1 || state.bucketCount !== where.bucketCount) return { count: 0 };
+        assert.ok(data.bucketCount >= 0 && data.bucketCount <= 10_000);
+        state.bucketCount = data.bucketCount;
+        return { count: 1 };
       },
     },
     mobileAuthChallenge: {
@@ -264,8 +328,10 @@ export const db = {
   },
   async $transaction<T>(transition: (client: ReturnType<typeof makeClient>) => Promise<T>, options: unknown): Promise<T> {
     assert.deepEqual(options, { isolationLevel: "ReadCommitted", maxWait: 2_000, timeout: 5_000 });
+    assert.equal(fake.inTransaction, false, "Nested transactions are not allowed");
     record("tx.begin", fake.state);
     const draft = structuredClone(fake.state);
+    fake.inTransaction = true;
     try {
       const result = await transition(makeClient(draft, true));
       record("tx.beforeCommit", draft);
@@ -276,6 +342,8 @@ export const db = {
     } catch (error) {
       if (fake.state !== draft) fake.trace.push("tx.rollback");
       throw error;
+    } finally {
+      fake.inTransaction = false;
     }
   },
 };
