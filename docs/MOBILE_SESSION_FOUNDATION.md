@@ -343,14 +343,20 @@ Google signatures with offline certificate fixtures for lifecycle testing.
   redacted audit, and incident handling before exposing any operator action.
 - **5D.1** — The [durable rate limiter](MOBILE_RATE_LIMITS.md) defines trusted
   source extraction, bounded storage and cleanup, and the refresh replay
-  integration order. The additive migration remains unapplied.
+  integration order. Task 5D.1.1 closed offline verification with 278 passing
+  regressions, lint, and typecheck. Both mobile migrations remain unapplied.
 - **5D.2** — Add strict versioned JSON schemas and request-body limits before
-  parsing. Wire the trusted source and limiter into the HTTP boundary. Keep
+  parsing. Wire the trusted source and limiter into the HTTP boundary. Apply
+  session rotation admission inside the refresh transaction, after the
+  replay revocation decision. Obtain approval for how authentication-record
+  and rate-limit cleanup will run before enabling the API. Keep
   errors generic, responses uncached, and diagnostics redacted. Add bearer
   authentication and account setup enforcement before financial data access.
   Expose public auth endpoints only once their security controls are in place.
 - **5E** — Verify the migration, transaction and API behavior on a separately
-  authorized disposable PostgreSQL target. Confirm a non-production HTTPS
-  origin and approved deployment access for enrolled devices while preserving
-  preview protection and database isolation. Physical signed iOS verification
-  remains a release gate.
+  authorized disposable PostgreSQL target, including limiter locking,
+  capacity accounting and cross-instance enforcement. Verify actual Vercel
+  ingress and forwarding-header spoofing resistance. Confirm a non-production
+  HTTPS origin and approved deployment access for enrolled devices while
+  preserving preview protection and database isolation. Physical signed
+  iOS verification remains a release gate.

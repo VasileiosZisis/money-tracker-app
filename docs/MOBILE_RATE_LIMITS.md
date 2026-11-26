@@ -8,12 +8,22 @@ Task 5D.2. The [additive migration](../prisma/migrations/20261126130000_add_mobi
 remains unapplied. Cross-instance enforcement and the deployed source
 boundary await Task 5E verification.
 
-The installed Prisma CLI validated the schema and generated both rate-limit
-models with a temporary config and fictional loopback URL. Root lint and
-typecheck passed. The authorized test run passed 277 of 278 tests. The
-remaining test used a database double that returned an extra field missing
-from the real SQL projection. The fixture was corrected after that run.
-Verification of the corrected fixture awaits a separately authorized run.
+## Task 5D.1.1 verification
+
+The independently reviewed commit `aeace97f99edb6a2b8481cdf22503c555de259f5`
+on `mobile-dev` passed all 278 root regression tests, including the
+corrected challenge-lifetime fixture and the backward-clock regression.
+Root lint and typecheck passed using the existing generated Prisma client.
+The Task 5D.1 schema validation and generation had already passed with a
+temporary config and fictional loopback URL.
+
+The offline rate-limiter verification gate is closed, so Task 5D.2 can
+proceed. Both mobile authentication migrations remain unapplied.
+PostgreSQL locking, capacity accounting and cross-instance enforcement,
+Vercel ingress and header spoofing resistance, dedicated Google OAuth
+configuration and live Google integration, and the deployed Node.js runtime
+remain unverified. Existing dependency advisories require separate security
+triage. Signed physical iOS verification remains mandatory before release.
 
 ## Trusted source and bucket keys
 
@@ -120,6 +130,8 @@ authentication-record cleanup in separate bounded transactions. A future
 authorized maintenance caller can run single batches, measure deleted
 counts and capacity rejections, and schedule follow-up batches if needed.
 No scheduler is installed. Failure or delay keeps the limiter in force.
+Approve an invocation strategy for both cleanup services before enabling
+the authentication API.
 [PostgreSQL locking clauses](https://www.postgresql.org/docs/current/sql-select.html#SQL-FOR-UPDATE-SHARE)
 
 Both services use the existing Read Committed wrapper with two-second
