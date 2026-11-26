@@ -101,6 +101,11 @@ shared mobile exchange verifies a fresh server-issued nonce in the ID token.
 Shared server operations enforce the same account ownership, data isolation,
 and financial integrity requirements across transports.
 
+Mobile sessions have an additive persistence and credential design with
+per-session refresh history and single-use challenges. See the
+[mobile session foundation](MOBILE_SESSION_FOUNDATION.md) for the Task 5A
+source status, lifecycle rules, and database verification gates.
+
 Nitro Google Sign-In is verified on the signed Android development variant
 and provisional on iOS. Preserve the iOS client implementation and
 configuration. Physical signed iOS verification is deferred and required

@@ -10,7 +10,10 @@ Task 4B.4A requires a [fresh EAS archive safety check](../mobile/README.md#inspe
 Task 4B.5 records the [successful signed Android device proof](../mobile/README.md#signed-android-verification).
 Task 4B.6 closes Android authentication verification after all required
 automated checks passed. Android is the primary MVP development and
-verification platform. The shared mobile API is the next implementation phase.
+verification platform. Task 5A adds the
+[mobile session foundation](MOBILE_SESSION_FOUNDATION.md) in source. Its
+migration awaits verification on a disposable PostgreSQL target. Tasks 5B–5E
+cover Google verification, lifecycle services, API security, and integration.
 Signed physical iOS verification is deferred to the iOS release path.
 
 ## Architecture And Scope
@@ -196,7 +199,7 @@ never travel through setup links. [NextAuth Google provider at 4.24.13](https://
   access credential. The inactivity window supports occasional tracking and
   expires abandoned sessions. The absolute limit requires periodic Google
   sign-in. Cap each credential's expiry at the session deadline. These are
-  proposed values to review against pilot recovery and usage.
+  initial pilot values to review against recovery and usage.
 - Verify the access digest, current expiry, session state, and associated
   user on every protected request. A refresh rotates the pair atomically and
   invalidates the previous access token. A conditional update or transaction
@@ -538,6 +541,12 @@ regression tests, mobile lint, and mobile typecheck passed.
   Capture the verification evidence for each build type before distributing it.
 
 ### 3. Implement The Mobile Session Store And Auth Endpoints
+
+Task 5A defines persistence, credential primitives, and transaction rules in
+the [mobile session foundation](MOBILE_SESSION_FOUNDATION.md). The remaining
+work in this section is split into Task 5B (Google identity verification),
+Task 5C (atomic lifecycle services), Task 5D (versioned endpoints and API
+security), and Task 5E (backend integration and security verification).
 
 - **Objective and dependency** — Add shared Google identity exchange and
   device credentials after the preferences seam and Android proof closure.

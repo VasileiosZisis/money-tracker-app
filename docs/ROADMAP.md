@@ -13,10 +13,11 @@ dashboard, the ideas that remain open, and the planned authentication phases.
 
 The first mobile milestone is an internal Android MVP for existing CashContour
 users, built on the shared React Native and Expo app for Android and iOS.
-Close Android authentication verification after its remaining automated checks
-pass. Implement shared mobile sessions and financial APIs, then verify the
-end-to-end MVP on Android. Scope and detailed order live in the
-[active mobile plan](MOBILE_IMPLEMENTATION_PLAN.md).
+The signed Android Google proof and its automated checks are complete. The
+mobile session foundation is in source and its migration awaits disposable
+PostgreSQL verification. Complete shared mobile authentication and financial
+APIs, then verify the end-to-end MVP on Android. See the
+[active mobile plan](MOBILE_IMPLEMENTATION_PLAN.md) for scope and order.
 
 Physical signed iOS verification is deferred until a test iPhone and Apple
 Developer Program access are available. It remains required before an iOS

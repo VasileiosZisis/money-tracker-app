@@ -43,6 +43,7 @@ model User {
   hasCompletedSetup      Boolean                 @default(false)
   accounts               Account[]
   sessions               Session[]
+  mobileSessions         MobileSession[]
   categories             Category[]
   transactions           Transaction[]
   balanceAdjustments     BalanceAdjustment[]
@@ -104,6 +105,43 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model MobileAuthChallenge {
+  id          String    @id
+  nonceDigest Bytes
+  createdAt   DateTime  @db.Timestamptz(3)
+  expiresAt   DateTime  @db.Timestamptz(3)
+  consumedAt  DateTime? @db.Timestamptz(3)
+
+  @@index([expiresAt, id])
+}
+
+model MobileSession {
+  id                 String                    @id @default(cuid())
+  userId             String
+  createdAt          DateTime                  @db.Timestamptz(3)
+  accessTokenDigest  Bytes                     @unique
+  accessExpiresAt    DateTime                  @db.Timestamptz(3)
+  absoluteExpiresAt  DateTime                  @db.Timestamptz(3)
+  revokedAt          DateTime?                 @db.Timestamptz(3)
+  user               User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshCredentials MobileRefreshCredential[]
+
+  @@index([userId])
+  @@index([absoluteExpiresAt, id])
+}
+
+model MobileRefreshCredential {
+  tokenDigest Bytes         @id
+  sessionId   String
+  issuedAt    DateTime      @db.Timestamptz(3)
+  expiresAt   DateTime      @db.Timestamptz(3)
+  consumedAt  DateTime?     @db.Timestamptz(3)
+  session     MobileSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  // The migration adds a partial unique index on sessionId where consumedAt is null.
+  @@index([sessionId])
 }
 
 model Category {
