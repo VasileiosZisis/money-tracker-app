@@ -12,8 +12,10 @@ Task 4B.6 closes Android authentication verification after all required
 automated checks passed. Android is the primary MVP development and
 verification platform. Task 5A adds the
 [mobile session foundation](MOBILE_SESSION_FOUNDATION.md) in source. Its
-migration awaits verification on a disposable PostgreSQL target. Tasks 5B–5E
-cover Google verification, lifecycle services, API security, and integration.
+migration awaits verification on a disposable PostgreSQL target. Task 5B adds
+[Google proof verification and existing-account resolution](MOBILE_SESSION_FOUNDATION.md#google-identity-verification).
+Dedicated mobile OAuth settings and live integration await verification.
+Tasks 5C–5E cover lifecycle services, API security, and integration.
 Signed physical iOS verification is deferred to the iOS release path.
 
 ## Architecture And Scope
@@ -542,11 +544,12 @@ regression tests, mobile lint, and mobile typecheck passed.
 
 ### 3. Implement The Mobile Session Store And Auth Endpoints
 
-Task 5A defines persistence, credential primitives, and transaction rules in
-the [mobile session foundation](MOBILE_SESSION_FOUNDATION.md). The remaining
-work in this section is split into Task 5B (Google identity verification),
-Task 5C (atomic lifecycle services), Task 5D (versioned endpoints and API
-security), and Task 5E (backend integration and security verification).
+Task 5A defines persistence, credential primitives, and transaction rules.
+Task 5B implements Google identity verification and existing-account lookup.
+The [mobile session foundation](MOBILE_SESSION_FOUNDATION.md) records both.
+The remaining work is Task 5C (atomic lifecycle services), Task 5D
+(versioned endpoints and API security), and Task 5E (backend integration and
+security verification).
 
 - **Objective and dependency** — Add shared Google identity exchange and
   device credentials after the preferences seam and Android proof closure.

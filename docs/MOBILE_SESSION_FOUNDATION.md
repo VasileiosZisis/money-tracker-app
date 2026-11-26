@@ -8,6 +8,11 @@ and requires verification against a separately authorized disposable
 PostgreSQL target. The transaction rules below specify future services and
 endpoints. See the [active mobile plan](MOBILE_IMPLEMENTATION_PLAN.md).
 
+Task 5B adds server-only Google proof verification and existing-account
+lookup. Its verification tests use synthetic keys and a controlled offline
+transport. Actual OAuth configuration, Prisma client generation from the
+Task 5A schema, and live Google and PostgreSQL integration await verification.
+
 ## Identity and storage
 
 Web sign-in continues to use NextAuth v4 JWT cookies and its existing adapter.
@@ -77,6 +82,82 @@ and helpers take an explicit instant so arithmetic is deterministic across
 calendar and time zone changes. Reassess these values during pilot recovery
 and usage verification.
 
+## Google identity verification
+
+The root backend pins [Google's Node.js auth library 11.3.4](https://github.com/googleapis/google-cloud-node/releases/tag/google-auth-library-v11.3.4),
+the same version used in the signed Android proof verifier. It requires
+Node.js 22 or later and provides typed APIs for Google certificate retrieval,
+caching, and JWT signature verification. Task 5B was checked on Node.js
+24.15.0. Vercel supports Node.js 22 and 24. Confirm the actual project
+runtime during integration. Use the Next.js Node.js runtime for mobile auth.
+[Vercel Node.js runtime versions](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions)
+
+Set the following server-only variables separately for each mobile API
+environment. These values are fictional examples.
+
+| Variable | Example and policy |
+| --- | --- |
+| `MOBILE_GOOGLE_AUDIENCE` | `100000000001-example-mobile.apps.googleusercontent.com`. Set exactly one dedicated mobile server OAuth client ID. |
+| `MOBILE_GOOGLE_ALLOWED_PRESENTERS` | `100000000002-example-android.apps.googleusercontent.com,100000000003-example-ios.apps.googleusercontent.com`. Set a nonempty comma-separated list of distinct approved OAuth client IDs. Include the dedicated audience itself only if it is an approved presenter. |
+
+IDs use the lowercase Google OAuth client-ID form. Configuration accepts
+surrounding whitespace and rejects empty entries, duplicates, wildcards,
+and invalid IDs. The mobile verifier resolves configuration when called.
+It uses neither NextAuth nor proof-verifier variables and needs no OAuth
+client secret or subject allowlist. The actual audience and permitted
+presenters must be confirmed before non-production integration.
+
+Require a bounded, three-segment, canonical unpadded base64url JWT with
+`RS256` and a usable key ID. The header cannot select a key-fetch location
+or enable unsupported critical extensions. Use a shared `OAuth2Client`
+instance with `getFederatedSignonCertsAsync` and
+`verifySignedJwtWithCertsAsync`. The library selects Google's fixed HTTPS
+certificate endpoint and caches keys using Google's `Cache-Control`.
+Refresh the cache on its normal expiry. Unknown keys are rejected against
+the current key set. The transport uses a five-second deadline, zero
+retries, no redirects, and uncached server fetches so the library owns
+certificate caching. Preliminary decoding can reject invalid inputs
+early. A successful proof comes only from the library-verified ticket.
+[Google OpenID configuration](https://accounts.google.com/.well-known/openid-configuration) ·
+[Google ID token claims](https://developers.google.com/identity/openid-connect/openid-connect#an-id-tokens-payload)
+
+| Claim | Accepted condition |
+| --- | --- |
+| `iss` | Exactly `accounts.google.com` or `https://accounts.google.com`. |
+| `aud` | A string exactly equal to the configured dedicated audience. All arrays are rejected, including singleton arrays. |
+| `azp` | When present, a string exactly matching an allowed presenter. An absent claim is allowed with the configured single audience. Google describes this claim for cases where the requesting party differs from the audience. No presenter is inferred from client metadata. |
+| `sub` | 1–255 visible ASCII characters. Preserve the exact case-sensitive value. |
+| `exp` | Positive integer epoch seconds. Must be strictly after now and less than 24 hours in the future, even if the library would accept a recently expired token within its five-minute tolerance. |
+| `iat` | Positive integer epoch seconds, strictly before expiration, and at most five minutes ahead of the server clock, matching the library's issued-at tolerance. |
+| `nbf` | Optional. If present, positive integer epoch seconds at or before the current instant, with no tolerance. |
+| `nonce` | A signed, canonical 64-character lowercase hexadecimal value whose 32-byte digest matches the independently provided challenge digest in constant time. The expected digest must itself be exactly 32 bytes. |
+
+The internal proof exposes only the exact subject, expiration epoch
+milliseconds, and a copy of the verified nonce digest. The verifier marks
+the original immutable proof object as trusted for the account resolver.
+The resolver takes that proof, selects only `userId` by the existing unique
+`(provider, providerAccountId)` key for `("google", subject)`, and can
+receive the Task 5C transaction client. It performs no writes or email
+lookups. The resolver finds a candidate mapping. Task 5C must still pin the
+user and mapping, then recheck the proof expiration and nonce digest against
+the locked challenge before committing.
+
+| Internal outcome | Planned Task 5D handling |
+| --- | --- |
+| Invalid proof (including bad signature) or missing, invalid, or mismatched signed nonce | Generic `401 GOOGLE_AUTH_FAILED`. |
+| Missing or invalid mobile server configuration, malformed stored digest, or unclassified verifier exception | Generic `500 INTERNAL_ERROR`. |
+| Google certificate retrieval failure, timeout, invalid certificate map or entry type, or unavailable database | Generic `503 TEMPORARILY_UNAVAILABLE`. |
+| Verified Google subject without a linked account | `403 WEB_ACCOUNT_REQUIRED` after Task 5C commits challenge consumption. |
+
+The library throws ordinary errors for cryptographic rejection, sometimes
+including JWT data. The pinned version's exact negative-signature error for
+the current input maps to invalid proof. Unexpected exceptions during
+verification fail closed as internal errors. Certificate-stage failures
+are classified separately from signature rejection. The verifier disables
+the library's default request and response logging interceptors. Diagnostics
+and outcome objects omit raw exceptions, tokens, subjects, nonces, and
+digests. The successful proof stays internal.
+
 ## Transaction and locking rules for Task 5C
 
 Use short PostgreSQL Read Committed transactions. Perform Google verification
@@ -136,10 +217,10 @@ cases and perform signed-device checks separately.
 
 ## Deferred security and operations
 
-- **5B** — Select and separately authorize a direct maintained root
-  `google-auth-library` dependency. Set per-environment dedicated mobile
-  Google audience and exact allowed presenters. The isolated verifier's
-  dependency and development settings are separate.
+- **Google deployment configuration** — Confirm the per-environment dedicated
+  audience, exact allowed presenters, and actual Node.js runtime before
+  non-production integration. Keep the isolated verifier's configuration
+  separate.
 - **5C** — Implement the PostgreSQL lifecycle and bounded cleanup using the
   transaction rules above. Define an administrative revocation procedure
   with operator authorization, redacted audit, and incident handling.
