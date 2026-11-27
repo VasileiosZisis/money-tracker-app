@@ -32,8 +32,16 @@ Task 5D.3B.1 pins the [stable Prisma 7.10.1 baseline](MOBILE_DATABASE_TRANSACTIO
 Schema validation, client generation, root lint, typecheck, and all 308
 regression tests passed on that baseline. Task 5D.3B.2 adds the
 [dedicated mobile pg executor](MOBILE_DATABASE_TRANSACTION_SAFETY.md#task-5d3b2-mobile-transaction-owner).
-Root lint, typecheck, and all 327 regression tests passed. Task 5D.3B.3
-requires separate approval for PostgreSQL and pooler verification.
+Root lint, typecheck, and all 327 regression tests passed on Task 5D.3B.2.
+Task 5D.3B.3A prepares the [disposable PostgreSQL fixture and integration
+harness](MOBILE_POSTGRES_VERIFICATION.md). Task 5D.3B.3B covers direct
+PostgreSQL mobile verification, 5D.3B.3C covers independent web Prisma
+verification, and 5D.3B.3D covers the intended transaction pooler.
+Root typecheck and all 331 offline regressions passed before a fixture
+helper rename that addressed lint's React Hook diagnostic. Lint
+confirmation on the updated source is pending.
+Each live stage requires separate approval. Both mobile migrations
+remain unapplied and the mobile authentication API stays disabled.
 Task 5E covers live PostgreSQL and deployment verification. Keep the API
 disabled pending the fix and the remaining enablement gates.
 Signed physical iOS verification remains mandatory before iOS release.

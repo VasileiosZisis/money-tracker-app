@@ -1,0 +1,363 @@
+# Disposable PostgreSQL verification
+
+Task 5D.3B.3A prepares this procedure and the integration harness. Each live
+stage requires separate authorization and a reviewed, disposable target.
+Use a direct local PostgreSQL 17 instance for B and C. The production server
+version and intended transaction pooler remain unconfirmed. Keep
+MOBILE_AUTH_API_ENABLED unset throughout. The only migration copies used
+are the SQL files already committed in this repository.
+
+| Stage | Scope |
+| --- | --- |
+| 5D.3B.3B | PostgreSQL 17 direct connection. Empty history replay, upgrade over fictional web data, mobile executor, session lifecycle and distributed rate limits |
+| 5D.3B.3C | Independent web schema, Prisma 7.10.1 adapter and web feature verification |
+| 5D.3B.3D | Separately approved disposable transaction-mode pooler using the intended topology, with independent direct observation |
+
+## Available local infrastructure
+
+The owner confirmed Docker is installed. This execution shell could not find
+the CLI on PATH or in the standard Docker Desktop locations it checked.
+Engine reachability and local PostgreSQL images are unresolved. No
+PostgreSQL client or server executables were found on PATH or in the
+conventional locations checked. The Git for Windows MinGW OpenSSL 3.2.3
+executable responded to a local version check.
+
+Prefer the owner's existing Docker installation. If it is integrated with
+WSL, identify the distribution that owns the local installation and use
+an explicitly reviewed equivalent for the Windows bind mount and teardown.
+If Docker is unavailable, separately approve official PostgreSQL 17
+Windows binaries and a new isolated cluster. A native fixture must use a
+private temporary data directory, explicit host and port, the dedicated
+CA, the same role and marker, and a known process for scoped stop and
+removal. Do not use an existing PostgreSQL service or persistent database.
+[PostgreSQL Windows distribution options](https://www.postgresql.org/download/windows/)
+
+## Provisioning after approval
+
+Use a fresh PowerShell session at the repository root with the installed
+Node.js and npm dependencies. Do not load application dotenv files or
+export application secrets. Run each block sequentially and stop on the
+first failure. If provisioning fails partway, use the cleanup procedure on
+the resources already verified and created. A mutable image tag is used
+only to discover a digest. Approve the digest before running it.
+[Docker PostgreSQL image](https://hub.docker.com/_/postgres)
+[Docker port publishing](https://docs.docker.com/engine/network/port-publishing/)
+
+~~~powershell
+$ErrorActionPreference = 'Stop'
+$docker = (Get-Command docker.exe -ErrorAction Stop).Source
+# If needed, set $docker to the owner's verified absolute docker.exe path.
+if (Test-Path Env:DOCKER_HOST) { throw 'Use an explicit local Docker context.' }
+if (Test-Path Env:DOCKER_CONTEXT) { throw 'Use an explicit local Docker context.' }
+& $docker --version
+if ($LASTEXITCODE -ne 0) { throw 'Docker CLI unavailable.' }
+$context = & $docker context show
+if ($LASTEXITCODE -ne 0) { throw 'Cannot identify the Docker context.' }
+$endpoint = & $docker context inspect --format '{{.Endpoints.docker.Host}}' $context
+if ($LASTEXITCODE -ne 0) { throw 'Cannot identify the Docker endpoint.' }
+if ($endpoint -notmatch '^npipe:/{4}\./pipe/(dockerDesktopLinuxEngine|docker_engine)$') {
+  throw 'The approved local Windows named-pipe endpoint was not confirmed.'
+}
+function Invoke-Docker {
+  & $docker --host $endpoint @args
+  if ($LASTEXITCODE -ne 0) { throw 'Docker command failed. Stop and verify the fixture.' }
+}
+$engine = Invoke-Docker version --format '{{.Server.Os}} {{.Server.Version}}'
+if ($engine -notmatch '^linux (\d+)\.') { throw 'A local Linux Docker engine is required.' }
+if ([int]$Matches[1] -lt 28) { throw 'Docker Engine 28 or newer is required for this loopback-only procedure.' }
+Invoke-Docker image ls --filter 'reference=postgres*' --format '{{.Repository}}:{{.Tag}} {{.ID}}'
+# Only with separate approval if the image is absent:
+# Invoke-Docker pull docker.io/library/postgres:17-bookworm
+Invoke-Docker image inspect --format '{{range .RepoDigests}}{{println .}}{{end}}' postgres:17-bookworm
+~~~
+
+Set the approved digest and select the databases for the stage. For B use
+fresh and upgrade. For C use web alone on its own instance. Confirm port
+55437 is idle before creating the fixture. The random run ID determines
+all names. The temporary directory carries only fixture-owned files and
+must inherit a private ACL for the current user. The application role
+receives no superuser, role creation or database creation privilege.
+The bootstrap administrator is available only over the container's Unix
+socket. [PostgreSQL TLS files and permissions](https://www.postgresql.org/docs/17/ssl-tcp.html)
+
+~~~powershell
+$image = 'postgres@sha256:REPLACE_WITH_APPROVED_64_HEX_DIGEST'
+$stages = @('fresh', 'upgrade') # For C use @('web') on a separate fixture.
+if ($image -notmatch '^(docker\.io/library/)?postgres@sha256:[0-9a-f]{64}$') {
+  throw 'Set a reviewed official PostgreSQL image digest.'
+}
+$portInUse = Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue |
+  Where-Object LocalPort -eq 55437
+if ($portInUse) { throw 'Fixture port 55437 is occupied.' }
+
+$openssl = 'C:\Program Files\Git\mingw64\bin\openssl.exe'
+function Invoke-OpenSSL {
+  & $openssl @args
+  if ($LASTEXITCODE -ne 0) { throw 'Fixture certificate generation failed.' }
+}
+function New-FixtureHex {
+  $result = node -p "require('node:crypto').randomBytes(32).toString('hex')"
+  if ($LASTEXITCODE -ne 0 -or $result -cnotmatch '^[0-9a-f]{64}$') {
+    throw 'Fixture value generation failed.'
+  }
+  $result
+}
+function Write-FixtureFile($path, $body) {
+  [IO.File]::WriteAllText($path, $body.Replace([string][char]13, ''))
+}
+
+$runId = [guid]::NewGuid().ToString('N')
+$marker = New-FixtureHex
+$password = New-FixtureHex
+$bootstrapPassword = New-FixtureHex
+$role = "cc_pgtest_role_$runId"
+$tmp = node -p "require('node:fs').realpathSync(require('node:os').tmpdir())"
+if ($LASTEXITCODE -ne 0 -or ![IO.Path]::IsPathRooted($tmp)) { throw 'Cannot resolve fixture root.' }
+$root = Join-Path $tmp "cashcontour-pg17-$runId"
+$mount = Join-Path $root 'container'
+New-Item -ItemType Directory -Path $root | Out-Null
+$ownerSid = [Security.Principal.WindowsIdentity]::GetCurrent().User
+$systemSid = [Security.Principal.SecurityIdentifier]::new('S-1-5-18')
+$acl = Get-Acl -LiteralPath $root
+$acl.SetAccessRuleProtection($true, $false)
+foreach ($sid in @($ownerSid, $systemSid)) {
+  $rule = [Security.AccessControl.FileSystemAccessRule]::new(
+    $sid, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow'
+  )
+  $acl.AddAccessRule($rule)
+}
+Set-Acl -LiteralPath $root -AclObject $acl
+New-Item -ItemType Directory -Path $mount | Out-Null
+
+$ca = Join-Path $root 'ca.crt'
+$caKey = Join-Path $root 'ca.key'
+$serverKey = Join-Path $mount 'server.key'
+$serverCrt = Join-Path $mount 'server.crt'
+$request = Join-Path $root 'server.csr'
+$extensions = Join-Path $root 'leaf.ext'
+Invoke-OpenSSL req -x509 -newkey rsa:2048 -nodes -sha256 -days 2 -subj '/CN=CashContour disposable fixture CA' -addext 'basicConstraints=critical,CA:TRUE' -addext 'keyUsage=critical,keyCertSign,cRLSign' -keyout $caKey -out $ca
+Invoke-OpenSSL req -new -newkey rsa:2048 -nodes -subj '/CN=CashContour disposable fixture' -keyout $serverKey -out $request
+Write-FixtureFile $extensions @'
+basicConstraints=critical,CA:FALSE
+keyUsage=critical,digitalSignature,keyEncipherment
+extendedKeyUsage=serverAuth
+subjectAltName=IP:127.0.0.1
+'@
+Invoke-OpenSSL x509 -req -sha256 -days 2 -in $request -CA $ca -CAkey $caKey -CAserial (Join-Path $root 'ca.srl') -CAcreateserial -extfile $extensions -out $serverCrt
+Invoke-OpenSSL verify -CAfile $ca -verify_ip '127.0.0.1' $serverCrt
+
+$nl = [string][char]10
+Write-FixtureFile (Join-Path $mount 'bootstrap.pass') ($bootstrapPassword + $nl)
+Write-FixtureFile (Join-Path $mount 'pg_hba.conf') ((@(
+  'local all cc_pgtest_bootstrap trust'
+  "hostssl all $role 0.0.0.0/0 scram-sha-256"
+) -join $nl) + $nl)
+Write-FixtureFile (Join-Path $mount 'entrypoint.sh') @'
+#!/bin/bash
+set -eu
+install -d -o postgres -g postgres -m 700 /run/cc-fixture
+install -o postgres -g postgres -m 600 /fixture/server.key /run/cc-fixture/server.key
+install -o postgres -g postgres -m 644 /fixture/server.crt /run/cc-fixture/server.crt
+exec docker-entrypoint.sh postgres "$@"
+'@
+
+$networkId = Invoke-Docker network create --driver bridge --label "cashcontour.fixture=$runId" "cc-pg17-net-$runId"
+$containerId = Invoke-Docker create --pull=never --name "cc-pg17-$runId" --label "cashcontour.fixture=$runId" --network $networkId --publish '127.0.0.1:55437:5432' --tmpfs '/var/lib/postgresql/data:rw,noexec,nosuid,size=512m' --mount "type=bind,source=$mount,target=/fixture,readonly" --env 'POSTGRES_USER=cc_pgtest_bootstrap' --env 'POSTGRES_PASSWORD_FILE=/fixture/bootstrap.pass' --env 'POSTGRES_DB=postgres' --entrypoint /bin/bash $image /fixture/entrypoint.sh -c 'ssl=on' -c 'ssl_cert_file=/run/cc-fixture/server.crt' -c 'ssl_key_file=/run/cc-fixture/server.key' -c 'hba_file=/fixture/pg_hba.conf' -c "cashcontour.fixture_marker=$marker" -c 'timezone=UTC' -c 'password_encryption=scram-sha-256'
+if ($containerId -cnotmatch '^[0-9a-f]{64}$' -or $networkId -cnotmatch '^[0-9a-f]{64}$') {
+  throw 'Could not confirm fixture resource IDs.'
+}
+if ((Invoke-Docker inspect --type container --format '{{index .Config.Labels "cashcontour.fixture"}}' $containerId) -cne $runId -or
+    (Invoke-Docker network inspect --format '{{index .Labels "cashcontour.fixture"}}' $networkId) -cne $runId) {
+  throw 'Container or network identity did not match.'
+}
+Invoke-Docker start $containerId | Out-Null
+if ((Invoke-Docker port $containerId '5432/tcp') -cne '127.0.0.1:55437') {
+  throw 'Fixture port is not bound to the approved loopback endpoint.'
+}
+$ready = $false
+for ($i = 0; $i -lt 30; $i++) {
+  & $docker --host $endpoint exec $containerId pg_isready -h 127.0.0.1 -p 5432 -q -t 1 2>$null
+  if ($LASTEXITCODE -eq 0) { $ready = $true; break }
+  Start-Sleep -Milliseconds 500
+}
+if (!$ready) { throw 'Fixture startup deadline exceeded.' }
+$identity = (Invoke-Docker exec $containerId psql -XAt -U cc_pgtest_bootstrap -d postgres -c "SELECT current_setting('cashcontour.fixture_marker', true), (pg_catalog.pg_control_system()).system_identifier") -split '\|'
+if ($identity.Count -ne 2 -or $identity[0] -cne $marker -or $identity[1] -cnotmatch '^[1-9][0-9]{8,19}$') {
+  throw 'Disposable instance identity did not match.'
+}
+
+$bootstrap = @("CREATE ROLE $role LOGIN PASSWORD '$password' NOSUPERUSER NOCREATEDB NOCREATEROLE;")
+foreach ($stage in $stages) {
+  if ($stage -cnotin @('fresh', 'upgrade', 'web')) { throw 'Unexpected fixture stage.' }
+  $dbName = "cc_pgtest_$($runId)_$stage"
+  $bootstrap += "CREATE DATABASE $dbName OWNER $role;"
+  $bootstrap += "\connect $dbName"
+  $bootstrap += "GRANT EXECUTE ON FUNCTION pg_catalog.pg_control_system() TO $role;"
+}
+Write-FixtureFile (Join-Path $mount 'bootstrap.sql') (($bootstrap -join $nl) + $nl)
+& $docker --host $endpoint exec $containerId psql -Xq -v ON_ERROR_STOP=1 -U cc_pgtest_bootstrap -d postgres -f /fixture/bootstrap.sql *> $null
+if ($LASTEXITCODE -ne 0) { throw 'Fixture bootstrap failed. Tear down the identified instance.' }
+
+$manifest = Join-Path $root 'manifest.json'
+$manifestData = @{
+  runId = $runId
+  marker = $marker
+  systemIdentifier = $identity[1]
+  caSha256 = (Get-FileHash -LiteralPath $ca -Algorithm SHA256).Hash.ToLowerInvariant()
+}
+Write-FixtureFile $manifest ($manifestData | ConvertTo-Json -Compress)
+$env:CASHCONTOUR_PG_TEST = 'local-disposable'
+$env:CASHCONTOUR_PG_TEST_MANIFEST = $manifest
+function Select-FixtureStage($stage) {
+  if ($stage -cnotin $stages) { throw 'The stage was not provisioned on this fixture.' }
+  $dbName = "cc_pgtest_$($runId)_$stage"
+  $rootCert = [Uri]::EscapeDataString($ca)
+  $env:CASHCONTOUR_PG_TEST_URL = "postgresql://$($role):$($password)@127.0.0.1:55437/$($dbName)?sslmode=verify-full&sslrootcert=$rootCert"
+}
+~~~
+
+The runner requires the exact stage-specific role, database and port, and
+rejects ambient PostgreSQL and application database variables. It accepts
+only verify-full and the hashed, private fixture CA. It passes verified CA
+bytes and explicit numeric-IP certificate identity checking to pg. Before
+SQL work, each physical connection checks encrypted transport, PostgreSQL
+major version, database, role, system identifier and the separate marker.
+A session advisory lock covers each entire invocation. Each migration run
+also requires a blank public schema. The TLS preflight uses the same local
+endpoint for verified TLS, untrusted CA rejection and certificate name
+mismatch. Unsupported DSN options are covered offline.
+[node-postgres TLS options](https://node-postgres.com/features/ssl)
+
+## Execute the approved stage
+
+The runner applies the committed SQL verbatim and verifies the catalog.
+It bypasses application Prisma CLI configuration and leaves out Prisma
+migration bookkeeping. For upgrade and web, it uses the reviewed cutoff
+immediately before the mobile changes. The upgrade inserts fictional
+Google account and financial rows before applying both mobile migrations.
+It checks their ownership, currency, UTC time zone, exact decimal amounts
+and legacy Tag and tagId relationships alongside the mobile catalog.
+Provision a new fixture after an inconclusive or failed mutation. Save
+the sanitized case output, then tear down the old fixture. Do not retry
+ambiguous transactions.
+
+Task 5D.3B.3B commands, after approving the specific local instance and the
+bounded test faults on it.
+
+~~~powershell
+Select-FixtureStage fresh
+npm run test:postgres-fixture -- migrate fresh
+if ($LASTEXITCODE -ne 0) { throw 'Empty migration verification failed.' }
+Select-FixtureStage upgrade
+npm run test:postgres-fixture -- migrate upgrade
+if ($LASTEXITCODE -ne 0) { throw 'Upgrade migration verification failed.' }
+npm run test:postgres-fixture -- mobile upgrade
+if ($LASTEXITCODE -ne 0) { throw 'Mobile integration verification failed.' }
+~~~
+
+Task 5D.3B.3C commands for the separately approved, exclusively web fixture.
+
+~~~powershell
+Select-FixtureStage web
+npm run test:postgres-fixture -- migrate web
+if ($LASTEXITCODE -ne 0) { throw 'Web schema verification failed.' }
+npm run test:postgres-fixture -- web web
+if ($LASTEXITCODE -ne 0) { throw 'Web Prisma verification failed.' }
+~~~
+
+The mobile suite exercises the real executor, auth services and registered
+SQL. Cases include confirmed commit and rollback, exhaustion and late
+acquisition, initialization and statement faults, commit and rollback
+disposition, challenge and refresh races, replay before budget admission,
+both refresh and logout lock orders, expiry, bounded maintenance, and
+concurrent capacity allocation. Google tokens are signed by a generated
+in-memory fixture key and certificate responses come from an in-process
+stub. Route-level ordering remains covered offline while the API is disabled.
+
+The web suite uses the actual client and adapter. Production-style pool
+defaults exercise normal interactive and batch work, saturation, NextAuth,
+category subcategories, planned bills and income, and preview/confirm CSV
+with exact cents. The separate small-pool experiments exercise startup
+timeouts and late startup, statement and lock faults, terminal failure,
+interruption and recoverability. A main-based web release candidate and any
+deployment require their own review and authorization.
+
+## Cleanup evidence and transport limitations
+
+Use an independent observer for each case. Allow up to eight seconds
+after the terminal or deadline outcome for affected PIDs to disappear or
+return to idle with no transaction timestamp or relevant locks. Check the
+waiting queue is empty and the pool accounts for every client as idle or
+disposed. Assert independent durable writes and a separate rollback. The
+runner has per-case deadlines and a nine-minute suite deadline. Failed
+attestation, unconfirmed cleanup, unexpected callback execution or
+indeterminate database state fails the gate.
+
+The real server can reject COMMIT and terminate a fixture-owned backend.
+The test driver separately withholds a terminal command and withholds
+delivery after an observer has seen the real commit. Those barriers prove
+the two database outcomes and handler behavior at the driver boundary.
+Deterministic packet-level interruption during COMMIT or ROLLBACK and a
+lost network acknowledgement remain separate cases. They require
+separately reviewed local transport controls with a way to identify the
+exact terminal delivery phase while preserving verified TLS and the
+independent observer. A harness-only error injection is evidence at the
+delivery boundary.
+
+## Teardown after any authorized live run
+
+Use resource IDs from the current session. Inspect their fixture labels
+again before removal. If a resource was never created, skip its branch.
+If an ID or label fails validation, stop and reconcile the recorded
+fixture identity. Never prune or remove arbitrary containers, networks or
+volumes. Verify the exact resolved temporary path before recursive removal.
+
+~~~powershell
+if ($runId -cnotmatch '^[0-9a-f]{32}$') { throw 'Invalid teardown identity.' }
+if ($containerId) {
+  if ($containerId -cnotmatch '^[0-9a-f]{64}$' -or
+      (Invoke-Docker inspect --type container --format '{{index .Config.Labels "cashcontour.fixture"}}' $containerId) -cne $runId) {
+    throw 'Container teardown identity mismatch.'
+  }
+  Invoke-Docker rm --force --volumes $containerId
+}
+if ($networkId) {
+  if ($networkId -cnotmatch '^[0-9a-f]{64}$' -or
+      (Invoke-Docker network inspect --format '{{index .Labels "cashcontour.fixture"}}' $networkId) -cne $runId) {
+    throw 'Network teardown identity mismatch.'
+  }
+  Invoke-Docker network rm $networkId
+}
+if ($root -and (Test-Path -LiteralPath $root -PathType Container)) {
+  $expected = Join-Path $tmp "cashcontour-pg17-$runId"
+  $actual = (Resolve-Path -LiteralPath $root).Path
+  $entry = Get-Item -LiteralPath $actual -Force
+  if ($actual -cne $expected -or ($entry.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+    throw 'Fixture directory teardown identity mismatch.'
+  }
+  Remove-Item -LiteralPath $actual -Recurse -Force
+}
+Remove-Item -LiteralPath Env:CASHCONTOUR_PG_TEST,Env:CASHCONTOUR_PG_TEST_MANIFEST,Env:CASHCONTOUR_PG_TEST_URL -ErrorAction SilentlyContinue
+Remove-Variable password,bootstrapPassword,bootstrap,marker -ErrorAction SilentlyContinue
+~~~
+
+## Transaction-mode pooler acceptance for Task 5D.3B.3D
+
+Separately approve a disposable transaction-mode pooler and a direct
+observer path that attest the same fixture. The direct runner intentionally
+requires its local database endpoint. A pooler runner needs its own target
+contract and reviewed correlation with the backend. Record server, pooler
+and driver versions and the configured frontend and backend limits.
+
+| Case | Required evidence |
+| --- | --- |
+| TLS | Approved CA and verified identity for the pooler endpoint and any separate direct observer. Untrusted CA and wrong endpoint name fail closed. Record pooler-to-server TLS configuration separately. |
+| Transaction-local timeouts | Observe the expected settings inside the active transaction. A subsequent transaction on a reused backend observes its defaults, with no leaked request settings. |
+| Acquisition limits and timeout interaction | Hold approved leases to capacity and compare peak frontends, queued acquisitions and backend counts to configured limits. Vary application, driver, pooler and PostgreSQL deadlines one at a time and record which boundary fired. |
+| Termination and cleanup | Correlate a frontend checkout with the backend PID during its transaction. Disconnect during a blocked statement and terminal handling. Within eight seconds the independent observer sees no stranded transaction or lock. |
+| Commit ambiguity and safe reuse | Observe absent writes when COMMIT was withheld and durable writes when the acknowledgement was lost. Demonstrate independent commit and subsequent rollback after disposal and reuse. |
+| Mobile and web compatibility | Repeat the relevant mobile lock-order and limiter races, Prisma late startup, and normal web transactions independently. Check that shared records, exact data and resource counts are consistent after each case. |
+
+Keep the API disabled and both production and shared-preview migrations
+unapplied throughout. The database, pooler, intended runtime and deployment
+gates stay open until their corresponding real verification passes.

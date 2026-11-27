@@ -333,42 +333,31 @@ The local `origin/main` tracking ref at `8af58bb` has the same shared client and
 
 ## Verification plan for 5D.3B.3
 
-### Harness design awaiting authorization
+### Task 5D.3B.3A preparation
 
-Run the suite only after approving a specific newly provisioned disposable
-target and its optional transaction-mode pooler. The runner will take
-dedicated test URLs and an out-of-band target manifest for the approved
-host, port, database, role, and unique fixture marker. Fail before connecting
-on any target mismatch, missing approval, invalid TLS, or production/shared
-preview target. Resolve no target from the application or migration
-environment. After connection, verify the fixture marker and actual
-database and role before setup. Keep test credentials, SQL and bind values
-out of output.
+The [disposable PostgreSQL guide](MOBILE_POSTGRES_VERIFICATION.md) defines
+the local PostgreSQL 17 target, private CA, exact provisioning and teardown,
+and the separate migration, mobile and web entry points. The
+[fixture runner](../tests/postgres/run.ts) requires explicit opt-in, a pinned
+loopback endpoint, dedicated database and role names, and an independently
+provisioned identity manifest. Each physical connection verifies TLS,
+server identity, role and database before test writes. Offline target
+guard regressions run without PostgreSQL.
 
-1. Add two harness factories for the aligned Prisma adapter and the mobile
-   executor using a deliberately small test pool. Give each case one
-   observer and an independent blocker on the approved target. Select a
-   web-only schema fixture from main for the independent release candidate.
-   Use the unchanged mobile migrations only on the separate mobile fixture.
-2. Bind a per-case deadline and synthetic operation IDs. Record checkout,
-   confirmed command tag, normal release and discard counts. Feed gates
-   from connection acquisition and statement completion events. Use a
-   second database connection to hold locks for lock and statement deadline
-   cases. Control delayed checkout, startup, callback, terminal completion,
-   and connection interruption at the harness boundary. Tear down every
-   gate and fixture at its case deadline.
-3. Run each fault in the matrix below, then check that an unrelated write
-   commits through the same pool with its own sentinel. For a withheld
-   COMMIT, assert the observer never sees the first sentinel. For a lost
-   acknowledgement, wait for the independent observer to see the commit
-   before delivering a synthetic transport failure to the caller. Both
-   caller paths must avoid returning mobile credentials or retrying.
-4. Use bounded sampling of connection counts, transaction state and
-   locks from the observer, then independently check committed writes.
-   Exercise lifecycle and rate-limit races with two independent contenders
-   and barriers at the documented lock order. Repeat the remaining cases
-   through the approved pooler, with pooler/server version and UTC result
-   mapping recorded. Keep the mobile API flag disabled throughout.
+The authorized first pass completed root typecheck and all 331 offline
+regressions successfully. Root lint reported 27 React Hook errors for
+the fixture's AsyncLocalStorage helper named use. The helper was renamed
+to withMobileExecutor. The rename still needs an authorized lint rerun.
+
+Task 5D.3B.3B awaits approval for the specific disposable instance, empty
+and upgrade migration scenarios, mobile concurrency and cleanup cases,
+and narrowly scoped teardown. Task 5D.3B.3C uses a separate web-only fixture
+for the aligned Prisma path. Task 5D.3B.3D verifies the intended pooler via
+its own approved target and independent observation. The direct harness
+holds a PostgreSQL advisory lock for each stage invocation and separates
+real SQL and backend termination from driver-boundary simulations.
+Exact network loss during terminal commands remains an open verification
+case. Both mobile migrations remain unapplied and the API stays disabled.
 
 Use a disposable PostgreSQL database with fictional sentinels, both existing migrations only on that target, and a test pool of one checkout plus independent observer and blocker connections. Add barriers for acquisition, `BEGIN`, isolation/timeout initialization, statements and terminal commands. For lost acknowledgements, the harness must distinguish a command withheld from PostgreSQL from a response withheld after independent observation of the committed state. Use bounded barriers and a watchdog on the harness. Track opaque checkout IDs, safe event names, and aggregate counts. Use `pg_stat_activity` state, `xact_start`, wait-event categories, `pg_locks`, and a synthetic backend tag or PID for test correlation. Do not capture the `query` column, bound parameters or connection strings. Inspect durable state and lock release from a separate connection after each case.
 
