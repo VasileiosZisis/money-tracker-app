@@ -37,9 +37,12 @@ Task 5D.3B.3A prepares the [disposable PostgreSQL fixture and integration
 harness](MOBILE_POSTGRES_VERIFICATION.md). Task 5D.3B.3B covers direct
 PostgreSQL mobile verification, 5D.3B.3C covers independent web Prisma
 verification, and 5D.3B.3D covers the intended transaction pooler.
-Root typecheck and all 331 offline regressions passed before a fixture
-helper rename that addressed lint's React Hook diagnostic. Lint
-confirmation on the updated source is pending.
+Task 5D.3B.3A.1 passes root lint, typecheck, all 331 offline regressions,
+and the Git diff check on the reviewed harness. The local Docker Linux
+engine is available. The official PostgreSQL 17 image is present locally
+and its [immutable digest](MOBILE_POSTGRES_VERIFICATION.md#available-local-infrastructure)
+has been verified. Approval for the pinned image and fixture provisioning
+remains pending.
 Each live stage requires separate approval. Both mobile migrations
 remain unapplied and the mobile authentication API stays disabled.
 Task 5E covers live PostgreSQL and deployment verification. Keep the API

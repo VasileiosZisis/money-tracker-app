@@ -344,20 +344,29 @@ provisioned identity manifest. Each physical connection verifies TLS,
 server identity, role and database before test writes. Offline target
 guard regressions run without PostgreSQL.
 
-The authorized first pass completed root typecheck and all 331 offline
-regressions successfully. Root lint reported 27 React Hook errors for
-the fixture's AsyncLocalStorage helper named use. The helper was renamed
-to withMobileExecutor. The rename still needs an authorized lint rerun.
+Task 5D.3B.3A.1 passed root lint, typecheck, all 331 offline regressions, and
+the Git diff check on reviewed commit `3d3d7a7`. The fixture helper is
+consistently named `withMobileExecutor`. The Windows Docker CLI reaches the
+local Linux engine with the verified endpoint listed in the
+[fixture guide](MOBILE_POSTGRES_VERIFICATION.md#available-local-infrastructure).
+The product owner pulled the official image, and local inspection verified
+the immutable digest recorded in the guide. Provisioning still requires
+approval for that digest and the disposable fixture.
 
 Task 5D.3B.3B awaits approval for the specific disposable instance, empty
 and upgrade migration scenarios, mobile concurrency and cleanup cases,
 and narrowly scoped teardown. Task 5D.3B.3C uses a separate web-only fixture
 for the aligned Prisma path. Task 5D.3B.3D verifies the intended pooler via
 its own approved target and independent observation. The direct harness
-holds a PostgreSQL advisory lock for each stage invocation and separates
-real SQL and backend termination from driver-boundary simulations.
-Exact network loss during terminal commands remains an open verification
-case. Both mobile migrations remain unapplied and the API stays disabled.
+holds a PostgreSQL advisory lock for each stage invocation. It replays
+committed migration SQL directly and leaves Prisma migration-history
+bookkeeping out of the run. It exercises the real executor with an
+instrumented fixture pool. Prisma migration bookkeeping, the actual
+production mobile pool, and packet-level interruption during terminal
+commands remain separate gates. The simulated acknowledgement loss
+withholds the result at the driver boundary after independent observation
+of the commit. Both mobile migrations remain unapplied and the API stays
+disabled.
 
 Use a disposable PostgreSQL database with fictional sentinels, both existing migrations only on that target, and a test pool of one checkout plus independent observer and blocker connections. Add barriers for acquisition, `BEGIN`, isolation/timeout initialization, statements and terminal commands. For lost acknowledgements, the harness must distinguish a command withheld from PostgreSQL from a response withheld after independent observation of the committed state. Use bounded barriers and a watchdog on the harness. Track opaque checkout IDs, safe event names, and aggregate counts. Use `pg_stat_activity` state, `xact_start`, wait-event categories, `pg_locks`, and a synthetic backend tag or PID for test correlation. Do not capture the `query` column, bound parameters or connection strings. Inspect durable state and lock release from a separate connection after each case.
 

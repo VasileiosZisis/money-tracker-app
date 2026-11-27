@@ -1,7 +1,9 @@
 # Disposable PostgreSQL verification
 
-Task 5D.3B.3A prepares this procedure and the integration harness. Each live
-stage requires separate authorization and a reviewed, disposable target.
+Task 5D.3B.3A prepares this procedure and the integration harness. Task
+5D.3B.3A.1 confirms root lint, typecheck, all 331 offline regression tests,
+and the Git diff check on reviewed commit `3d3d7a7`. Each live stage
+requires separate authorization and a reviewed, disposable target.
 Use a direct local PostgreSQL 17 instance for B and C. The production server
 version and intended transaction pooler remain unconfirmed. Keep
 MOBILE_AUTH_API_ENABLED unset throughout. The only migration copies used
@@ -15,16 +17,31 @@ are the SQL files already committed in this repository.
 
 ## Available local infrastructure
 
-The owner confirmed Docker is installed. This execution shell could not find
-the CLI on PATH or in the standard Docker Desktop locations it checked.
-Engine reachability and local PostgreSQL images are unresolved. No
-PostgreSQL client or server executables were found on PATH or in the
-conventional locations checked. The Git for Windows MinGW OpenSSL 3.2.3
-executable responded to a local version check.
+Docker Desktop 4.100.1 is running on the WSL 2 `docker-desktop` backend.
+The Windows CLI is installed at
+`%LOCALAPPDATA%\Programs\DockerDesktop\resources\bin\docker.exe`.
+The current context is `desktop-linux` at
+`npipe:////./pipe/dockerDesktopLinuxEngine`. The client is
+29.9.3 on Windows amd64 and the reachable server is 29.9.3 on Linux amd64.
+Neither a local listener nor an active TCP connection used port 55437 at
+discovery time. The port was outside the Windows TCP exclusion ranges
+for both IPv4 and IPv6. Recheck it at provisioning.
 
-Prefer the owner's existing Docker installation. If it is integrated with
-WSL, identify the distribution that owns the local installation and use
-an explicitly reviewed equivalent for the Windows bind mount and teardown.
+Use Windows PowerShell and the explicit CLI path. This keeps the existing
+Windows bind mount and teardown commands usable with the WSL 2 backend.
+The product owner pulled the official `docker.io/library/postgres:17-bookworm`
+image. Local inspection confirmed the tag and immutable reference resolve
+to the same Linux amd64 image:
+
+```text
+docker.io/library/postgres@sha256:1eff563f6c868b9b433566e9f3cf6e5c79fbd3b95bf70ec7277d376cdbfc50d7
+```
+
+Approve this exact digest before creating the fixture. The Git for Windows
+MinGW OpenSSL 3.2.3 executable was available during Task 5D.3B.3A.
+[Docker Desktop WSL 2 backend](https://docs.docker.com/desktop/features/wsl/)
+[Official PostgreSQL image](https://hub.docker.com/_/postgres)
+
 If Docker is unavailable, separately approve official PostgreSQL 17
 Windows binaries and a new isolated cluster. A native fixture must use a
 private temporary data directory, explicit host and port, the dedicated
@@ -45,8 +62,11 @@ only to discover a digest. Approve the digest before running it.
 
 ~~~powershell
 $ErrorActionPreference = 'Stop'
-$docker = (Get-Command docker.exe -ErrorAction Stop).Source
-# If needed, set $docker to the owner's verified absolute docker.exe path.
+$docker = (Get-Command docker.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1).Source
+if (!$docker) {
+  $docker = Join-Path $env:LOCALAPPDATA 'Programs\DockerDesktop\resources\bin\docker.exe'
+}
+if (!(Test-Path -LiteralPath $docker -PathType Leaf)) { throw 'Set the verified absolute path to docker.exe.' }
 if (Test-Path Env:DOCKER_HOST) { throw 'Use an explicit local Docker context.' }
 if (Test-Path Env:DOCKER_CONTEXT) { throw 'Use an explicit local Docker context.' }
 & $docker --version
@@ -232,7 +252,8 @@ mismatch. Unsupported DSN options are covered offline.
 
 The runner applies the committed SQL verbatim and verifies the catalog.
 It bypasses application Prisma CLI configuration and leaves out Prisma
-migration bookkeeping. For upgrade and web, it uses the reviewed cutoff
+migration bookkeeping. Prisma migration-history verification remains a
+separate gate. For upgrade and web, it uses the reviewed cutoff
 immediately before the mobile changes. The upgrade inserts fictional
 Google account and financial rows before applying both mobile migrations.
 It checks their ownership, currency, UTC time zone, exact decimal amounts
@@ -266,7 +287,10 @@ if ($LASTEXITCODE -ne 0) { throw 'Web Prisma verification failed.' }
 ~~~
 
 The mobile suite exercises the real executor, auth services and registered
-SQL. Cases include confirmed commit and rollback, exhaustion and late
+SQL through an instrumented fixture pool. The production mobile pool,
+including its connection configuration and behavior under load, still
+requires separate verification. Cases include confirmed commit and
+rollback, exhaustion and late
 acquisition, initialization and statement faults, commit and rollback
 disposition, challenge and refresh races, replay before budget admission,
 both refresh and logout lock orders, expiry, bounded maintenance, and
