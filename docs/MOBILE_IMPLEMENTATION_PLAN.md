@@ -28,7 +28,11 @@ Task 5D.2 implements the [disabled-by-default authentication API](MOBILE_AUTH_AP
 Root lint and all 308 regression tests passed, and the product owner
 confirmed the final typecheck passed on `66a665e`. Task 5D.3A records the
 [transaction and pool safety findings](MOBILE_DATABASE_TRANSACTION_SAFETY.md).
-Task 5D.3B requires separate approval to implement and verify the fix.
+Task 5D.3B.1 pins the [stable Prisma 7.10.1 baseline](MOBILE_DATABASE_TRANSACTION_SAFETY.md#task-5d3b1-aligned-baseline).
+Schema validation, client generation, root lint, typecheck, and all 308
+regression tests passed. Task 5D.3B.2 covers the separately managed mobile
+transaction executor. Task 5D.3B.3 requires separate approval for database
+safety verification.
 Task 5E covers live PostgreSQL and deployment verification. Keep the API
 disabled pending the fix and the remaining enablement gates.
 Signed physical iOS verification remains mandatory before iOS release.
@@ -567,8 +571,11 @@ the [durable limiter and trusted source module](MOBILE_RATE_LIMITS.md).
 Task 5D.1.1 verified it offline. Task 5D.2 wires the limiter and lifecycle
 services into [versioned HTTP endpoints](MOBILE_AUTH_API.md) and adds the
 reusable bearer guard. Task 5D.3A confirmed the installed late-start
-transaction leak and proposed remediation. Task 5D.3B is the blocking
-[transaction safety implementation milestone](MOBILE_DATABASE_TRANSACTION_SAFETY.md).
+transaction leak. Task 5D.3B.1 aligns Prisma on `7.10.1` with the released
+late-start rollback fix. Task 5D.3B.2 adds the separate mobile executor,
+and Task 5D.3B.3 verifies database and pool safety. The
+[independent web remediation plan](MOBILE_DATABASE_TRANSACTION_SAFETY.md#independent-web-remediation-release-plan)
+keeps production authorization separate from mobile work.
 Task 5E covers PostgreSQL integration and security verification. Keep the API
 disabled until its operational gates are met.
 
