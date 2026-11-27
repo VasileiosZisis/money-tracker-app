@@ -169,7 +169,8 @@ using synthetic keys and an offline certificate transport.
   retrieval remain unverified.
 - **Persistence at Task 5B.1** — Prisma client generation from the Task 5A
   schema was still unverified. Task 5C validated and generated the client
-  offline. PostgreSQL migration and concurrency verification are pending.
+  offline. Task 5D.3B.3B later passed direct migration replay and the
+  lifecycle cases on [disposable PostgreSQL](MOBILE_POSTGRES_VERIFICATION.md#task-5d3b3b-results).
 - **Deployment** — The Vercel project's actual Node.js runtime remains
   unconfirmed.
 - **Dependency security** — The Task 5B audit reported 47 findings on
@@ -271,8 +272,11 @@ service error.
 
 ### Transitions and future regression matrix
 
-These cases require separately authorized integration tests with independent
-connections and controlled lock barriers on disposable PostgreSQL. The
+Task 5D.3B.3B exercised the service and executor with independent
+connections and controlled barriers on
+[disposable PostgreSQL](MOBILE_POSTGRES_VERIFICATION.md#task-5d3b3b-results).
+The production pool, intended pooler, and deployed HTTP behavior remain
+separate verification gates. The
 [offline lifecycle suite](../lib/auth/mobile/session-lifecycle.test.ts)
 checks service outcomes, bound SQL values, statement order, and simulated
 rollback and commit errors. PostgreSQL locking, isolation and rollback still
@@ -347,15 +351,16 @@ Google signatures with offline certificate fixtures for lifecycle testing.
 - **5D.1** — The [durable rate limiter](MOBILE_RATE_LIMITS.md) defines trusted
   source extraction, bounded storage and cleanup, and the refresh replay
   integration order. Task 5D.1.1 closed offline verification with 278 passing
-  regressions, lint, and typecheck. Both mobile migrations remain unapplied.
+  regressions, lint, and typecheck. Both mobile migrations remain unapplied
+  to application databases.
 - **5D.2** — The [mobile authentication API](MOBILE_AUTH_API.md) implements
   strict bounded JSON, the trusted source and budgets, and a reusable bearer
   guard. Refresh checks replay revocation before admitting a session
   rotation inside the same transaction. The preliminary challenge and
   bearer lookups use the transaction wrapper's PostgreSQL statement limits.
-  Before enablement, verify the dedicated pg transaction owner on PostgreSQL
-  and the intended pooler, approve maintenance for both cleanup services,
-  and verify the deployment boundary.
+  Before enablement, verify the production mobile pool and the intended
+  pooler, approve maintenance for both cleanup services, and verify the
+  deployment boundary.
   Account setup enforcement remains with the account milestone.
 - **5E** — Verify the migration, transaction and API behavior on a separately
   authorized disposable PostgreSQL target, including limiter locking,

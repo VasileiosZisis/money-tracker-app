@@ -19,7 +19,8 @@ The Task 5D.1 schema validation and generation had already passed with a
 temporary config and fictional loopback URL.
 
 The offline rate-limiter verification gate is closed, so Task 5D.2 can
-proceed. Both mobile authentication migrations remain unapplied.
+proceed. Both mobile authentication migrations remain unapplied to
+application databases.
 PostgreSQL locking, capacity accounting and cross-instance enforcement,
 Vercel ingress and header spoofing resistance, dedicated Google OAuth
 configuration and live Google integration, and the deployed Node.js runtime
@@ -184,9 +185,14 @@ credentials, SQL parameters and raw errors private.
 ## Task 5E verification
 
 The [offline tests](../lib/auth/mobile/rate-limit.test.ts) exercise the
-actual service, HMAC and source parser with a transaction double. Use
-separately authorized disposable PostgreSQL with the actual migrations and
-independent connections for the following cases.
+actual service, HMAC and source parser with a transaction double.
+[Task 5D.3B.3B](MOBILE_POSTGRES_VERIFICATION.md#task-5d3b3b-results)
+passed independent-connection challenge admission, capacity and cleanup
+races on disposable PostgreSQL. It tested replay before the saturated
+session budget and rollback of admission on failed rotation. Use the
+following cases for the remaining production-pool, HTTP, and deployment
+verification, including lock timing and exact retention assertions beyond
+the direct fixture evidence.
 
 - Race both existing and missing buckets. Assert exact admission totals
   and saturated counters across connections. Hold one row across the

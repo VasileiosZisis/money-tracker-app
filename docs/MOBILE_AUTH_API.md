@@ -93,8 +93,9 @@ three seconds per statement and seven seconds idle in a transaction.
 An ambiguous refresh commit discards its connection and returns a generic
 service failure without credentials or an automatic retry. The future native
 client must preserve the lost-response recovery policy, which can require
-fresh Google sign-in. Keep the API disabled pending disposable PostgreSQL
-and pooler verification in Task 5D.3B.3 and the deployment gates in Task 5E.
+fresh Google sign-in. [Direct PostgreSQL instrumented-pool tests passed](MOBILE_POSTGRES_VERIFICATION.md#task-5d3b3b-results).
+Keep the API disabled pending production mobile-pool and intended pooler
+verification and the deployment gates in Task 5E.
 
 The code logs no credentials, request or response bodies, user or Google
 claims, digests, raw source values, parameters, secrets or raw exceptions.
@@ -178,5 +179,7 @@ actual handlers, bearer guard, Google verification with synthetic signing
 keys, and transaction-bound limiter against a database double. Root lint
 and all 308 regression tests passed before the type-only logout correction.
 The product owner confirmed that `npm run typecheck` passed with the
-correction in `66a665e`. PostgreSQL and deployment behavior still require
-the live verification above.
+correction in `66a665e`. Task 5D.3B.3B passed the direct executor and
+service suite on disposable PostgreSQL. Deployed HTTP, production pool
+behavior, and transport-level verification still require the live checks
+above.

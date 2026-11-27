@@ -15,6 +15,85 @@ are the SQL files already committed in this repository.
 | 5D.3B.3C | Independent web schema, Prisma 7.10.1 adapter and web feature verification |
 | 5D.3B.3D | Separately approved disposable transaction-mode pooler using the intended topology, with independent direct observation |
 
+## Task 5D.3B.3B results
+
+The authorized direct PostgreSQL run passed on `mobile-dev` at
+`c1da8031eb4c21ae829cb77764308facc99e798a`. The harness matched
+`3d3d7a7`. The fixture used PostgreSQL 17.12 from the pinned Linux amd64
+image below, on Docker Engine 29.9.3, exposed only at `127.0.0.1:55437`.
+The bootstrap confirmed the fixture marker and system identifier through
+the container socket. The runner attested the database, role, server
+major version, encrypted connection and instance identity, then took
+the stage advisory lock. Trusted TLS succeeded. The untrusted CA and
+hostname mismatch tests returned certificate-specific errors.
+
+| Command, run once | Result |
+| --- | --- |
+| `npm run test:postgres-fixture -- migrate fresh` | Passed TLS preflight, empty-schema check, replay of all 12 committed migrations, and catalog assertions. |
+| `npm run test:postgres-fixture -- migrate upgrade` | Passed TLS preflight, web migration replay and fictional data seed, both mobile migrations, and catalog and data assertions. |
+| `npm run test:postgres-fixture -- mobile upgrade` | **33 passed, 0 failed**. Two preflight, 19 executor, and 12 authentication and rate-limit cases. |
+
+The catalog checks covered the expected tables, keys, indexes, mobile
+constraints and initialized capacity singleton. The two replays checked
+`numeric(14,2)` for transactions, planned bills, planned income and
+balance adjustments. The upgrade preserved one fictional expense of
+`999999999999.99` exactly, with its date, user ownership, account
+subject, USD currency, UTC time zone, category and legacy `Tag` /
+`tagId` relationship.
+
+- **Executor** Confirmed commit and rollback, connection dispositions and
+  reuse, `SET LOCAL` reset, exhaustion and admission limits, and late
+  checkout disposal before `BEGIN`. Each exercised failure in the
+  executor fault group asserted one disposition. The tests do not
+  explicitly assert discard versus release for each of those faults.
+  Statement and lock timeouts
+  reported SQLSTATE `57014` and `55P03` in their cases. Delayed startup,
+  callback deadlines, active backend interruption, failed terminal
+  commands and an unexpected `ROLLBACK` tag reached the expected
+  failure assertions. Independent observations checked committed state,
+  transaction and lock clearance within the eight-second cleanup window,
+  pool recovery, and a later commit that survived a separate rollback.
+- **Authentication** Challenge consumption was exclusive under
+  concurrent exchange. Exact Google subject matching, verified unlinked
+  consumption, and rollback on session insertion failure passed. The
+  concurrent unlink and deletion cases removed the row before exchange
+  could lock it. The reverse order remains unverified. Concurrent
+  refresh rotated once and
+  committed replay revocation without revoking another device or user.
+  Replay preceded the saturated budget check. Failed rotation rolled back
+  its budget admission. Both refresh/logout orders observed a database
+  lock wait. With the session lock held until database-clock expiry,
+  rotation was rejected without an admission. That expiry case did not
+  separately sample the rotating backend's wait state.
+- **Rate limits and cleanup** Five of eight challenge admissions
+  succeeded across concurrent pairs. The source and challenge admission
+  rows were committed before the synthetic Google certificate lookup.
+  Two requests competed for the last of 10,000 slots, with exactly one
+  allocation. Concurrent cleanup removed 200 expired buckets and left
+  the capacity ledger equal to the persisted bucket count. The active
+  challenge bucket count matched the accepted race outcome. Exact row
+  retention for a preseeded active bucket was outside this assertion.
+  Authentication cleanup respected its batch bounds and user deletion
+  cascaded to sessions and refresh credentials.
+
+Teardown rechecked the fixture labels and resource IDs before removal.
+The container, network, and private temporary directory were verified
+absent. Port 55437 had no remaining listener and the fixture process
+cleared its credentials and environment variables. The pinned image
+remains local.
+
+Direct SQL replay leaves Prisma migration-history bookkeeping open.
+The instrumented fixture pool leaves the production mobile pool open.
+The withheld COMMIT and the withheld result after an independently
+observed commit exercise different database outcomes at the driver
+boundary. Packet-level interruption and lost network acknowledgements
+remain open. This run used synthetic Google keys and service-level
+authentication. Task 5D.3B.3C can proceed to separate authorization for
+the web Prisma fixture. The intended pooler, deployed runtime, actual
+ingress, and live Google integration remain unverified. Both migrations
+remain unapplied to application databases, and the mobile API stays
+disabled.
+
 ## Available local infrastructure
 
 Docker Desktop 4.100.1 is running on the WSL 2 `docker-desktop` backend.

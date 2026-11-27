@@ -11,16 +11,14 @@ Task 4B.5 records the [successful signed Android device proof](../mobile/README.
 Task 4B.6 closes Android authentication verification after all required
 automated checks passed. Android is the primary MVP development and
 verification platform. Task 5A adds the
-[mobile session foundation](MOBILE_SESSION_FOUNDATION.md) in source. Its
-migration awaits verification on a disposable PostgreSQL target. Task 5B adds
+[mobile session foundation](MOBILE_SESSION_FOUNDATION.md) in source. Task 5B adds
 [Google proof verification and existing-account resolution](MOBILE_SESSION_FOUNDATION.md#google-identity-verification).
 Task 5B.1 closes the
 [offline verification gate](MOBILE_SESSION_FOUNDATION.md#task-5b1-verification)
 after root typecheck, lint, and all 238 regression tests passed.
 Task 5C adds the [internal session lifecycle services](MOBILE_SESSION_FOUNDATION.md#task-5c-service-interfaces).
-The schema was validated and the client generated locally. Migration and
-concurrency verification remain pending on disposable PostgreSQL. The
-product owner confirmed the final Task 5C typecheck passed on `4da6112`.
+The schema was validated and the client generated locally. The product
+owner confirmed the final Task 5C typecheck passed on `4da6112`.
 Task 5D.1 adds the [distributed rate-limiting foundation](MOBILE_RATE_LIMITS.md).
 Task 5D.1.1 closes its [offline verification](MOBILE_RATE_LIMITS.md#task-5d11-verification)
 after all 278 regression tests, root lint, and root typecheck passed.
@@ -38,15 +36,15 @@ harness](MOBILE_POSTGRES_VERIFICATION.md). Task 5D.3B.3B covers direct
 PostgreSQL mobile verification, 5D.3B.3C covers independent web Prisma
 verification, and 5D.3B.3D covers the intended transaction pooler.
 Task 5D.3B.3A.1 passes root lint, typecheck, all 331 offline regressions,
-and the Git diff check on the reviewed harness. The local Docker Linux
-engine is available. The official PostgreSQL 17 image is present locally
-and its [immutable digest](MOBILE_POSTGRES_VERIFICATION.md#available-local-infrastructure)
-has been verified. Approval for the pinned image and fixture provisioning
-remains pending.
-Each live stage requires separate approval. Both mobile migrations
-remain unapplied and the mobile authentication API stays disabled.
-Task 5E covers live PostgreSQL and deployment verification. Keep the API
-disabled pending the fix and the remaining enablement gates.
+and the Git diff check on the reviewed harness.
+[Task 5D.3B.3B](MOBILE_POSTGRES_VERIFICATION.md#task-5d3b3b-results) passed
+empty and upgrade migration replay and all 33 mobile suite cases on
+disposable PostgreSQL 17.12, then completed teardown. Task 5D.3B.3C
+requires separate approval for the web Prisma fixture. Prisma migration
+bookkeeping, production mobile-pool behavior, packet-level interruption,
+the intended pooler and deployment verification remain open. Both mobile
+migrations remain unapplied to application databases and the mobile
+authentication API stays disabled pending the remaining enablement gates.
 Signed physical iOS verification remains mandatory before iOS release.
 
 ## Architecture And Scope
