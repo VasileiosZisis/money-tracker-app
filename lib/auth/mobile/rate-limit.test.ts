@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createRequire, register } from "node:module";
 import { before, beforeEach, test } from "node:test";
 
-import { Prisma, type MobileRateLimitBucket } from "@/generated/prisma/client";
+import { mobileDatabaseDouble } from "./mobile-database-double";
 
 import type { TrustedMobileRequestSource } from "./request-source";
 
@@ -12,9 +12,7 @@ type State = {
   capacity: number | undefined;
   challenges: Map<string, Challenge>;
 };
-type Identity = Pick<MobileRateLimitBucket, "policy" | "bucketKey">;
-type BucketUpdate = Pick<MobileRateLimitBucket, "windowStartedAt" | "expiresAt" | "admittedCount"> |
-  { admittedCount: { increment: number } };
+type MobileRateLimitBucket = { policy: string; bucketKey: Uint8Array; windowStartedAt: Date; expiresAt: Date; admittedCount: number };
 
 const epoch = Date.parse("2031-07-11T15:02:00.000Z");
 const minute = 60_000;
@@ -30,124 +28,113 @@ const fake = {
   failAt: "",
 };
 
-function record(step: string, state: State, statement?: Prisma.Sql) {
+function record(step: string, state: State) {
   fake.trace.push(step);
   fake.onStep?.(step, state);
-  if (statement) fake.statements.push({ step, sql: statement.text.replace(/\s+/g, " ").trim(), values: statement.values });
   if (fake.failAt === step) throw new Error("Fictional database error: do not serialize");
 }
 
 function keyOf(policy: string, bytes: Uint8Array): string {
-  return `${policy}:${Buffer.from(bytes).toString("hex")}`;
+  return policy + ":" + Buffer.from(bytes).toString("hex");
 }
 
-function transactionClient(state: State) {
-  return {
-    async $queryRaw(parts: TemplateStringsArray, ...args: unknown[]) {
-      const statement = Prisma.sql(parts, ...args);
-      const [key, digest] = statement.values;
-      if (statement.text.includes('FROM "MobileRateLimitBucket"')) {
-        record("bucket.lock", state, statement);
-        assert.match(statement.text, /"policy" = \$1 AND "bucketKey" = \$2 FOR UPDATE/);
-        assert.ok(digest instanceof Uint8Array);
-        return [state.buckets.get(keyOf(String(key), digest))].filter(Boolean);
+export const executeMobileDatabaseTransaction = mobileDatabaseDouble<State>({
+  current: () => fake.state,
+  commit: (state) => { fake.state = state; },
+  record,
+  query(state, name, sql, values) {
+    const [first, second, third, fourth] = values;
+    function step(label: string) {
+      record(label, state);
+      fake.statements.push({ step: label, sql, values });
+    }
+
+    switch (name) {
+      case "lockBucket": {
+        step("bucket.lock");
+        assert.match(sql, /"policy" = \$1 AND "bucketKey" = \$2 FOR UPDATE/);
+        assert.ok(second instanceof Uint8Array);
+        const row = state.buckets.get(keyOf(String(first), second));
+        return row ? [{ windowStartedAt: row.windowStartedAt, expiresAt: row.expiresAt, admittedCount: row.admittedCount }] : [];
       }
-      if (statement.text.includes('FROM "MobileRateLimitCapacity"')) {
-        record("capacity.lock", state, statement);
-        assert.match(statement.text, /"id" = \$1 FOR UPDATE/);
-        assert.equal(key, 1);
+      case "lockCapacity":
+        step("capacity.lock");
+        assert.match(sql, /"id" = \$1 FOR UPDATE/);
+        assert.equal(first, 1);
         return state.capacity === undefined ? [] : [{ bucketCount: state.capacity }];
-      }
-      if (statement.text.includes('FROM "MobileAuthChallenge"')) {
-        record("challenge.read", state, statement);
-        assert.match(statement.text, /"id" = \$1 AND "consumedAt" IS NULL AND "expiresAt" > date_trunc\('milliseconds', clock_timestamp\(\)\)/);
-        assert.doesNotMatch(statement.text, /FOR (?:UPDATE|SHARE)/);
-        const challenge = state.challenges.get(String(key));
+      case "readChallengeWindow": {
+        step("challenge.read");
+        assert.match(sql, /"id" = \$1 AND "consumedAt" IS NULL AND "expiresAt" > date_trunc\('milliseconds', clock_timestamp\(\)\)/);
+        assert.doesNotMatch(sql, /FOR (?:UPDATE|SHARE)/);
+        const challenge = state.challenges.get(String(first));
         if (!challenge || challenge.consumedAt !== null || challenge.expiresAt.getTime() <= fake.now) return [];
         return [{ windowStartedAt: challenge.windowStartedAt, expiresAt: challenge.expiresAt }];
       }
-      record("clock", state, statement);
-      assert.equal(statement.text, 'SELECT date_trunc(\'milliseconds\', clock_timestamp()) AS "now"');
-      return [{ now: new Date(fake.now) }];
-    },
-    async $executeRaw(parts: TemplateStringsArray, ...args: unknown[]) {
-      const statement = Prisma.sql(parts, ...args);
-      if (statement.text.startsWith("SET LOCAL")) {
-        record("tx.settings", state, statement);
-        assert.ok(["SET LOCAL lock_timeout = '1500ms'", "SET LOCAL statement_timeout = '3000ms'"].includes(statement.text));
-        return 0;
+      case "clock":
+        step("clock");
+        assert.equal(sql, "SELECT date_trunc('milliseconds', clock_timestamp()) AS \"now\"");
+        return [{ now: new Date(fake.now) }];
+      case "deleteExpiredBuckets": {
+        step("bucket.cleanup");
+        assert.match(sql, /"expiresAt" <= \$1/);
+        assert.match(sql, /ORDER BY "expiresAt", "policy", "bucketKey" LIMIT \$2 FOR UPDATE SKIP LOCKED/);
+        assert.match(sql, /AND b\."expiresAt" <= \$3/);
+        assert.ok(first instanceof Date && third instanceof Date && typeof second === "number");
+        assert.deepEqual(first, third);
+        const expired = Array.from(state.buckets.entries())
+          .filter(([, bucket]) => bucket.expiresAt <= first)
+          .sort(([a, x], [b, y]) => x.expiresAt.getTime() - y.expiresAt.getTime() || a.localeCompare(b))
+          .slice(0, second);
+        for (const [id] of expired) state.buckets.delete(id);
+        return expired.length;
       }
-      record("bucket.cleanup", state, statement);
-      assert.match(statement.text, /"expiresAt" <= \$1/);
-      assert.match(statement.text, /ORDER BY "expiresAt", "policy", "bucketKey" LIMIT \$2 FOR UPDATE SKIP LOCKED/);
-      assert.match(statement.text, /AND b\."expiresAt" <= \$3/);
-      const [cutoff, limit, recheck] = statement.values;
-      assert.ok(cutoff instanceof Date && recheck instanceof Date && typeof limit === "number");
-      assert.deepEqual(cutoff, recheck);
-      const expired = Array.from(state.buckets.entries())
-        .filter(([, bucket]) => bucket.expiresAt <= cutoff)
-        .sort(([a, first], [b, second]) => first.expiresAt.getTime() - second.expiresAt.getTime() || a.localeCompare(b))
-        .slice(0, limit);
-      for (const [id] of expired) state.buckets.delete(id);
-      return expired.length;
-    },
-    mobileRateLimitBucket: {
-      async create({ data }: { data: MobileRateLimitBucket }) {
-        record("bucket.create", state);
-        assert.deepEqual(Object.keys(data).sort(), ["admittedCount", "bucketKey", "expiresAt", "policy", "windowStartedAt"]);
-        assert.equal(data.bucketKey.byteLength, 32);
-        const id = keyOf(data.policy, data.bucketKey);
+      case "insertBucket": {
+        step("bucket.create");
+        assert.match(sql, /\("policy", "bucketKey", "windowStartedAt", "expiresAt", "admittedCount"\) VALUES \(\$1, \$2, \$3, \$4, 1\)$/);
+        assert.ok(second instanceof Uint8Array && second.byteLength === 32 && third instanceof Date && fourth instanceof Date);
+        const id = keyOf(String(first), second);
         assert.equal(state.buckets.has(id), false);
-        state.buckets.set(id, data);
-        return { policy: data.policy };
-      },
-      async updateMany({ where, data }: { where: Identity; data: BucketUpdate }) {
-        record("bucket.update", state);
-        const bucket = state.buckets.get(keyOf(where.policy, where.bucketKey));
-        if (!bucket) return { count: 0 };
-        if ("expiresAt" in data) Object.assign(bucket, data);
-        else bucket.admittedCount += data.admittedCount.increment;
-        return { count: 1 };
-      },
-    },
-    mobileRateLimitCapacity: {
-      async updateMany({ where, data }: { where: { id: number; bucketCount: number }; data: { bucketCount: number } }) {
-        record("capacity.update", state);
-        if (where.id !== 1 || state.capacity !== where.bucketCount) return { count: 0 };
-        assert.ok(data.bucketCount >= 0 && data.bucketCount <= 10_000);
-        state.capacity = data.bucketCount;
-        return { count: 1 };
-      },
-    },
-  };
-}
-
-// This double records real statement construction and simulates transaction outcomes with a draft.
-// PostgreSQL lock and isolation behavior require a separate integration test.
-export const db = {
-  async $transaction<T>(operation: (tx: ReturnType<typeof transactionClient>) => Promise<T>, options: unknown): Promise<T> {
-    assert.deepEqual(options, { isolationLevel: "ReadCommitted", maxWait: 2_000, timeout: 5_000 });
-    record("tx.begin", fake.state);
-    const draft = structuredClone(fake.state);
-    try {
-      const result = await operation(transactionClient(draft));
-      record("tx.beforeCommit", draft);
-      fake.state = draft;
-      fake.trace.push("tx.commit");
-      record("tx.afterCommit", draft);
-      return result;
-    } catch (error) {
-      if (fake.state !== draft) fake.trace.push("tx.rollback");
-      throw error;
+        state.buckets.set(id, {
+          policy: String(first), bucketKey: second, windowStartedAt: third, expiresAt: fourth, admittedCount: 1,
+        });
+        return 1;
+      }
+      case "incrementBucket":
+      case "resetBucket": {
+        step("bucket.update");
+        assert.ok(second instanceof Uint8Array);
+        assert.match(sql, /WHERE "policy" = \$1 AND "bucketKey" = \$2$/);
+        const bucket = state.buckets.get(keyOf(String(first), second));
+        if (!bucket) return 0;
+        if (name === "resetBucket") {
+          assert.match(sql, /SET "windowStartedAt" = \$3, "expiresAt" = \$4, "admittedCount" = 1/);
+          assert.ok(third instanceof Date && fourth instanceof Date);
+          Object.assign(bucket, { windowStartedAt: third, expiresAt: fourth, admittedCount: 1 });
+        } else {
+          assert.match(sql, /SET "admittedCount" = "admittedCount" \+ 1/);
+          bucket.admittedCount++;
+        }
+        return 1;
+      }
+      case "updateCapacity":
+        step("capacity.update");
+        assert.match(sql, /SET "bucketCount" = \$3 WHERE "id" = \$1 AND "bucketCount" = \$2$/);
+        if (first !== 1 || state.capacity !== second) return 0;
+        assert.ok(typeof third === "number" && third >= 0 && third <= 10_000);
+        state.capacity = third;
+        return 1;
+      default:
+        return assert.fail("Unexpected limiter SQL");
     }
   },
-};
+});
 
 const loadCommonJs = createRequire(import.meta.url);
 export const googleProvider = loadCommonJs("next-auth/providers/google").default;
 const overrides = new Map([
   ["server-only", "data:text/javascript,export%20%7B%7D"],
-  ["@/lib/db", import.meta.url],
+  ["@/lib/auth/mobile/mobile-pool", import.meta.url],
+  ["@/lib/db", "data:text/javascript,export%20const%20db%20%3D%20%7B%7D"],
   ["next-auth/providers/google", `data:text/javascript,${encodeURIComponent(
     `export { googleProvider as default } from ${JSON.stringify(import.meta.url)};`,
   )}`],
@@ -280,7 +267,7 @@ test("first admission stores only a digest and uses bound parameters and the pos
   assert.deepEqual(bucket.expiresAt, new Date(epoch + minute));
   assert.equal(fake.state.capacity, 1);
   assert.deepEqual(fake.trace, [
-    "tx.begin", "tx.settings", "tx.settings", "bucket.lock", "capacity.lock", "bucket.lock", "clock",
+    "tx.begin", "tx.settings", "tx.settings", "tx.settings", "bucket.lock", "capacity.lock", "bucket.lock", "clock",
     "bucket.create", "capacity.update", "tx.beforeCommit", "tx.commit", "tx.afterCommit",
   ]);
   const lock = fake.statements.find(({ step }) => step === "bucket.lock");

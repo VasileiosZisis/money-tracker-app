@@ -5,6 +5,9 @@ import { beforeEach, mock, test } from "node:test";
 
 import { OAuth2Client } from "google-auth-library";
 
+import type { MobileStatement } from "./mobile-statements";
+import type { MobileParameter, MobileTransaction } from "./mobile-transaction";
+
 const audience = "100000000001-test-mobile.apps.googleusercontent.com";
 const presenter = "100000000002-test-android.apps.googleusercontent.com";
 const webClient = "100000000003-test-web.apps.googleusercontent.com";
@@ -23,15 +26,20 @@ const accounts = [
   { provider: "google", providerAccountId: subject, userId: "internal-user-id", email },
   { provider: "other", providerAccountId: "other-provider-subject", userId: "other-user-id", email },
 ];
-const findUnique = mock.fn(async (query: {
-  where: { provider_providerAccountId: { provider: string; providerAccountId: string } };
-  select: { userId: true };
-}) => {
-  const { provider, providerAccountId } = query.where.provider_providerAccountId;
+const accountRead = mock.fn(async (name: MobileStatement, values: readonly MobileParameter[] = []) => {
+  assert.equal(name, "readGoogleAccount");
+  const [provider, providerAccountId] = values;
   const account = accounts.find((row) => row.provider === provider && row.providerAccountId === providerAccountId);
-  return account ? { userId: account.userId } : null;
+  const rows = account ? [{ userId: account.userId }] : [];
+  return { rows, rowCount: rows.length };
 });
-export const db = { account: { findUnique } };
+const tx: MobileTransaction = {
+  async query<Row extends object>(name: MobileStatement, values?: readonly MobileParameter[]) {
+    const result = await accountRead(name, values);
+    return { ...result, rows: result.rows as unknown as Row[] };
+  },
+};
+export const db = {};
 
 // Next's bundler unwraps this CommonJS default import. Use that same export in the Node worker.
 const loadCommonJs = createRequire(import.meta.url);
@@ -80,7 +88,7 @@ beforeEach(() => {
   process.env.MOBILE_GOOGLE_ALLOWED_PRESENTERS = presenter;
   fetchKeys = () => certificateResponse();
   fetchMock.mock.resetCalls();
-  findUnique.mock.resetCalls();
+  accountRead.mock.resetCalls();
 });
 
 function signCompactToken(encodedHeader: string, encodedPayload: string, privateKey = signingKeys.privateKey) {
@@ -303,33 +311,30 @@ test("an unclassified library exception is a safe internal error even if its tex
 test("the resolver reads only userId through the exact existing Google provider and subject compound key", async () => {
   const { findMobileGoogleAccount } = await import("./google-account");
   const proof = await verifiedProof();
-  assert.deepEqual(await findMobileGoogleAccount(proof), { status: "linked", userId: "internal-user-id" });
-  assert.deepEqual(findUnique.mock.calls[0].arguments, [{
-    where: { provider_providerAccountId: { provider: "google", providerAccountId: subject } },
-    select: { userId: true },
-  }]);
+  assert.deepEqual(await findMobileGoogleAccount(proof, tx), { status: "linked", userId: "internal-user-id" });
+  assert.deepEqual(accountRead.mock.calls[0].arguments, ["readGoogleAccount", ["google", subject]]);
 
   for (const sub of ["other-provider-subject", "unknown", subject.toLowerCase()]) {
     const otherProof = await verifiedProof(token({ sub, email }));
-    assert.deepEqual(await findMobileGoogleAccount(otherProof), { status: "account_not_linked" });
+    assert.deepEqual(await findMobileGoogleAccount(otherProof, tx), { status: "account_not_linked" });
   }
-  assert.equal(findUnique.mock.callCount(), 4);
+  assert.equal(accountRead.mock.callCount(), 4);
 });
 
 test("only an original verified proof can reach the database, whose errors are distinct from missing accounts", async (t) => {
   const { findMobileGoogleAccount } = await import("./google-account");
   const proof = await verifiedProof();
-  assert.deepEqual(await findMobileGoogleAccount({ ...proof }), { status: "invalid_proof" });
-  assert.equal(findUnique.mock.callCount(), 0);
+  assert.deepEqual(await findMobileGoogleAccount({ ...proof }, tx), { status: "invalid_proof" });
+  assert.equal(accountRead.mock.callCount(), 0);
 
   const transactionRead = mock.fn(async () => { throw new Error("fictional database access details"); });
-  const transaction = { account: { findUnique: transactionRead } };
+  const transaction: MobileTransaction = { query: transactionRead };
   const log = t.mock.method(console, "error", () => {});
-  assert.deepEqual(
-    await findMobileGoogleAccount(proof, transaction as unknown as Parameters<typeof findMobileGoogleAccount>[1]),
-    { status: "database_unavailable" },
+  await assert.rejects(
+    findMobileGoogleAccount(proof, transaction),
+    /fictional database access details/,
   );
   assert.equal(transactionRead.mock.callCount(), 1);
-  assert.equal(findUnique.mock.callCount(), 0);
+  assert.equal(accountRead.mock.callCount(), 0);
   assert.equal(log.mock.callCount(), 0);
 });

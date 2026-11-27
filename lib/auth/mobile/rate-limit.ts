@@ -1,16 +1,16 @@
 import "server-only";
 
-import type { Prisma } from "@/generated/prisma/client";
-
 import { isMobileChallengeId } from "./credentials";
 import { getMobileChallengeExpiry } from "./expiry";
 import {
-  mobileDatabaseClock,
+  isMobileDatabaseDate,
+  optionalMobileRow,
   readMobileDatabaseTime,
   requireSingleMobileWrite,
   runMobileTransaction,
   type MobileDatabaseFailure,
 } from "./lifecycle-store";
+import type { MobileTransaction } from "./mobile-transaction";
 import { deriveMobileRateLimitKey, readMobileRateLimitSecret } from "./rate-limit-keys";
 import { readTrustedMobileSourceGroup, type TrustedMobileRequestSource } from "./request-source";
 
@@ -53,7 +53,7 @@ const maxBuckets = 10_000;
 const cleanupBatchSize = 200;
 const capacityRetrySeconds = 5;
 
-type BucketIdentity = { policy: PolicyName; bucketKey: Prisma.Bytes };
+type BucketIdentity = { policy: PolicyName; bucketKey: Uint8Array };
 type Window = { windowStartedAt: Date; expiresAt: Date };
 type BucketState = Window & { admittedCount: number };
 
@@ -72,35 +72,33 @@ function readScopeIdentity(input: MobileRateLimitInput): string | undefined {
   }
 }
 
-async function lockBucket(tx: Prisma.TransactionClient, { policy, bucketKey }: BucketIdentity) {
-  const [bucket] = await tx.$queryRaw<BucketState[]>`
-    SELECT "windowStartedAt", "expiresAt", "admittedCount" FROM "MobileRateLimitBucket"
-    WHERE "policy" = ${policy} AND "bucketKey" = ${bucketKey} FOR UPDATE
-  `;
-  return bucket as BucketState | undefined;
+async function lockBucket(tx: MobileTransaction, { policy, bucketKey }: BucketIdentity) {
+  const bucket = optionalMobileRow((await tx.query<BucketState>("lockBucket", [policy, bucketKey])).rows);
+  if (bucket && (!isMobileDatabaseDate(bucket.windowStartedAt) || !isMobileDatabaseDate(bucket.expiresAt) ||
+    !Number.isSafeInteger(bucket.admittedCount) || bucket.admittedCount < 1 || bucket.admittedCount > policies[policy].limit)) {
+    throw new Error("Invalid mobile rate limit bucket");
+  }
+  return bucket;
 }
 
-async function lockCapacity(tx: Prisma.TransactionClient): Promise<number> {
-  const [row] = await tx.$queryRaw<{ bucketCount: number }[]>`
-    SELECT "bucketCount" FROM "MobileRateLimitCapacity" WHERE "id" = ${capacityId} FOR UPDATE
-  `;
-  if (!row) throw new Error("Missing mobile rate limit capacity row");
+async function lockCapacity(tx: MobileTransaction): Promise<number> {
+  const row = optionalMobileRow((await tx.query<{ bucketCount: number }>("lockCapacity", [capacityId])).rows);
+  if (!row || !Number.isSafeInteger(row.bucketCount) || row.bucketCount < 0 || row.bucketCount > maxBuckets) {
+    throw new Error("Invalid mobile rate limit capacity");
+  }
   return row.bucketCount;
 }
 
-async function updateCapacity(tx: Prisma.TransactionClient, count: number, change: number): Promise<void> {
-  requireSingleMobileWrite(await tx.mobileRateLimitCapacity.updateMany({
-    where: { id: capacityId, bucketCount: count },
-    data: { bucketCount: count + change },
-  }));
+async function updateCapacity(tx: MobileTransaction, count: number, change: number): Promise<void> {
+  requireSingleMobileWrite(await tx.query("updateCapacity", [capacityId, count, count + change]));
 }
 
-async function readChallengeWindow(tx: Prisma.TransactionClient, challengeId: string) {
-  const [challenge] = await tx.$queryRaw<Window[]>`
-    SELECT "createdAt" AS "windowStartedAt", "expiresAt" FROM "MobileAuthChallenge"
-    WHERE "id" = ${challengeId} AND "consumedAt" IS NULL AND "expiresAt" > ${mobileDatabaseClock}
-  `;
-  return challenge as Window | undefined;
+async function readChallengeWindow(tx: MobileTransaction, challengeId: string) {
+  const challenge = optionalMobileRow((await tx.query<Window>("readChallengeWindow", [challengeId])).rows);
+  if (challenge && (!isMobileDatabaseDate(challenge.windowStartedAt) || !isMobileDatabaseDate(challenge.expiresAt))) {
+    throw new Error("Invalid mobile challenge window");
+  }
+  return challenge;
 }
 
 function resolveWindow(now: Date, challenge: Window | null): Window | null {
@@ -118,7 +116,7 @@ function resolveWindow(now: Date, challenge: Window | null): Window | null {
 }
 
 async function admitInTransaction(
-  tx: Prisma.TransactionClient,
+  tx: MobileTransaction,
   identity: BucketIdentity,
   challengeId: string | null,
 ): Promise<MobileRateLimitResult> {
@@ -141,10 +139,9 @@ async function admitInTransaction(
     if (capacity === undefined) throw new Error("Missing mobile rate limit allocation lock");
     if (capacity >= maxBuckets) return { status: "capacity_unavailable", retryAfterSeconds: capacityRetrySeconds };
 
-    await tx.mobileRateLimitBucket.create({
-      data: { ...identity, ...window, admittedCount: 1 },
-      select: { policy: true },
-    });
+    requireSingleMobileWrite(await tx.query("insertBucket", [
+      identity.policy, identity.bucketKey, window.windowStartedAt, window.expiresAt,
+    ]));
     await updateCapacity(tx, capacity, 1);
     return { status: "allowed" };
   }
@@ -161,15 +158,11 @@ async function admitInTransaction(
         retryAfterSeconds: Math.max(1, Math.ceil((bucket.expiresAt.getTime() - now.getTime()) / 1_000)),
       };
     }
-    requireSingleMobileWrite(await tx.mobileRateLimitBucket.updateMany({
-      where: identity,
-      data: { admittedCount: { increment: 1 } },
-    }));
+    requireSingleMobileWrite(await tx.query("incrementBucket", [identity.policy, identity.bucketKey]));
   } else {
-    requireSingleMobileWrite(await tx.mobileRateLimitBucket.updateMany({
-      where: identity,
-      data: { ...window, admittedCount: 1 },
-    }));
+    requireSingleMobileWrite(await tx.query("resetBucket", [
+      identity.policy, identity.bucketKey, window.windowStartedAt, window.expiresAt,
+    ]));
   }
   return { status: "allowed" };
 }
@@ -197,7 +190,7 @@ export async function admitMobileRateLimit(input: MobileRateLimitInput): Promise
 // The refresh transaction holds the trusted session row lock. Database errors must
 // propagate to that transaction so its admission and credential writes roll back together.
 export async function admitMobileRefreshSession(
-  tx: Prisma.TransactionClient,
+  tx: MobileTransaction,
   sessionId: string,
 ): Promise<MobileRateLimitResult> {
   const admission = prepareAdmission({ policy: "refresh_session", sessionId });
@@ -209,15 +202,7 @@ export function cleanupExpiredMobileRateLimits(): Promise<MobileRateLimitCleanup
   return runMobileTransaction<MobileRateLimitCleanupResult>(async (tx) => {
     const capacity = await lockCapacity(tx);
     const now = await readMobileDatabaseTime(tx);
-    const bucketsDeleted = await tx.$executeRaw`
-      WITH expired AS (
-        SELECT "policy", "bucketKey" FROM "MobileRateLimitBucket"
-        WHERE "expiresAt" <= ${now}
-        ORDER BY "expiresAt", "policy", "bucketKey" LIMIT ${cleanupBatchSize} FOR UPDATE SKIP LOCKED
-      )
-      DELETE FROM "MobileRateLimitBucket" b USING expired
-      WHERE b."policy" = expired."policy" AND b."bucketKey" = expired."bucketKey" AND b."expiresAt" <= ${now}
-    `;
+    const { rowCount: bucketsDeleted } = await tx.query("deleteExpiredBuckets", [now, cleanupBatchSize, now]);
     if (bucketsDeleted > capacity || bucketsDeleted > cleanupBatchSize) {
       throw new Error("Invalid mobile rate limit cleanup count");
     }

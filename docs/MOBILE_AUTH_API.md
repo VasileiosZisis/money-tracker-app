@@ -83,28 +83,23 @@ session then bucket, or session then capacity then bucket. Source admission
 and cleanup take no session locks.
 
 The preliminary challenge lookup and bearer authentication each use one
-fresh SQL statement in a short Read Committed transaction. The Prisma
-options request two seconds to acquire the transaction and five seconds
-for the transaction. PostgreSQL has transaction-local limits of 1.5 seconds
-for lock waits and three seconds per statement. The preliminary read
-finishes before Google work starts. The installed Prisma client races the
-adapter's transaction startup against `maxWait`. Its late rollback calls
-the adapter method that releases the connection without issuing SQL
-`ROLLBACK`. A late acquisition can therefore return an open transaction
-to the shared pool. The [Task 5D.3A investigation](MOBILE_DATABASE_TRANSACTION_SAFETY.md)
-documents the installed defect, web exposure, and a proposed Task 5D.3B
-fix and fault test suite. Keep the API disabled pending a reviewed fix and
-verification. Task 5E must confirm connection and transaction safety in
-the intended deployment. An ambiguous refresh commit
-produces a service failure without returning a token pair or retrying
-automatically. The future native client must preserve the lost-response
-recovery policy, which can require fresh Google sign-in.
-[Prisma interactive transactions](https://www.prisma.io/docs/orm/v7/prisma-client/queries/transactions)
+fresh SQL statement in a short Read Committed transaction. The preliminary
+read finishes before Google work starts. The
+[mobile pg executor](MOBILE_DATABASE_TRANSACTION_SAFETY.md#task-5d3b2-mobile-transaction-owner)
+uses two seconds for acquisition and setup, five seconds for callback work
+and two seconds for terminal SQL, up to nine seconds per database operation.
+PostgreSQL has transaction-local limits of 1.5 seconds for lock waits,
+three seconds per statement and seven seconds idle in a transaction.
+An ambiguous refresh commit discards its connection and returns a generic
+service failure without credentials or an automatic retry. The future native
+client must preserve the lost-response recovery policy, which can require
+fresh Google sign-in. Keep the API disabled pending disposable PostgreSQL
+and pooler verification in Task 5D.3B.3 and the deployment gates in Task 5E.
 
 The code logs no credentials, request or response bodies, user or Google
 claims, digests, raw source values, parameters, secrets or raw exceptions.
 Before enablement, verify Vercel runtime and firewall logs, observability
-integrations and database logging do not capture those values. Keep the
+integrations and database logging do not capture those values. Keep the web
 Prisma adapter debug namespace `prisma:driver-adapter:pg` disabled,
 including wildcard settings that would enable it. Restrict
 operational diagnostics to route, request ID, safe category, timing and
@@ -145,8 +140,8 @@ installed here.
 [Vercel Schedules](https://vercel.com/docs/schedules)
 
 Before enabling the pilot, verify both unapplied migrations on disposable
-PostgreSQL, approve the maintenance plan, resolve the Prisma transaction
-startup issue, and confirm Vercel ingress,
+PostgreSQL, verify the mobile executor through the intended pooler,
+approve the maintenance plan, and confirm Vercel ingress,
 spoofing resistance, Node.js runtime, dedicated secrets and Google audience
 and presenters. Verify live Google and deployment behavior under separate
 authorization, and triage existing dependency advisories. Signed physical

@@ -202,13 +202,15 @@ lookup result type. After the correction, the product owner confirmed that
 | `revokeMobileSessionById(sessionId)` | Revokes one live session under the same parent lock and returns `no_change` for an absent or terminal session. This is a persistence operation for trusted callers. |
 | `cleanupExpiredMobileAuthRecords()` | Returns committed deletion counts. One invocation locks at most 50 expired challenges and 20 absolutely expired sessions in deadline/ID order, and deletes at most 200 refresh rows across those parents. A parent is deleted only when its history is empty. |
 
-Session mutations use Read Committed interactive transactions configured with
-a two-second Prisma startup wait, a five-second transaction timeout, a
-1.5-second PostgreSQL lock timeout and a three-second statement timeout.
-The [installed adapter startup limitation](MOBILE_AUTH_API.md#ordering-and-database-limits)
-blocks enablement. Final checks and writes use the same PostgreSQL wall-clock
-sample after the locks. Access authentication uses one wall-clock sample
-in its own statement. Tagged Prisma queries bind values separately from SQL.
+Session operations use a dedicated pg pool and one owned Read Committed
+connection per transition. The executor confirms terminal commands before
+reusing a connection. Final checks and writes use a fresh PostgreSQL
+wall-clock sample after the locks and any refresh admission wait. Access
+authentication uses one wall-clock sample in its statement. Static SQL binds
+all dynamic values. New mobile session IDs are random UUIDs, and existing
+CUIDs remain valid opaque IDs. The
+[transaction safety decision](MOBILE_DATABASE_TRANSACTION_SAFETY.md#task-5d3b2-mobile-transaction-owner)
+records the exact budgets and pending verification.
 
 Transaction or commit failures return `database_unavailable`. A changed
 account mapping uses the same retryable service result. Operations never
@@ -351,8 +353,9 @@ Google signatures with offline certificate fixtures for lifecycle testing.
   guard. Refresh checks replay revocation before admitting a session
   rotation inside the same transaction. The preliminary challenge and
   bearer lookups use the transaction wrapper's PostgreSQL statement limits.
-  Before enablement, resolve the adapter startup issue, approve maintenance
-  for both cleanup services, and verify the database and deployment boundary.
+  Before enablement, verify the dedicated pg transaction owner on PostgreSQL
+  and the intended pooler, approve maintenance for both cleanup services,
+  and verify the deployment boundary.
   Account setup enforcement remains with the account milestone.
 - **5E** — Verify the migration, transaction and API behavior on a separately
   authorized disposable PostgreSQL target, including limiter locking,

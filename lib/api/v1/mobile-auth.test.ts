@@ -10,7 +10,8 @@ const loadCommonJs = createRequire(import.meta.url);
 export const googleProvider = loadCommonJs("next-auth/providers/google").default;
 const overrides = new Map([
   ["server-only", "data:text/javascript,export%20%7B%7D"],
-  ["@/lib/db", new URL("../../auth/mobile/lifecycle-test-db.ts", import.meta.url).href],
+  ["@/lib/auth/mobile/mobile-pool", new URL("../../auth/mobile/lifecycle-test-db.ts", import.meta.url).href],
+  ["@/lib/db", "data:text/javascript,export%20const%20db%20%3D%20%7B%7D"],
   ["next-auth/providers/google", `data:text/javascript,${encodeURIComponent(
     `export { googleProvider as default } from ${JSON.stringify(import.meta.url)};`,
   )}`],
@@ -184,6 +185,7 @@ test("missing and non-exact enablement values stop every handler and bearer guar
     await expectFailure(result.response, 503, "TEMPORARILY_UNAVAILABLE");
   }
   assert.deepEqual(fake.trace, []);
+  assert.equal(fake.poolCalls, 0);
 });
 
 test("web NextAuth configuration imports without mobile configuration", async () => {

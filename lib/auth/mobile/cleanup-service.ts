@@ -1,9 +1,9 @@
 import "server-only";
 
-import { Prisma } from "@/generated/prisma/client";
-
 import { isMobileExpiryReached } from "./expiry";
-import { mobileDatabaseClock, readMobileDatabaseTime, runMobileTransaction, type MobileDatabaseFailure } from "./lifecycle-store";
+import {
+  isMobileDatabaseDate, isMobileDatabaseId, readMobileDatabaseTime, runMobileTransaction, type MobileDatabaseFailure,
+} from "./lifecycle-store";
 
 const challengeBatchSize = 50;
 const sessionBatchSize = 20;
@@ -15,47 +15,36 @@ export type MobileCleanupResult =
 
 type CleanupCandidate = { id: string; expiresAt: Date };
 
+function expiredIds(rows: CleanupCandidate[], limit: number, now: Date) {
+  if (rows.length > limit || rows.some((row) => !row || !isMobileDatabaseId(row.id) || !isMobileDatabaseDate(row.expiresAt))) {
+    throw new Error("Invalid mobile cleanup candidates");
+  }
+  return rows.filter(({ expiresAt }) => isMobileExpiryReached(expiresAt, now)).map(({ id }) => id);
+}
+
 export function cleanupExpiredMobileAuthRecords(): Promise<MobileCleanupResult> {
   return runMobileTransaction<MobileCleanupResult>(async (tx) => {
-    const challenges = await tx.$queryRaw<CleanupCandidate[]>`
-      SELECT "id", "expiresAt" FROM "MobileAuthChallenge"
-      WHERE "expiresAt" <= (SELECT ${mobileDatabaseClock})
-      ORDER BY "expiresAt", "id" LIMIT ${challengeBatchSize} FOR UPDATE SKIP LOCKED
-    `;
-    const sessions = await tx.$queryRaw<CleanupCandidate[]>`
-      SELECT "id", "absoluteExpiresAt" AS "expiresAt" FROM "MobileSession"
-      WHERE "absoluteExpiresAt" <= (SELECT ${mobileDatabaseClock})
-      ORDER BY "absoluteExpiresAt", "id" LIMIT ${sessionBatchSize} FOR UPDATE SKIP LOCKED
-    `;
+    const challenges = await tx.query<CleanupCandidate>("lockExpiredChallenges", [challengeBatchSize]);
+    const sessions = await tx.query<CleanupCandidate>("lockExpiredSessions", [sessionBatchSize]);
     const now = await readMobileDatabaseTime(tx);
-    const challengeIds = challenges.filter(({ expiresAt }) => isMobileExpiryReached(expiresAt, now)).map(({ id }) => id);
-    const sessionIds = sessions.filter(({ expiresAt }) => isMobileExpiryReached(expiresAt, now)).map(({ id }) => id);
+    const challengeIds = expiredIds(challenges.rows, challengeBatchSize, now);
+    const sessionIds = expiredIds(sessions.rows, sessionBatchSize, now);
 
     let challengesDeleted = 0;
     if (challengeIds.length > 0) {
-      const result = await tx.mobileAuthChallenge.deleteMany({
-        where: { id: { in: challengeIds }, expiresAt: { lte: now } },
-      });
-      challengesDeleted = result.count;
+      ({ rowCount: challengesDeleted } = await tx.query("deleteExpiredChallenges", [challengeIds, now]));
     }
 
     let refreshCredentialsDeleted = 0;
     let sessionsDeleted = 0;
     if (sessionIds.length > 0) {
       // The selected parents stay locked through both deletes. Never cascade their history as part of cleanup.
-      refreshCredentialsDeleted = await tx.$executeRaw`
-        WITH batch AS (
-          SELECT "tokenDigest" FROM "MobileRefreshCredential"
-          WHERE "sessionId" IN (${Prisma.join(sessionIds)})
-          LIMIT ${refreshHistoryBatchSize}
-        )
-        DELETE FROM "MobileRefreshCredential" r
-        USING batch WHERE r."tokenDigest" = batch."tokenDigest"
-      `;
-      const result = await tx.mobileSession.deleteMany({
-        where: { id: { in: sessionIds }, absoluteExpiresAt: { lte: now }, refreshCredentials: { none: {} } },
-      });
-      sessionsDeleted = result.count;
+      ({ rowCount: refreshCredentialsDeleted } = await tx.query("deleteRefreshHistory", [sessionIds, refreshHistoryBatchSize]));
+      ({ rowCount: sessionsDeleted } = await tx.query("deleteExpiredSessions", [sessionIds, now]));
+    }
+    if (challengesDeleted > challengeIds.length || sessionsDeleted > sessionIds.length ||
+      refreshCredentialsDeleted > refreshHistoryBatchSize) {
+      throw new Error("Invalid mobile authentication deletion count");
     }
 
     return { status: "cleaned", challengesDeleted, refreshCredentialsDeleted, sessionsDeleted };

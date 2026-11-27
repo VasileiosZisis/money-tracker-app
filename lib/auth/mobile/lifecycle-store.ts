@@ -1,38 +1,40 @@
 import "server-only";
 
-import { Prisma } from "@/generated/prisma/client";
-import { db } from "@/lib/db";
+import { executeMobileDatabaseTransaction } from "@/lib/auth/mobile/mobile-pool";
+
+import type { MobileTransaction } from "./mobile-transaction";
 
 export type MobileDatabaseFailure = { status: "database_unavailable" };
 
-export const mobileDatabaseClock = Prisma.sql`date_trunc('milliseconds', clock_timestamp())`;
-
-export async function readMobileDatabase<T>(read: () => Promise<T>): Promise<T | MobileDatabaseFailure> {
-  try {
-    return await read();
-  } catch {
-    return { status: "database_unavailable" };
-  }
-}
-
-export function runMobileTransaction<T>(
-  transition: (tx: Prisma.TransactionClient) => Promise<T>,
+export async function runMobileTransaction<T>(
+  transition: (tx: MobileTransaction) => Promise<T>,
 ): Promise<T | MobileDatabaseFailure> {
-  return readMobileDatabase(() => db.$transaction(async (tx) => {
-    await tx.$executeRaw`SET LOCAL lock_timeout = '1500ms'`;
-    await tx.$executeRaw`SET LOCAL statement_timeout = '3000ms'`;
-    return transition(tx);
-  }, { isolationLevel: "ReadCommitted", maxWait: 2_000, timeout: 5_000 }));
+  const result = await executeMobileDatabaseTransaction(transition);
+  return result.status === "committed" ? result.value : { status: "database_unavailable" };
 }
 
-export async function readMobileDatabaseTime(tx: Prisma.TransactionClient): Promise<Date> {
-  const [row] = await tx.$queryRaw<{ now: Date }[]>`SELECT ${mobileDatabaseClock} AS "now"`;
-  if (!row || !(row.now instanceof Date) || !Number.isFinite(row.now.getTime())) {
-    throw new Error("Invalid mobile database clock");
+export function optionalMobileRow<T extends object>(rows: T[]): T | undefined {
+  const [row] = rows;
+  if (rows.length > 1 || (rows.length === 1 && (!row || typeof row !== "object" || Array.isArray(row)))) {
+    throw new Error("Invalid mobile database row");
   }
+  return row;
+}
+
+export function isMobileDatabaseDate(value: unknown): value is Date {
+  return value instanceof Date && Number.isFinite(value.getTime());
+}
+
+export function isMobileDatabaseId(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0;
+}
+
+export async function readMobileDatabaseTime(tx: MobileTransaction): Promise<Date> {
+  const row = optionalMobileRow((await tx.query<{ now: Date }>("clock")).rows);
+  if (!row || !isMobileDatabaseDate(row.now)) throw new Error("Invalid mobile database clock");
   return row.now;
 }
 
-export function requireSingleMobileWrite({ count }: { count: number }): void {
-  if (count !== 1) throw new Error("Unexpected mobile authentication write count");
+export function requireSingleMobileWrite({ rowCount }: { rowCount: number }): void {
+  if (rowCount !== 1) throw new Error("Unexpected mobile authentication write count");
 }

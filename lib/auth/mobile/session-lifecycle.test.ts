@@ -7,7 +7,7 @@ import { digestKey, fake, initialTime, resetLifecycleTestDatabase } from "./life
 
 const overrides = new Map([
   ["server-only", "data:text/javascript,export%20%7B%7D"],
-  ["@/lib/db", new URL("./lifecycle-test-db.ts", import.meta.url).href],
+  ["@/lib/auth/mobile/mobile-pool", new URL("./lifecycle-test-db.ts", import.meta.url).href],
 ]);
 const resolver = `
 let overrides;
@@ -128,7 +128,7 @@ test("challenge issuance uses the database clock, persists only the digest and r
     expiresAt: new Date(fake.now + 5 * minute), consumedAt: null,
   });
   assert.deepEqual(result.expiresAt, stored?.expiresAt);
-  assert.deepEqual(fake.trace, ["tx.begin", "tx.settings", "tx.settings", "clock", "challenge.create", "tx.beforeCommit", "tx.commit", "tx.afterCommit"]);
+  assert.deepEqual(fake.trace, ["tx.begin", "tx.settings", "tx.settings", "tx.settings", "clock", "challenge.create", "tx.beforeCommit", "tx.commit", "tx.afterCommit"]);
 });
 
 test("challenge issuance with a failed write or an ambiguous commit returns no secret", async () => {
@@ -148,7 +148,7 @@ test("missing, expired and consumed challenges cannot proceed to Google or a tra
   }
   assert.deepEqual(await exchangeMobileGoogleProof({ challengeId: "bad", idToken: signGoogleProof() }), { status: "invalid_proof" });
   assert.deepEqual(await exchangeMobileGoogleProof({ challengeId: seedChallenge(), idToken: "x".repeat(16 * 1024 + 1) }), { status: "invalid_proof" });
-  const read = ["tx.begin", "tx.settings", "tx.settings", "challenge.read", "tx.beforeCommit", "tx.commit", "tx.afterCommit"];
+  const read = ["tx.begin", "tx.settings", "tx.settings", "tx.settings", "challenge.read", "tx.beforeCommit", "tx.commit", "tx.afterCommit"];
   assert.deepEqual(fake.trace, [...read, ...read, ...read]);
 });
 
@@ -178,22 +178,24 @@ test("linked exchange pins the exact account and creates only digests and one se
   const result = await exchangeMobileGoogleProof({ challengeId, idToken: signGoogleProof() });
   assert.ok(result.status === "authenticated", `Unexpected result: ${result.status}`);
   assert.deepEqual(fake.trace, [
-    "tx.begin", "tx.settings", "tx.settings", "challenge.read", "tx.beforeCommit", "tx.commit", "tx.afterCommit",
-    "google.keys", "tx.begin", "tx.settings", "tx.settings", "challenge.lock", "account.read",
+    "tx.begin", "tx.settings", "tx.settings", "tx.settings", "challenge.read", "tx.beforeCommit", "tx.commit", "tx.afterCommit",
+    "google.keys", "tx.begin", "tx.settings", "tx.settings", "tx.settings", "challenge.lock", "account.read",
     "user.lock", "account.lock", "clock", "challenge.consume", "session.create", "refresh.create",
     "tx.beforeCommit", "tx.commit", "tx.afterCommit",
   ]);
   assert.deepEqual(fake.sql.find(({ step }) => step === "challenge.lock")?.values, [challengeId]);
+  assert.deepEqual(fake.sql.find(({ step }) => step === "account.read")?.values, ["google", googleSubject]);
   assert.deepEqual(fake.sql.find(({ step }) => step === "account.lock")?.values, [googleSubject, userId]);
   assert.deepEqual(fake.state.challenges.get(challengeId)?.consumedAt, expiry(0));
-  const session = fake.state.sessions.get("session-1");
+  const [session] = fake.state.sessions.values();
+  assert.match(session.id, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
   assert.deepEqual(session, {
-    id: "session-1", userId, createdAt: expiry(0), absoluteExpiresAt: expiry(30 * day),
+    id: session.id, userId, createdAt: expiry(0), absoluteExpiresAt: expiry(30 * day),
     accessTokenDigest: tokenDigest("access", result.tokens.accessToken), accessExpiresAt: expiry(10 * minute), revokedAt: null,
   });
   const digest = tokenDigest("refresh", result.tokens.refreshToken);
   assert.deepEqual(fake.state.refresh.get(digestKey(digest)), {
-    tokenDigest: digest, sessionId: "session-1", issuedAt: expiry(0), expiresAt: expiry(14 * day), consumedAt: null,
+    tokenDigest: digest, sessionId: session.id, issuedAt: expiry(0), expiresAt: expiry(14 * day), consumedAt: null,
   });
   assert.equal(fake.state.sessions.size, 1);
   assert.deepEqual(await exchangeMobileGoogleProof({ challengeId, idToken: signGoogleProof() }), { status: "invalid_proof" });
@@ -286,6 +288,17 @@ test("a failed exchange write or unexpected consumption count rolls back and ret
   assert.equal(fake.trace.includes("session.create"), false);
 });
 
+test("a failed Google account query rolls back the exchange instead of committing an aborted connection", async () => {
+  const challengeId = seedChallenge();
+  fake.failAt = "account.read";
+  assert.deepEqual(await exchangeMobileGoogleProof({ challengeId, idToken: signGoogleProof() }), {
+    status: "database_unavailable",
+  });
+  assertNoExchangeWrites(challengeId);
+  assert.equal(fake.trace.at(-1), "tx.rollback");
+  assert.equal(fake.trace.filter((step) => step === "tx.commit").length, 1, "Only the preliminary read commits");
+});
+
 test("access authentication is a fresh lookup returning only the trusted user and session IDs", async () => {
   const { accessToken, refreshToken } = seedSession("device");
   assert.deepEqual(await authenticateMobileAccess(accessToken), { status: "authenticated", userId, sessionId: "device" });
@@ -293,7 +306,7 @@ test("access authentication is a fresh lookup returning only the trusted user an
   assert.deepEqual(await authenticateMobileAccess(refreshToken), { status: "invalid_credential" });
   assert.deepEqual(await authenticateMobileAccess(createMobileChallengeId()), { status: "invalid_credential" });
   assert.deepEqual(await authenticateMobileAccess("unrelated cookie"), { status: "invalid_credential" });
-  const read = ["tx.begin", "tx.settings", "tx.settings", "access.read", "tx.beforeCommit", "tx.commit", "tx.afterCommit"];
+  const read = ["tx.begin", "tx.settings", "tx.settings", "tx.settings", "access.read", "tx.beforeCommit", "tx.commit", "tx.afterCommit"];
   assert.deepEqual(fake.trace, [...read, ...read]);
   assert.deepEqual(fake.sql.find(({ step }) => step === "access.read")?.values, [tokenDigest("access", accessToken)]);
 });
@@ -318,20 +331,21 @@ test("access fails at both expiry boundaries, after revocation, after deletion a
 
 test("refresh rotates the pair, caps both expiries and leaves the original absolute deadline fixed", async () => {
   const deadline = expiry(2 * minute);
-  const old = seedSession("device", { absoluteExpiresAt: deadline, accessExpiresAt: deadline, refreshExpiresAt: deadline });
+  const sessionId = "clw3sbu7e0000h27g1kr55m3x";
+  const old = seedSession(sessionId, { absoluteExpiresAt: deadline, accessExpiresAt: deadline, refreshExpiresAt: deadline });
   const result = await rotateMobileRefresh(old.refreshToken);
   assert.ok(result.status === "rotated", `Unexpected result: ${result.status}`);
   assert.deepEqual(result.tokens.accessExpiresAt, deadline);
   assert.deepEqual(result.tokens.refreshExpiresAt, deadline);
-  assert.deepEqual(fake.state.sessions.get("device")?.absoluteExpiresAt, deadline);
+  assert.deepEqual(fake.state.sessions.get(sessionId)?.absoluteExpiresAt, deadline);
   assert.deepEqual(fake.state.refresh.get(old.refreshDigestKey)?.consumedAt, expiry(0));
   assert.deepEqual(fake.trace, [
-    "tx.begin", "tx.settings", "tx.settings", "refresh.candidate", "session.lock", "refresh.reread", "clock",
+    "tx.begin", "tx.settings", "tx.settings", "tx.settings", "refresh.candidate", "session.lock", "refresh.reread", "clock",
     "rate.bucket.lock", "rate.capacity.lock", "rate.bucket.lock", "clock", "rate.bucket.create", "rate.capacity.update", "clock",
     "refresh.consume", "refresh.create", "session.rotate", "tx.beforeCommit", "tx.commit", "tx.afterCommit",
   ]);
   assert.deepEqual(await authenticateMobileAccess(old.accessToken), { status: "invalid_credential" });
-  assert.deepEqual(await authenticateMobileAccess(result.tokens.accessToken), { status: "authenticated", userId, sessionId: "device" });
+  assert.deepEqual(await authenticateMobileAccess(result.tokens.accessToken), { status: "authenticated", userId, sessionId });
 });
 
 test("unknown, malformed, absolutely expired and inactive current refresh credentials fail without revocation", async () => {
@@ -468,8 +482,12 @@ test("cleanup bounds each batch, prunes only absolutely expired history and neve
   assert.equal(fake.state.challenges.size, 3);
   const childDelete = fake.sql.find(({ step }) => step === "cleanup.refresh.delete");
   assert.equal(childDelete?.statement.includes(heavyId), false);
-  assert.equal(childDelete?.values[0], heavyId);
-  assert.equal(childDelete?.values.length, 21);
+  assert.match(childDelete?.statement ?? "", /ANY\(\$1::text\[\]\)/);
+  const selectedIds = childDelete?.values[0];
+  assert.ok(Array.isArray(selectedIds));
+  assert.equal(selectedIds[0], heavyId);
+  assert.equal(selectedIds.length, 20);
+  assert.equal(childDelete?.values.length, 2);
   assert.equal(childDelete?.values.at(-1), 200);
   assert.deepEqual(fake.sql.find(({ step }) => step === "cleanup.challenge.lock")?.values, [50]);
   assert.deepEqual(fake.sql.find(({ step }) => step === "cleanup.session.lock")?.values, [20]);

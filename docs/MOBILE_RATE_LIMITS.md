@@ -3,7 +3,7 @@
 Task 5D.1 implements the server-only [admission and cleanup service](../lib/auth/mobile/rate-limit.ts),
 [trusted request source](../lib/auth/mobile/request-source.ts), and
 [key derivation](../lib/auth/mobile/rate-limit-keys.ts). It uses the existing
-PostgreSQL database and Prisma transaction settings. Task 5D.2 wires these
+PostgreSQL database through the dedicated mobile pool. Task 5D.2 wires these
 controls into the [disabled-by-default API](MOBILE_AUTH_API.md). The
 [additive migration](../prisma/migrations/20261126130000_add_mobile_rate_limits/migration.sql)
 remains unapplied. Cross-instance enforcement and the deployed source
@@ -135,12 +135,13 @@ Approve an invocation strategy for both cleanup services before enabling
 the authentication API.
 [PostgreSQL locking clauses](https://www.postgresql.org/docs/current/sql-select.html#SQL-FOR-UPDATE-SHARE)
 
-Both services use the existing Read Committed wrapper configured with a
-two-second Prisma startup wait, five-second transaction timeout, 1.5-second
-lock timeout and three-second statement timeout. See the
-[installed adapter startup limitation](MOBILE_AUTH_API.md#ordering-and-database-limits).
-SQL parameters are bound. A failed or ambiguous commit returns
-`database_unavailable` without automatic retry or authorization.
+Standalone limiter operations and both cleanup services use the
+[mobile transaction executor](MOBILE_DATABASE_TRANSACTION_SAFETY.md#task-5d3b2-mobile-transaction-owner).
+Refresh admission runs on the refresh operation's existing connection.
+Read Committed isolation and transaction-local lock and statement limits
+apply. SQL binds values, and capacity changes check the previous ledger
+count and require exactly one updated row. A failed or ambiguous commit
+returns `database_unavailable` without automatic retry or authorization.
 
 | Result | Future HTTP behavior |
 | --- | --- |

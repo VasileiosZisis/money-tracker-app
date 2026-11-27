@@ -30,9 +30,10 @@ confirmed the final typecheck passed on `66a665e`. Task 5D.3A records the
 [transaction and pool safety findings](MOBILE_DATABASE_TRANSACTION_SAFETY.md).
 Task 5D.3B.1 pins the [stable Prisma 7.10.1 baseline](MOBILE_DATABASE_TRANSACTION_SAFETY.md#task-5d3b1-aligned-baseline).
 Schema validation, client generation, root lint, typecheck, and all 308
-regression tests passed. Task 5D.3B.2 covers the separately managed mobile
-transaction executor. Task 5D.3B.3 requires separate approval for database
-safety verification.
+regression tests passed on that baseline. Task 5D.3B.2 adds the
+[dedicated mobile pg executor](MOBILE_DATABASE_TRANSACTION_SAFETY.md#task-5d3b2-mobile-transaction-owner).
+Root lint, typecheck, and all 327 regression tests passed. Task 5D.3B.3
+requires separate approval for PostgreSQL and pooler verification.
 Task 5E covers live PostgreSQL and deployment verification. Keep the API
 disabled pending the fix and the remaining enablement gates.
 Signed physical iOS verification remains mandatory before iOS release.
@@ -45,7 +46,7 @@ and Expo Router are the native client baseline for iOS and Android. Keep the
 client under `mobile/`, use Expo-supported dependency versions, and use EAS for
 device builds and future distribution.
 
-Both clients use the same PostgreSQL database, Prisma models, internal user
+Both clients use the same PostgreSQL database, Prisma-managed schema, internal user
 identities, and server-side financial rules. The web retains NextAuth, its
 existing Google sign-in and setup flows, and its Server Action interfaces.
 Native clients call JSON Route Handlers under `/api/v1/`. Each transport resolves

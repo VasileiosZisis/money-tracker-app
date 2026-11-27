@@ -1,6 +1,6 @@
 # Mobile database transaction safety
 
-**Approved Task 5D.3B approach.** Keep the mobile authentication API disabled. Task 5D.3B.1 aligns the Prisma stack on the published `7.10.1` release to pick up the late-start rollback fix. Task 5D.3B.2 will give mobile persistence explicit connection ownership through a small `pg` executor on a separate, bounded pool. Both clients will still access the same PostgreSQL database and shared `User` and `Account` rows. Task 5D.3B.3 requires separate authorization for transaction-safety verification. The web path can be reviewed and verified independently for a separate production decision.
+**Approved Task 5D.3B approach.** Keep the mobile authentication API disabled. Task 5D.3B.1 aligns the Prisma stack on the published `7.10.1` release to pick up the late-start rollback fix. Task 5D.3B.2 gives mobile authentication explicit connection ownership through a `pg` executor on a separate pool. Both clients access the same PostgreSQL database and shared `User` and `Account` rows. Task 5D.3B.3 requires separate authorization for transaction-safety verification. The web path can be verified independently for a separate production decision.
 
 Task 5D.3A used read-only source and upstream release inspection. The reviewed Task 5D.2 commit is `66a665e7debddb890fd4cd3358be3485f9ee3baf` on `mobile-dev`. Lint and 308 regression tests passed before a type-only logout correction. The product owner confirmed the final typecheck passed on the corrected commit. Both mobile migrations remain unapplied. [Task 5D.2 verification](MOBILE_AUTH_API.md)
 
@@ -197,9 +197,70 @@ The installed 7.10.1 transaction manager sends SQL `ROLLBACK` for a late-started
 
 Generated imports and the local NextAuth v4 adapter continue to target the same Prisma API. The generated client retains typed `Bytes`, `Decimal`, and `ReadCommitted`, the adapter passes raw SQL with separate parameters, and financial fields remain `numeric(14,2)` with `Tag` and `tagId` mappings. The runtime deserializes Decimal values from strings and now takes an independent copy for `Bytes`. Verify exact-cent aggregates, generated IDs, relation mappings, and real transactions on disposable PostgreSQL. Also verify the inherited `timestamptz` assumption that the session returns UTC offsets. Both adapter versions replace the output offset with `+00:00`, so a non-UTC session is a relevant compatibility case. The offline fixtures can validate service and handler contracts.
 
+## Task 5D.3B.2 mobile transaction owner
+
+The server-only pool is created on the first database operation. It validates
+the runtime `DATABASE_URL`, defaults to verified TLS, preserves verified URL
+settings, and rejects settings that weaken verification. An absent URL fails
+before pool creation. The pool and executor are reused per runtime, including
+local reloads. A module import or disabled API request opens no pool.
+Both the idle pool and checked-out connection handle errors without logging
+raw driver details. Web continues through its existing Prisma client.
+[Mobile pool](../lib/auth/mobile/mobile-pool.ts) · [Web database client](../lib/db.ts)
+
+| Limit | Value and behavior |
+| --- | --- |
+| Connections and operations | Two mobile pool clients and four admitted operations per runtime. Excess operations fail without an application queue. A timed-out checkout keeps its slot until the driver's promise settles and any late lease is discarded. |
+| Driver checkout and idle retention | `connectionTimeoutMillis = 1500` bounds driver checkout waits and new connections. `idleTimeoutMillis = 10000` limits unused connection retention. Total connections across serverless instances still need a deployment budget. |
+| Startup | Two seconds from admission through checkout, `BEGIN ISOLATION LEVEL READ COMMITTED`, and setup. Late checkouts are discarded before `BEGIN`. Failed or uncertain initialization discards the connection. |
+| Active and terminal phases | Five seconds for callback work, up to two seconds for terminal SQL, and a nine-second absolute local deadline from admission. Deadlines use a monotonic clock and are subject to event-loop scheduling. The budget applies to each transaction. |
+| PostgreSQL backstops | Transaction-local `lock_timeout = '1500ms'`, `statement_timeout = '3000ms'`, and `idle_in_transaction_session_timeout = '7000ms'`. Verify actual server version, pooler support, and backend lock release. PostgreSQL 17+ `transaction_timeout` remains a candidate for separately approved testing. |
+
+The owner moves through acquisition, initialization, callback execution,
+closing, and final disposition. The callback gets a frozen interface for
+registered SQL statements with bound parameters. It can run one statement
+at a time. The owner prevents commit after a swallowed statement error,
+and rejects work after close starts. An execution timeout with SQL in
+flight discards the lease. If the callback is idle, the owner can attempt
+rollback within the remaining cleanup budget.
+
+Reuse requires an acknowledged terminal SQL command with the expected
+tag. The owner has one guarded disposition and uses `release(true)` if
+completion cannot be confirmed. A rejected or unacknowledged commit is
+classified internally as uncertain and never retried. An unexpected
+`ROLLBACK` tag during commit returns no application result. All database
+failures retain the existing generic service mapping. Driver disposal
+prevents local reuse. PostgreSQL and pooler lock-release timing still
+requires real verification.
+[Executor](../lib/auth/mobile/mobile-transaction.ts) ·
+[Driver pool](https://node-postgres.com/apis/pool) ·
+[Command results](https://node-postgres.com/apis/result) ·
+[PostgreSQL timeouts](https://www.postgresql.org/docs/current/runtime-config-client.html) ·
+[Neon pooling](https://neon.com/docs/connect/connection-pooling)
+
+The registered statements preserve account and device scope, lock order,
+database-clock checks, and limiter semantics. Google lookup failures
+reach the transaction owner. Session creation uses `crypto.randomUUID()`
+in the existing opaque text column, alongside retained CUIDs. Security
+writes check affected-row counts. Cleanup binds ID arrays and avoids
+cascading refresh history. Digests stay binary and timestamp values stay
+UTC instants at millisecond precision. Both migrations remain unapplied.
+[Statements](../lib/auth/mobile/mobile-statements.ts) ·
+[Session foundation](MOBILE_SESSION_FOUNDATION.md) ·
+[Rate limits](MOBILE_RATE_LIMITS.md)
+
+Offline verification on `mobile-dev` passed root lint, typecheck, and all
+327 regression tests. The additional cases cover executor deadlines,
+late acquisition, TLS configuration, statement and connection failures,
+terminal command tags, confirmed commit and disposal, and account lookup
+rollback. The migrated lifecycle, limiter, and HTTP doubles run the actual
+executor against synthetic leases. Real checkout cancellation and backend
+cleanup remain Task 5D.3B.3 verification gates.
+[Executor tests](../lib/auth/mobile/mobile-transaction.test.ts)
+
 ## Connection and transaction ownership
 
-`lib/db.ts` constructs a Prisma PostgreSQL adapter and client. The adapter creates the `pg.Pool` when the Prisma runtime initializes the driver connection. Within a loaded app runtime, web and mobile use that same client. The pool owns the connection until checkout, the adapter holds the checked-out client, and Prisma directs transaction completion by issuing terminal SQL. With `usePhantomQuery: false`, the installed adapter's `commit()` and `rollback()` are release hooks. In an ordinary close Prisma sends SQL first. Calling the hook alone leaves the server transaction open. [App database client](../lib/db.ts) · [Prisma v7 transactions](https://www.prisma.io/docs/orm/v7/prisma-client/queries/transactions) · [node-postgres transactions](https://node-postgres.com/features/transactions)
+Before the mobile conversion, `lib/db.ts` supplied the same Prisma client to web and mobile. These findings still inform the independent web remediation. The adapter holds the checked-out client, and Prisma directs transaction completion by issuing terminal SQL. With `usePhantomQuery: false`, the adapter's `commit()` and `rollback()` are release hooks. In an ordinary close Prisma sends SQL first. Calling the hook alone leaves the server transaction open. [App database client](../lib/db.ts) · [Prisma v7 transactions](https://www.prisma.io/docs/orm/v7/prisma-client/queries/transactions)
 
 The following pre-alignment paths were checked in Task 5D.3A against `@prisma/client/runtime/client.js.map` (`transaction-manager.ts`, `ClientEngine.ts`, `getPrismaClient.ts`), `@prisma/adapter-pg/dist/index.js`, `pg/lib/client.js` and `pg-pool/index.js`. See the aligned baseline above for the installed 7.10.1 findings.
 
@@ -231,8 +292,8 @@ The confirmed installed defect is late startup releasing an open transaction. Th
 
 | Caller | Transaction shape and relevant timeout path |
 | --- | --- |
-| Mobile challenge issue, preliminary challenge lookup, exchange, bearer lookup, refresh, logout, and internal revoke | Interactive through `runMobileTransaction`, with `ReadCommitted`, 2 s `maxWait`, 5 s execution, and `SET LOCAL` limits of 1.5 s lock and 3 s statement. Google work takes place outside database transactions. |
-| Mobile source and challenge limiter admission, rotation admission, auth cleanup and limiter cleanup | Standalone admission and both cleanup services use the same wrapper. Session admission runs inside the already locked refresh transaction. `findMobileGoogleAccount` uses the caller's transaction in production exchange. Its SQL error is currently mapped inside the callback, which can leave an aborted transaction for Prisma to finalize, but the application returns service failure with no tokens. Let a failed transaction-bound lookup reject under 5D.3B so the executor owns rollback. |
+| Mobile challenge issue, preliminary challenge lookup, exchange, bearer lookup, refresh, logout, and internal revoke | Used the shared Prisma wrapper before 5D.3B.2. These operations now use the dedicated mobile executor. Google verification remains outside database transactions. |
+| Mobile source and challenge limiter admission, rotation admission, auth cleanup and limiter cleanup | Standalone admission and both cleanup services use the mobile wrapper. Session admission uses the locked refresh transaction. The executor owns rollback when the transaction-bound account lookup fails. |
 | Web category detail updates, planned bill and income mark/undo, CSV confirmation | Six direct interactive call sites. `lib/db.ts` leaves Prisma defaults at 2 s startup and 5 s execution; each also relies on the database's default isolation and timeout configuration. Each can encounter late startup independently of mobile. |
 | Other web calls, including NextAuth | The app's local NextAuth v4 adapter, ordinary CRUD, reads, and compiled nested writes use the same module client in a loaded runtime. They can receive a contaminated checkout if that pool reuses one. A premature success can later disappear or a later operation can finalize another request's work. Affected operations depend on the query plan and actual reuse. The inventory found zero explicit array-form batch transactions. The installed engine starts a transaction with configured defaults for a compiled non-interactive multi-query batch, while query-plan internal transactions use the same adapter but skip Prisma's default timers. |
 | Preview seed | Separate Prisma client and pool. Uses Serializable, 10 s startup and 60 s execution on its guarded preview-only path. No shared request pool. The same dependency-level startup and cleanup properties matter if the seed is run separately. |
@@ -252,13 +313,13 @@ The local `origin/main` tracking ref at `8af58bb` has the same shared client and
 
 [Stable adapter source](https://github.com/prisma/orm/blob/7.10.1/packages/adapter-pg/src/pg.ts) · [node-postgres pool and forced disposal](https://node-postgres.com/apis/pool) · [Neon connection pooling](https://neon.com/docs/connect/connection-pooling)
 
-### Proposed implementation
+### Implementation sequence
 
 1. **Align the web baseline in a separate change.** Pin root dev dependency `prisma` and dependencies `@prisma/client` and `@prisma/adapter-pg` to `7.10.1`. Update only the required lock entries, and verify the new client, generator and adapter utility resolutions. Keep `pg` `8.20.0` and `pg-pool` `3.13.0` resolved for the initial comparison if the dependency ranges permit. The candidate adapter still declares `pg: ^8.16.3`. Record any resolution drift and repeat compatibility verification if the driver changes. Regenerate the ignored client with the matching CLI and check compilation and representative behavior with the current Next.js `16.1.6`, NextAuth `4.24.13` local adapter, and TypeScript `5.9.3`. Use Node `22.12+` in the supported 22 line or Node 24 and confirm the intended runtime separately. Keep the `prisma-client` generator, paths and schema. Check Prisma error handling, configured isolation, lock behavior, relation mappings, and exact `numeric(14,2)` / `Decimal` round trips, including generated IDs and legacy `Tag` mappings. Require web regression and disposable safety verification before approving that upgrade for release. If the stable shared adapter fails the web safety criteria, keep release approval pending and return for a supported fix or a separately scoped adapter ownership change. [Candidate adapter manifest](https://raw.githubusercontent.com/prisma/orm/7.10.1/packages/adapter-pg/package.json) · [Prisma system requirements](https://www.prisma.io/docs/orm/v7/reference/system-requirements) · [Local NextAuth adapter](../lib/auth/prisma-adapter.ts)
 
-2. **Implement C and D together for mobile.** Put lazy pool construction and transaction ownership behind `lib/auth/mobile/lifecycle-store.ts`. Use the same approved runtime target and one small reused pool per loaded Node runtime, with an explicit connection and waiting budget. Use `Pool.connect()` with a finite `connectionTimeoutMillis` that removes expired waiters. Bound the count of admitted startup attempts before reaching the driver. If a checkout arrives after its deadline, discard the unused lease without issuing `BEGIN`. Start `BEGIN ISOLATION LEVEL READ COMMITTED` under a startup deadline and set the existing transaction-local lock and statement limits. Keep the 5 s execution budget, and define bounded terminal cleanup within an explicit overall bound. Verify a server-side backstop for lock release during network interruption. Evaluate transaction-local `transaction_timeout` on PostgreSQL 17 or later and `idle_in_transaction_session_timeout` for idle transactions. A local socket deadline alone cannot prove when PostgreSQL released the transaction. Avoid session settings that persist across a transaction-mode pooled connection. A JavaScript deadline must trigger disposal of the lease, or await verified termination within the bound. Do not rely on `query_timeout` for cancellation. Model one owner and one terminal path. Serialize and await all SQL, stop new SQL after close starts, and use one guarded release point. Accept reuse only after confirmed SQL `COMMIT` or `ROLLBACK` with the expected command result and no outstanding work. On terminal timeout, stream failure, lost acknowledgement or ambiguous state, remove the connection from circulation with public `release(true)`. Do not infer persistent state from a resolved query promise after a timeout. [node-postgres pool contract](https://node-postgres.com/apis/pool) · [node-postgres command results](https://node-postgres.com/apis/result) · [PostgreSQL timeout settings](https://www.postgresql.org/docs/current/runtime-config-client.html)
+2. **Own mobile connections.** Task 5D.3B.2 implements the dedicated pool and one-owner transaction boundary. The exact states and budgets are documented above. [Mobile owner](#task-5d3b2-mobile-transaction-owner)
 
-3. **Convert mobile persistence without moving the business rules.** Keep existing SQL ordering and scope in `session-service`, `google-account`, `rate-limit` and `cleanup-service`. Replace their Prisma transaction-client operations with parameterized, typed store queries on that lease. Preserve matching raw result names, `bytea`/`Buffer` comparison, millisecond `timestamptz`, UTC serialization, and checked mutation and aggregate counts. Session insertion currently uses Prisma-generated CUIDs, and the column has no server-side default. Supply an explicit opaque ID from an approved collision-resistant generator, verify existing IDs remain usable and verify all foreign keys and limiter scopes. If the exact CUID format is required by a caller, carry forward that format through an explicitly approved generator. Keep the migrations, partial uniqueness, and cascade behavior. Retain the source and challenge budget commits outside refresh, the existing two-read refresh sequence, and separate Google network work. Adjust offline doubles to the store contract and add executor failure tests. [Mobile session schema](../prisma/schema.prisma) · [Session invariants](MOBILE_SESSION_FOUNDATION.md) · [Rate limiter invariants](MOBILE_RATE_LIMITS.md)
+3. **Convert mobile persistence.** Task 5D.3B.2 preserves the database-clock checks, account and device scope, lock order, and limiter policy with bound SQL. Refresh admission and rotation use one connection. New UUIDs and legacy CUIDs use the same text column. [Session foundation](MOBILE_SESSION_FOUNDATION.md) · [Rate limits](MOBILE_RATE_LIMITS.md)
 
 4. **Measure pooling and rollout prerequisites.** Size by runtime count and the sum of both pools' maxima, with headroom for maintenance and other clients. Test direct disposable PostgreSQL first, then an approved transaction-pooled fixture with the intended Neon-compatible topology. A client-level discard must leave no backend transaction or tenant state reusable through the pooler. Compare teardown, `SET LOCAL`, lock, statement and transaction behavior across both paths. Production and shared preview are outside the verification target. Keep the mobile flag disabled throughout and treat changes to web pool options or actual infrastructure as separate approval items. [Neon transaction pooling](https://neon.com/docs/connect/connection-pooling) · [Deployment isolation](DEPLOYMENT.md)
 
@@ -271,6 +332,43 @@ The local `origin/main` tracking ref at `8af58bb` has the same shared client and
 - Preserve shared identity, account scoping, financial behavior, credential lifetimes, and mappings. Keep credentials, raw SQL values, DSNs, and exception details out of diagnostics. Record safe categories, timing, correlation IDs and aggregate counts only.
 
 ## Verification plan for 5D.3B.3
+
+### Harness design awaiting authorization
+
+Run the suite only after approving a specific newly provisioned disposable
+target and its optional transaction-mode pooler. The runner will take
+dedicated test URLs and an out-of-band target manifest for the approved
+host, port, database, role, and unique fixture marker. Fail before connecting
+on any target mismatch, missing approval, invalid TLS, or production/shared
+preview target. Resolve no target from the application or migration
+environment. After connection, verify the fixture marker and actual
+database and role before setup. Keep test credentials, SQL and bind values
+out of output.
+
+1. Add two harness factories for the aligned Prisma adapter and the mobile
+   executor using a deliberately small test pool. Give each case one
+   observer and an independent blocker on the approved target. Select a
+   web-only schema fixture from main for the independent release candidate.
+   Use the unchanged mobile migrations only on the separate mobile fixture.
+2. Bind a per-case deadline and synthetic operation IDs. Record checkout,
+   confirmed command tag, normal release and discard counts. Feed gates
+   from connection acquisition and statement completion events. Use a
+   second database connection to hold locks for lock and statement deadline
+   cases. Control delayed checkout, startup, callback, terminal completion,
+   and connection interruption at the harness boundary. Tear down every
+   gate and fixture at its case deadline.
+3. Run each fault in the matrix below, then check that an unrelated write
+   commits through the same pool with its own sentinel. For a withheld
+   COMMIT, assert the observer never sees the first sentinel. For a lost
+   acknowledgement, wait for the independent observer to see the commit
+   before delivering a synthetic transport failure to the caller. Both
+   caller paths must avoid returning mobile credentials or retrying.
+4. Use bounded sampling of connection counts, transaction state and
+   locks from the observer, then independently check committed writes.
+   Exercise lifecycle and rate-limit races with two independent contenders
+   and barriers at the documented lock order. Repeat the remaining cases
+   through the approved pooler, with pooler/server version and UTC result
+   mapping recorded. Keep the mobile API flag disabled throughout.
 
 Use a disposable PostgreSQL database with fictional sentinels, both existing migrations only on that target, and a test pool of one checkout plus independent observer and blocker connections. Add barriers for acquisition, `BEGIN`, isolation/timeout initialization, statements and terminal commands. For lost acknowledgements, the harness must distinguish a command withheld from PostgreSQL from a response withheld after independent observation of the committed state. Use bounded barriers and a watchdog on the harness. Track opaque checkout IDs, safe event names, and aggregate counts. Use `pg_stat_activity` state, `xact_start`, wait-event categories, `pg_locks`, and a synthetic backend tag or PID for test correlation. Do not capture the `query` column, bound parameters or connection strings. Inspect durable state and lock release from a separate connection after each case.
 

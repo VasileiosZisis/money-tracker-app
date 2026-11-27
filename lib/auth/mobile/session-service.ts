@@ -1,8 +1,6 @@
 import "server-only";
 
-import { timingSafeEqual } from "node:crypto";
-
-import type { Prisma } from "@/generated/prisma/client";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 
 import {
   createMobileChallengeId,
@@ -16,12 +14,15 @@ import { getMobileChallengeExpiry, getMobileCredentialExpiries, getMobileSession
 import { findMobileGoogleAccount } from "./google-account";
 import { maxMobileGoogleIdTokenLength, verifyMobileGoogleProof, type MobileGoogleVerification } from "./google-verification";
 import {
-  mobileDatabaseClock,
+  isMobileDatabaseDate,
+  isMobileDatabaseId,
+  optionalMobileRow,
   readMobileDatabaseTime,
   requireSingleMobileWrite,
   runMobileTransaction,
   type MobileDatabaseFailure,
 } from "./lifecycle-store";
+import type { MobileTransaction } from "./mobile-transaction";
 import { admitMobileRefreshSession, type MobileRateLimitResult } from "./rate-limit";
 
 type MobileTokens = {
@@ -86,26 +87,17 @@ export function issueMobileAuthChallenge(): Promise<MobileChallengeResult> {
     if (!nonceDigest) throw new Error("Invalid generated mobile nonce");
 
     const expiresAt = getMobileChallengeExpiry(now);
-    await tx.mobileAuthChallenge.create({
-      data: { id: challengeId, nonceDigest, createdAt: now, expiresAt },
-      select: { id: true },
-    });
+    requireSingleMobileWrite(await tx.query("insertChallenge", [challengeId, nonceDigest, now, expiresAt]));
     return { status: "issued", challengeId, nonce, expiresAt };
   });
 }
 
-async function pinGoogleAccount(tx: Prisma.TransactionClient, subject: string, userId: string): Promise<void> {
-  const [user] = await tx.$queryRaw<{ id: string }[]>`
-    SELECT "id" FROM "User" WHERE "id" = ${userId} FOR KEY SHARE
-  `;
-  if (!user) throw new Error("Mobile Google user changed before locking");
+async function pinGoogleAccount(tx: MobileTransaction, subject: string, userId: string): Promise<void> {
+  const user = optionalMobileRow((await tx.query<{ id: string }>("lockUser", [userId])).rows);
+  if (user?.id !== userId) throw new Error("Mobile Google user changed before locking");
 
-  const [account] = await tx.$queryRaw<{ userId: string }[]>`
-    SELECT "userId" FROM "Account"
-    WHERE "provider" = 'google' AND "providerAccountId" = ${subject} AND "userId" = ${userId}
-    FOR SHARE
-  `;
-  if (!account) throw new Error("Mobile Google account changed before locking");
+  const account = optionalMobileRow((await tx.query<{ userId: string }>("lockGoogleAccount", [subject, userId])).rows);
+  if (account?.userId !== userId) throw new Error("Mobile Google account changed before locking");
 }
 
 export async function exchangeMobileGoogleProof({
@@ -117,13 +109,15 @@ export async function exchangeMobileGoogleProof({
     typeof idToken !== "string" || !idToken || idToken.length > maxMobileGoogleIdTokenLength
   ) return { status: "invalid_proof" };
 
-  const preliminary = await runMobileTransaction((tx) => tx.$queryRaw<{ nonceDigest: Uint8Array }[]>`
-    SELECT "nonceDigest" FROM "MobileAuthChallenge"
-    WHERE "id" = ${challengeId}
-      AND "consumedAt" IS NULL AND "expiresAt" > ${mobileDatabaseClock}
-  `);
+  const preliminary = await runMobileTransaction(async (tx) => {
+    const candidate = optionalMobileRow((await tx.query<{ nonceDigest: Uint8Array }>("readChallenge", [challengeId])).rows);
+    if (candidate && (!(candidate.nonceDigest instanceof Uint8Array) || candidate.nonceDigest.byteLength !== 32)) {
+      throw new Error("Invalid mobile challenge digest");
+    }
+    return { candidate };
+  });
   if ("status" in preliminary) return preliminary;
-  const [candidate] = preliminary;
+  const { candidate } = preliminary;
   if (!candidate) return { status: "invalid_proof" };
 
   // The preliminary read has committed before any Google work or exchange locks.
@@ -137,10 +131,11 @@ export async function exchangeMobileGoogleProof({
   const { proof } = verification;
 
   return runMobileTransaction<MobileGoogleExchangeResult>(async (tx) => {
-    const [challenge] = await tx.$queryRaw<LockedChallenge[]>`
-      SELECT "nonceDigest", "expiresAt", "consumedAt" FROM "MobileAuthChallenge"
-      WHERE "id" = ${challengeId} FOR UPDATE
-    `;
+    const challenge = optionalMobileRow((await tx.query<LockedChallenge>("lockChallenge", [challengeId])).rows);
+    if (challenge && (!(challenge.nonceDigest instanceof Uint8Array) || !isMobileDatabaseDate(challenge.expiresAt) ||
+      (challenge.consumedAt !== null && !isMobileDatabaseDate(challenge.consumedAt)))) {
+      throw new Error("Invalid locked mobile challenge");
+    }
     if (!challenge || challenge.consumedAt !== null) return { status: "invalid_proof" };
 
     const account = await findMobileGoogleAccount(proof, tx);
@@ -156,24 +151,18 @@ export async function exchangeMobileGoogleProof({
     if (challenge.nonceDigest.byteLength !== proofDigest.byteLength) return { status: "verification_error" };
     if (!timingSafeEqual(challenge.nonceDigest, proofDigest)) return { status: "invalid_nonce" };
 
-    requireSingleMobileWrite(await tx.mobileAuthChallenge.updateMany({
-      where: { id: challengeId, consumedAt: null },
-      data: { consumedAt: now },
-    }));
+    requireSingleMobileWrite(await tx.query("consumeChallenge", [challengeId, now]));
     if (account.status === "account_not_linked") return { status: "account_not_linked" };
 
     const absoluteExpiresAt = getMobileSessionDeadline(now);
     const { tokens, accessTokenDigest, refreshTokenDigest } = createSessionCredentials(now, absoluteExpiresAt);
-    const session = await tx.mobileSession.create({
-      data: {
-        userId: account.userId, createdAt: now, absoluteExpiresAt, accessTokenDigest, accessExpiresAt: tokens.accessExpiresAt,
-      },
-      select: { id: true },
-    });
-    await tx.mobileRefreshCredential.create({
-      data: { sessionId: session.id, tokenDigest: refreshTokenDigest, issuedAt: now, expiresAt: tokens.refreshExpiresAt },
-      select: { sessionId: true },
-    });
+    const sessionId = randomUUID();
+    requireSingleMobileWrite(await tx.query("insertSession", [
+      sessionId, account.userId, now, absoluteExpiresAt, accessTokenDigest, tokens.accessExpiresAt,
+    ]));
+    requireSingleMobileWrite(await tx.query("insertRefresh", [
+      sessionId, refreshTokenDigest, now, tokens.refreshExpiresAt,
+    ]));
     return { status: "authenticated", tokens };
   });
 }
@@ -183,40 +172,41 @@ export async function authenticateMobileAccess(accessToken: unknown): Promise<Mo
   if (!digest) return { status: "invalid_credential" };
 
   return runMobileTransaction<MobileAccessResult>(async (tx) => {
-    const [identity] = await tx.$queryRaw<{ userId: string; sessionId: string }[]>`
-      WITH auth_time AS MATERIALIZED (SELECT ${mobileDatabaseClock} AS "now")
-      SELECT u."id" AS "userId", s."id" AS "sessionId"
-      FROM "MobileSession" s
-      JOIN "User" u ON u."id" = s."userId"
-      CROSS JOIN auth_time
-      WHERE s."accessTokenDigest" = ${digest} AND s."revokedAt" IS NULL
-        AND s."accessExpiresAt" > auth_time."now" AND s."absoluteExpiresAt" > auth_time."now"
-    `;
+    const identity = optionalMobileRow((await tx.query<{ userId: string; sessionId: string }>("readAccess", [digest])).rows);
+    if (identity && (!isMobileDatabaseId(identity.userId) || !isMobileDatabaseId(identity.sessionId))) {
+      throw new Error("Invalid mobile access identity");
+    }
     return identity
       ? { status: "authenticated", userId: identity.userId, sessionId: identity.sessionId }
       : { status: "invalid_credential" };
   });
 }
 
-async function lockMobileSession(tx: Prisma.TransactionClient, sessionId: string) {
-  const [session] = await tx.$queryRaw<LockedSession[]>`
-    SELECT "id", "absoluteExpiresAt", "revokedAt" FROM "MobileSession" WHERE "id" = ${sessionId} FOR UPDATE
-  `;
+async function lockMobileSession(tx: MobileTransaction, sessionId: string) {
+  const session = optionalMobileRow((await tx.query<LockedSession>("lockSession", [sessionId])).rows);
+  if (session && (session.id !== sessionId || !isMobileDatabaseDate(session.absoluteExpiresAt) ||
+    (session.revokedAt !== null && !isMobileDatabaseDate(session.revokedAt)))) {
+    throw new Error("Invalid locked mobile session");
+  }
   return session;
 }
 
-async function lockSessionForRefreshDigest(tx: Prisma.TransactionClient, tokenDigest: Prisma.Bytes) {
-  const candidate = await tx.mobileRefreshCredential.findUnique({ where: { tokenDigest }, select: { sessionId: true } });
+async function lockSessionForRefreshDigest(tx: MobileTransaction, tokenDigest: Uint8Array) {
+  const candidate = optionalMobileRow((await tx.query<{ sessionId: string }>("readRefreshSessionId", [tokenDigest])).rows);
   if (!candidate) return null;
+  if (!isMobileDatabaseId(candidate.sessionId)) throw new Error("Invalid mobile refresh session ID");
 
   const session = await lockMobileSession(tx, candidate.sessionId);
   if (!session) return null;
 
   // A separate Read Committed statement sees a predecessor consumed by a transaction we waited for.
-  const credential = await tx.mobileRefreshCredential.findUnique({
-    where: { tokenDigest, sessionId: session.id },
-    select: { expiresAt: true, consumedAt: true },
-  });
+  const credential = optionalMobileRow((await tx.query<{ expiresAt: Date; consumedAt: Date | null }>(
+    "rereadRefresh", [tokenDigest, session.id],
+  )).rows);
+  if (credential && (!isMobileDatabaseDate(credential.expiresAt) ||
+    (credential.consumedAt !== null && !isMobileDatabaseDate(credential.consumedAt)))) {
+    throw new Error("Invalid mobile refresh history");
+  }
   return credential ? { session, credential } : null;
 }
 
@@ -224,11 +214,8 @@ function isLiveSession(session: LockedSession, now: Date): boolean {
   return session.revokedAt === null && !isMobileExpiryReached(session.absoluteExpiresAt, now);
 }
 
-async function markMobileSessionRevoked(tx: Prisma.TransactionClient, sessionId: string, now: Date): Promise<void> {
-  requireSingleMobileWrite(await tx.mobileSession.updateMany({
-    where: { id: sessionId, revokedAt: null },
-    data: { revokedAt: now },
-  }));
+async function markMobileSessionRevoked(tx: MobileTransaction, sessionId: string, now: Date): Promise<void> {
+  requireSingleMobileWrite(await tx.query("revokeSession", [sessionId, now]));
 }
 
 export async function rotateMobileRefresh(refreshToken: unknown): Promise<MobileRefreshResult> {
@@ -259,18 +246,11 @@ export async function rotateMobileRefresh(refreshToken: unknown): Promise<Mobile
     }
 
     const { tokens, accessTokenDigest, refreshTokenDigest } = createSessionCredentials(rotationTime, session.absoluteExpiresAt);
-    requireSingleMobileWrite(await tx.mobileRefreshCredential.updateMany({
-      where: { tokenDigest, sessionId: session.id, consumedAt: null },
-      data: { consumedAt: rotationTime },
-    }));
-    await tx.mobileRefreshCredential.create({
-      data: { sessionId: session.id, tokenDigest: refreshTokenDigest, issuedAt: rotationTime, expiresAt: tokens.refreshExpiresAt },
-      select: { sessionId: true },
-    });
-    requireSingleMobileWrite(await tx.mobileSession.updateMany({
-      where: { id: session.id, revokedAt: null },
-      data: { accessTokenDigest, accessExpiresAt: tokens.accessExpiresAt },
-    }));
+    requireSingleMobileWrite(await tx.query("consumeRefresh", [tokenDigest, session.id, rotationTime]));
+    requireSingleMobileWrite(await tx.query("insertRefresh", [
+      session.id, refreshTokenDigest, rotationTime, tokens.refreshExpiresAt,
+    ]));
+    requireSingleMobileWrite(await tx.query("rotateAccess", [session.id, accessTokenDigest, tokens.accessExpiresAt]));
     return { status: "rotated", tokens };
   });
 }
