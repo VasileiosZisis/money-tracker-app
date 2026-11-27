@@ -392,6 +392,16 @@ Offline executor tests should use a controllable pool and lease with synthetic t
 
 ## Independent web remediation release plan
 
+The [Task 5D.3B.3C direct verification](MOBILE_POSTGRES_VERIFICATION.md#task-5d3b3c-results)
+passed the ten web migrations and all 11 web Prisma cases on a separate
+PostgreSQL 17.12 fixture. The tested production-style defaults recovered
+after acquisition timeout. The small-pool delayed-start, terminal fault
+and recovery checks passed with independent database observations. The
+run used the aligned packages on `mobile-dev`. It establishes direct
+fixture evidence for the exercised cases. Approval to prepare a
+main-based candidate and verify its actual runtime and intended
+transaction pooler remains separate.
+
 1. Under separate authorization, prepare a candidate from the then-current production `main`. Apply only the reviewed Prisma pins and a lockfile resolved from main's existing lock, plus any separately reviewed compatibility fixes. Compare the candidate lockfile with both main and this alignment. Use main's existing schema and configuration to regenerate locally with synthetic settings. Exclude mobile routes, executor changes, and both unapplied migrations.
 2. Run the authorized web lint, typecheck and regression checks on that exact candidate. Exercise NextAuth session and account operations, category and planned-item transactions, import, and exact financial Decimal and legacy mappings. Use disposable PostgreSQL with the production-equivalent web schema for transaction and pool fault tests. Verify normal commits, failed or late startup, lock and statement behavior, failed terminal SQL, ambiguous outcomes, and independence of subsequent writes under the intended pooler. Use fictional records and independent observers.
 3. Require explicit approval for any release. If the stable adapter cannot meet the web safety criteria, require a separately reviewed connection termination and disposal remedy before release. If those gates pass, document deployment health checks, failure monitoring and rollback criteria. The dependency-only release needs no schema rollback. Reverting to the earlier package set reintroduces its known late-start defect, so include that tradeoff in the rollback decision. Web work can proceed on its own schedule while mobile enablement remains gated. [Deployment boundaries](DEPLOYMENT.md)

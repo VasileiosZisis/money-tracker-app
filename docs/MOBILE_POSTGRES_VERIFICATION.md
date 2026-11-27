@@ -88,11 +88,86 @@ The withheld COMMIT and the withheld result after an independently
 observed commit exercise different database outcomes at the driver
 boundary. Packet-level interruption and lost network acknowledgements
 remain open. This run used synthetic Google keys and service-level
-authentication. Task 5D.3B.3C can proceed to separate authorization for
-the web Prisma fixture. The intended pooler, deployed runtime, actual
-ingress, and live Google integration remain unverified. Both migrations
-remain unapplied to application databases, and the mobile API stays
-disabled.
+authentication. The intended pooler, deployed runtime, actual ingress,
+and live Google integration remain unverified. Both migrations remain
+unapplied to application databases, and the mobile API stays disabled.
+
+## Task 5D.3B.3C results
+
+The web-only run passed on `mobile-dev` at
+`3cabaf5042d138b69e6ba2d1ec80c953878991f2`, with the harness unchanged
+from `3d3d7a7`. Manifest, lockfile and installed Prisma CLI, client and
+PostgreSQL adapter versions matched at 7.10.1. The generated client was
+7.10.1. The installed and locked pg and pg-pool were 8.20.0 and 3.13.0.
+
+A new fixture used the pinned image below on Docker Engine 29.9.3
+at `npipe:////./pipe/dockerDesktopLinuxEngine`. It ran PostgreSQL 17.12
+with one web-stage database, a distinct role and instance marker, and a
+new private CA. Connections used `127.0.0.1:55437`, verified the CA and
+IP identity, and matched the role, database, system identifier, marker and
+server major version. Both stages obtained the advisory lock. Both
+rejected an untrusted CA and mismatched name.
+
+| Command, run once | Result |
+| --- | --- |
+| `npm run test:postgres-fixture -- migrate web` | Passed TLS and replay of the ten committed web migrations through `20260817120000_add_user_time_zone`. The catalog matched only the expected web tables, excluding all five mobile tables. |
+| `npm run test:postgres-fixture -- web web` | **11 passed, 0 failed**. Two preflight cases, three production-style cases and six small-pool experiments. |
+
+The migration runner replayed direct SQL into an empty schema and then
+seeded the fictional web data. It verified web keys and indexes, four
+`numeric(14,2)` column definitions, and the seed's exact
+`999999999999.99` expense, user, linked account subject, date, currency,
+time zone, category and legacy `Tag`/`tagId` mapping. Both mobile
+migrations were excluded. Prisma migration-history bookkeeping was
+outside this run.
+
+- **Web persistence** The actual NextAuth v4 adapter correctly linked a
+  fictional Google account and created, retrieved and deleted its
+  session. The category detail action added a subcategory backed by
+  `Tag`. Planned bill and income handling generated the expected
+  expense and income with their category and subcategory associations.
+  Undo removed the generated transactions.
+- **CSV and decimals** Preview left the fixture user's transaction count
+  at zero. Confirmation wrote the two scoped amounts `999999999999.99`
+  and `0.01`, and the first row retained its subcategory. Prisma Decimal
+  addition and independent PostgreSQL `SUM` both returned exactly
+  `1000000000000.00`.
+- **Production-style pool defaults** Batch creation committed. A failed
+  batch rejected with `P2002`, rolled back its attempted insert and
+  preserved both earlier records. Ten occupied leases caused an
+  eleventh transaction to reject with Prisma startup timeout `P2028`.
+  After releasing the holders, the observer confirmed pool recovery
+  and an independent commit.
+- **Small-pool experiments** The delayed start returned `P2028`, completed
+  at the adapter after the deadline and invoked no application callback.
+  The observer confirmed backend cleanup and safe subsequent work.
+  Statement and lock timeout scenarios, the deferred constraint at COMMIT,
+  withheld result after real commit, and backend termination during a
+  rollback attempt passed. Independent observations confirmed absent
+  writes after rejected terminal SQL and a durable write before the
+  simulated acknowledgement loss. Later writes committed and survived
+  separate rollbacks. Observed transactions, locks, waiters and
+  checked-out clients cleared within the eight-second window.
+
+The application cases use a guarded injected pool and one synthetic
+identity. The results cover category updates with the existing name and
+generated-transaction undo. Category renaming, undo of linked transactions,
+cross-user denial, non-UTC date boundaries, live Google and browser
+sessions remain outside this evidence. The CSV post-confirmation
+checks query the acting user's rows and assert both amounts and the
+first subcategory. They do not assert full persisted row details or
+look for writes outside that user. The non-startup fault cases require a rejected operation and
+check database state and pool recovery. They do not match the exact
+SQLSTATE for each failure or prove that recovery used the same physical
+backend. The simulated acknowledgement loss acts at the adapter boundary.
+Packet-level loss and exact deployed pool behavior remain open.
+
+Teardown verified the fixture labels before removing the container and
+network. The exact temporary directory, container, network and port
+listener were confirmed absent. Fixture credentials were cleared and
+the pinned image was retained. The independent main-based release
+candidate, its pooler/runtime verification and its deployment require
+separate authorization. Keep the mobile API disabled.
 
 ## Available local infrastructure
 

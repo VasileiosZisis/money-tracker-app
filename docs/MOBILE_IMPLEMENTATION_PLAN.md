@@ -39,12 +39,14 @@ Task 5D.3B.3A.1 passes root lint, typecheck, all 331 offline regressions,
 and the Git diff check on the reviewed harness.
 [Task 5D.3B.3B](MOBILE_POSTGRES_VERIFICATION.md#task-5d3b3b-results) passed
 empty and upgrade migration replay and all 33 mobile suite cases on
-disposable PostgreSQL 17.12, then completed teardown. Task 5D.3B.3C
-requires separate approval for the web Prisma fixture. Prisma migration
-bookkeeping, production mobile-pool behavior, packet-level interruption,
-the intended pooler and deployment verification remain open. Both mobile
-migrations remain unapplied to application databases and the mobile
-authentication API stays disabled pending the remaining enablement gates.
+disposable PostgreSQL 17.12, then completed teardown.
+[Task 5D.3B.3C](MOBILE_POSTGRES_VERIFICATION.md#task-5d3b3c-results)
+passed web-only migration replay and all 11 web Prisma cases on a separate
+fixture and verified teardown. An independent main-based release candidate
+requires separate approval. Prisma migration bookkeeping, production pool
+behavior, packet-level interruption, the intended pooler and deployment
+verification remain open. Both mobile migrations remain unapplied to
+application databases and the mobile authentication API stays disabled.
 Signed physical iOS verification remains mandatory before iOS release.
 
 ## Architecture And Scope
